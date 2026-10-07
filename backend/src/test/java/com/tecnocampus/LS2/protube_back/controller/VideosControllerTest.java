@@ -1,6 +1,7 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.services.VideoService;
+import com.tecnocampus.LS2.protube_back.model.VideoSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,7 +27,11 @@ class VideosControllerTest {
 
     @Test
     void getVideos() {
-        when(videoService.getVideos()).thenReturn(List.of("video 1", "video 2"));
-        assertEquals(List.of("video 1", "video 2"), videosController.getVideos().getBody());
+        List<VideoSummary> videos = List.of(
+                new VideoSummary(1, "video 1", "/media/1.webp", "/media/1.mp4"),
+                new VideoSummary(2, "video 2", "/media/2.webp", "/media/2.mp4")
+        );
+        when(videoService.getVideos()).thenReturn(videos);
+        assertEquals(videos, videosController.getVideos().getBody());
     }
 }

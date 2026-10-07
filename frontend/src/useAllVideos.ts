@@ -4,9 +4,16 @@ import { getEnv } from './utils/Env';
 
 type LoadingState = 'loading' | 'success' | 'error' | 'idle';
 
+export type VideoSummary = {
+  id: number;
+  title: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+};
+
 const ALL_VIDEOS_URL = `${getEnv().API_BASE_URL}/videos`;
 export function useAllVideos() {
-  const [value, setValue] = useState<string[]>([]);
+  const [value, setValue] = useState<VideoSummary[]>([]);
   const [message, setMessage] = useState<string>('Loading...');
   const [loading, setLoading] = useState<LoadingState>('idle');
 
@@ -14,7 +21,7 @@ export function useAllVideos() {
     const getVideos = async () => {
       try {
         setLoading('loading');
-        const response = await axios.get<string[]>(ALL_VIDEOS_URL);
+        const response = await axios.get<VideoSummary[]>(ALL_VIDEOS_URL);
         if (response.status === 200) {
           setValue(response.data);
         }
