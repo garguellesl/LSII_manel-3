@@ -1,6 +1,7 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.services.VideoService;
+import com.tecnocampus.LS2.protube_back.model.VideoSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +19,7 @@ public class VideosController {
     VideoService videoService;
 
     @GetMapping("")
-    public ResponseEntity<List<String>> getVideos() {
+    public ResponseEntity<List<VideoSummary>> getVideos() {
         return ResponseEntity.ok().body(videoService.getVideos());
 
     }
