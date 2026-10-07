@@ -38,4 +38,12 @@ function ContentApp() {
   return <div>Idle...</div>;
 }
 
+<<<<<<< Updated upstream
+=======
+function toMediaUrl(path: string) {
+  const mediaPrefix = '/media/';
+  return path.startsWith(mediaPrefix) ? `${getEnv().MEDIA_BASE_URL}/${path.slice(mediaPrefix.length)}` : path;
+}
+
+>>>>>>> Stashed changes
 export default App;
