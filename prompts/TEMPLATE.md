@@ -2,7 +2,8 @@
 
 **Approved on:** YYYY-MM-DD
 **Approved by:** <team members / PR link>
-**Used for:** <what kind of task this prompt is for, e.g. "scaffolding a Spring REST controller">
+**Used for:** <task type, for example "scaffolding a Spring REST controller">
+**Provider:** <Claude / Codex / Antigravity / Any>
 
 ## Prompt
 
@@ -10,4 +11,4 @@
 
 ## Notes
 
-<optional: known limitations, follow-up edits usually needed, related PRs>
+<known limitations, follow-up edits usually needed, related PRs>

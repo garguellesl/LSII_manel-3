@@ -50,9 +50,7 @@ function ContentApp() {
 
 function toMediaUrl(path: string) {
   const mediaPrefix = '/media/';
-  return path.startsWith(mediaPrefix)
-    ? `${getEnv().MEDIA_BASE_URL}/${path.slice(mediaPrefix.length)}`
-    : path;
+  return path.startsWith(mediaPrefix) ? `${getEnv().MEDIA_BASE_URL}/${path.slice(mediaPrefix.length)}` : path;
 }
 
 export default App;
