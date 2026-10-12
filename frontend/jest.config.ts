@@ -10,6 +10,9 @@ export default {
   transform: {
     ...tsJestTransformCfg,
   },
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': '<rootDir>/src/utils/__mocks__/styleMock.ts',
+  },
   collectCoverage: true,
   coverageReporters: ['json', 'html'],
   coverageThreshold: {
