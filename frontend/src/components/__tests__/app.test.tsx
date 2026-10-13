@@ -53,6 +53,24 @@ describe('App Component', () => {
     expect(screen.getByText('Advanced TypeScript Tips')).toBeInTheDocument();
   });
 
+  it('starts video playback only after the user clicks a video', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByLabelText('React Tutorial for Beginners')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /play react tutorial for beginners/i }));
+
+    const player = screen.getByLabelText('React Tutorial for Beginners');
+    expect(player).toBeInTheDocument();
+    expect(player).toHaveAttribute('autoplay');
+    expect(player).toHaveAttribute('src', 'development/1.mp4');
+  });
+
   it('filters video list dynamically with partial and case-insensitive query', async () => {
     mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
     render(<App />);

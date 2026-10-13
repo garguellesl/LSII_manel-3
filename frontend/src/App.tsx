@@ -24,6 +24,8 @@ interface ContentAppProps {
 
 function ContentApp({ searchQuery }: ContentAppProps) {
   const { loading, message, value } = useAllVideos();
+  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
+
   switch (loading) {
     case 'loading':
       return <div>Loading...</div>;
@@ -56,11 +58,21 @@ function ContentApp({ searchQuery }: ContentAppProps) {
           <ul className="video-grid">
             {filteredVideos.map((video) => (
               <li key={video.id} className="video-card">
-                <img src={toMediaUrl(video.thumbnailUrl)} alt={video.title} />
                 <h2>{video.title}</h2>
-                <video controls preload="metadata" src={toMediaUrl(video.videoUrl)}>
-                  Your browser does not support video playback.
-                </video>
+                {playingVideoId === video.id ? (
+                  <video controls autoPlay preload="auto" src={toMediaUrl(video.videoUrl)} aria-label={video.title}>
+                    Your browser does not support video playback.
+                  </video>
+                ) : (
+                  <button
+                    type="button"
+                    className="video-card-button"
+                    onClick={() => setPlayingVideoId(video.id)}
+                    aria-label={`Play ${video.title}`}
+                  >
+                    <img src={toMediaUrl(video.thumbnailUrl)} alt="" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
