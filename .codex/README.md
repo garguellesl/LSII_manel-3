@@ -4,7 +4,7 @@ Codex uses the repository-level `AGENTS.md`, nested `AGENTS.md` files, and skill
 
 ## How to use
 
-- Start Codex from the repository root or the target subdirectory.
+- Start Codex from the repository root or the target subdirectory. Follow the startup protocol in `AGENTS.md`; use `docs/ai/CONTEXT.md` and the current task handoff instead of rediscovering the whole repository. Team coordination is described in `docs/AI_TEAM_WORKFLOW.md`.
 - Use `$create-rest-endpoint` for backend API route work.
 - Use `$react-component-test` for frontend test work.
 - Use `$review-pull-request` for branch review.

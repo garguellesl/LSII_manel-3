@@ -14,6 +14,7 @@ These instructions apply to all work inside `frontend/`. Follow the repository-l
 - Keep reusable data access in hooks or client utilities.
 - Keep tests near components under `__tests__/` or as `*.test.tsx`.
 - Do not call backend URLs directly from components when an existing hook or utility should own that behavior.
+- Check `docs/ai/COORDINATION.md` before changing shared routing, hooks, API types, global styles, or package dependencies. A backend task and a frontend task can conflict through an API contract even when they edit different files.
 
 ## Testing rules
 
