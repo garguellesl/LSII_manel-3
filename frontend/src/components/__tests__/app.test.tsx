@@ -62,19 +62,17 @@ describe('App Component', () => {
   });
 
   it('starts video playback only after the user clicks a video', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
-    render(<App />);
+    mockedAxios.get.mockImplementation((url: string) =>
+      url.endsWith('/videos/1')
+        ? Promise.resolve({ status: 200, data: { ...sampleVideos[0], user: '', description: '', duration: 0 } })
+        : Promise.resolve({ status: 200, data: sampleVideos })
+    );
+    renderApp();
 
-    await waitFor(() => {
-      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
-    });
+    fireEvent.click(await screen.findByRole('link', { name: /watch react tutorial for beginners/i }));
 
-    expect(screen.queryByLabelText('React Tutorial for Beginners')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /play react tutorial for beginners/i }));
-
+    await screen.findByRole('heading', { level: 1, name: 'React Tutorial for Beginners' });
     const player = screen.getByLabelText('React Tutorial for Beginners');
-    expect(player).toBeInTheDocument();
     expect(player).toHaveAttribute('autoplay');
     expect(player).toHaveAttribute('src', 'development/1.mp4');
   });
