@@ -89,22 +89,89 @@
   margin-top: 1.5rem;
 }
 
-.video-card-button {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: center;
+.App-logo--compact {
+  height: 80px;
 }
 
-.video-card-button img,
-.video-card video {
-  width: 100%;
-  max-width: 360px;
-  border-radius: 8px;
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  width: 90%;
+  max-width: 1200px;
+  padding: 0;
+  margin: 1rem auto 2rem;
+  list-style: none;
 }
+
+.video-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+}
+
+.video-card-link:hover .video-card-title,
+.video-card-link:focus-visible .video-card-title {
+  color: #61dafb;
+}
+
+.video-card-link:focus-visible {
+  outline: 3px solid #61dafb;
+  outline-offset: 4px;
+}
+
+.video-card-thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.video-card-title {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.video-player-page {
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto 2rem;
+  text-align: left;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #61dafb;
+  font-size: 1rem;
+}
+
+.video-player-media {
+  width: 100%;
+  max-height: 70vh;
+  background-color: #000;
+  border-radius: 12px;
+}
+
+.video-player-title {
+  margin-top: 1rem;
+  font-size: 1.5rem;
+}
+
+.video-player-user {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.video-player-description {
+  font-size: 0.95rem;
+  white-space: pre-line;
+  color: #d1d5db;
+  background-color: #1e2126;
+  padding: 1rem;
+  border-radius: 12px;
+}
+

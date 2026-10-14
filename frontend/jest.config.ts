@@ -14,6 +14,16 @@ export default {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/utils/__mocks__/styleMock.ts',
   },
   collectCoverage: true,
+  // Measure every source file, not only the ones a test happens to import
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/main.tsx',
+    '!src/examples.ts',
+    '!src/utils/Env.ts',
+    '!src/**/*.d.ts',
+    '!src/**/__mocks__/**',
+    '!src/**/__tests__/**',
+  ],
   coverageReporters: ['json', 'html'],
   coverageThreshold: {
     global: {

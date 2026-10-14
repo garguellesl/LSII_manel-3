@@ -1,18 +1,40 @@
 import { useState } from 'react';
+import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SearchBar } from './components/SearchBar';
+import { VideoCard } from './components/VideoCard';
+import { VideoPlayerPage } from './components/VideoPlayerPage';
 import { useAllVideos } from './useAllVideos';
-import { getEnv } from './utils/Env';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHome = location.pathname === '/';
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!isHome) {
+      navigate('/');
+    }
+  };
 
   return (
     <div className="App">
       <header className="App-header">
-        <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="logo" />
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
-        <ContentApp searchQuery={searchQuery} />
+        <Link to="/" aria-label="Go to home">
+          <img
+            src="/protube-logo-removebg-preview.png"
+            className={isHome ? 'App-logo' : 'App-logo App-logo--compact'}
+            alt="logo"
+          />
+        </Link>
+        <SearchBar value={searchQuery} onChange={handleSearch} />
+        <Routes>
+          <Route path="/" element={<ContentApp searchQuery={searchQuery} />} />
+          <Route path="/videos/:id" element={<VideoPlayerPage />} />
+          <Route path="*" element={<p role="alert">Page not found.</p>} />
+        </Routes>
       </header>
     </div>
   );
@@ -24,8 +46,6 @@ interface ContentAppProps {
 
 function ContentApp({ searchQuery }: ContentAppProps) {
   const { loading, message, value } = useAllVideos();
-  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
-
   switch (loading) {
     case 'loading':
       return <div>Loading...</div>;
@@ -57,23 +77,7 @@ function ContentApp({ searchQuery }: ContentAppProps) {
           <strong>Videos availables:</strong>
           <ul className="video-grid">
             {filteredVideos.map((video) => (
-              <li key={video.id} className="video-card">
-                <h2>{video.title}</h2>
-                {playingVideoId === video.id ? (
-                  <video controls autoPlay preload="auto" src={toMediaUrl(video.videoUrl)} aria-label={video.title}>
-                    Your browser does not support video playback.
-                  </video>
-                ) : (
-                  <button
-                    type="button"
-                    className="video-card-button"
-                    onClick={() => setPlayingVideoId(video.id)}
-                    aria-label={`Play ${video.title}`}
-                  >
-                    <img src={toMediaUrl(video.thumbnailUrl)} alt="" />
-                  </button>
-                )}
-              </li>
+              <VideoCard key={video.id} video={video} />
             ))}
           </ul>
         </>
@@ -81,11 +85,6 @@ function ContentApp({ searchQuery }: ContentAppProps) {
     }
   }
   return <div>Idle...</div>;
-}
-
-function toMediaUrl(path: string) {
-  const mediaPrefix = '/media/';
-  return path.startsWith(mediaPrefix) ? `${getEnv().MEDIA_BASE_URL}/${path.slice(mediaPrefix.length)}` : path;
 }
 
 export default App;
