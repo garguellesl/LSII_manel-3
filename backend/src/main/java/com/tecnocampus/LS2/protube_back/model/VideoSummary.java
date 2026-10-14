@@ -1,9 +1,15 @@
 package com.tecnocampus.LS2.protube_back.model;
 
+import java.util.List;
+
 public record VideoSummary(
-        int id,
+        Long id,
         String title,
         String thumbnailUrl,
-        String videoUrl
+        String videoUrl,
+        List<String> tags,
+        long likesCount,
+        long commentsCount,
+        long viewsCount
 ) {
 }
