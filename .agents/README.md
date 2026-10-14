@@ -1,6 +1,6 @@
 # Shared AI workspace
 
-This directory contains repository-scoped AI customizations.
+This directory contains repository-scoped AI customizations. Start with root `AGENTS.md`; project context and task coordination live in `docs/ai/`. Follow its startup protocol before a skill workflow. Do not duplicate live task ownership in this directory.
 
 ## Layout
 

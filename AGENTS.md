@@ -6,6 +6,24 @@ Protube is a video platform monorepo.
 - `frontend/`: React, TypeScript, Vite.
 - `tooling/videoGrabber/`: Python tooling for generating local video store files.
 
+## Start here: shared context and coordination
+
+All three teammates work across the stack. Ownership is temporary and per task, never inferred from a directory or commit author.
+
+Before implementation:
+
+1. Read `docs/ai/CONTEXT.md` for the implementation map and known gaps. Check its baseline against the current branch; verify relevant facts in source before relying on them.
+2. Read `docs/ai/COORDINATION.md`. Identify the task, owner, branch, allowed paths, shared contracts, and dependencies. Check the shared task record and open PRs for overlapping work. A local task file is a handoff, not a cross-clone lock.
+3. Inspect `git status --short`, `git branch --show-current`, and recent commits. Preserve existing changes. Never reset, stash, switch branches, or overwrite someone else's work just to obtain a clean tree.
+4. Read the closest nested `AGENTS.md`, the task's handoff in `docs/ai/tasks/` if one exists, the relevant acceptance criteria in `REQUIREMENT.md`, and only the source/tests needed for the task. Do not reread the entire repository or every skill on each session.
+5. State the intended scope and verification. Resolve ownership overlaps before editing the overlapping files or contracts; continue independent work where possible.
+
+For read-only questions/reviews, no reservation or handoff file is required. Do not create files merely to record that you read them.
+
+At handoff, update the task record with actual changes, checks and results, unfinished work, and the next concrete step. Update `CONTEXT.md` only when its facts change. Follow existing skills for the task; this startup protocol applies before their workflows.
+
+Shared rules live here and in nested `AGENTS.md` files. `CLAUDE.md` and `GEMINI.md` are entry points, not separate copies of project policy. Code/configuration describe current behavior; `REQUIREMENT.md` describes the target. If either differs from a summary, report the difference instead of assuming the feature is implemented.
+
 ## AI configuration map
 
 This repository keeps durable AI guidance in source control, following the structure from `AI_in_the_repository.pdf`:
@@ -24,14 +42,13 @@ Do not place AI agents, skills, prompts, or provider instructions in `.github/` 
 
 Run commands from the repository root unless noted.
 
-- Backend verify: `cd backend && ./mvnw clean verify`
-- Backend coverage: `cd backend && ./mvnw clean verify -Pcoverage`
+- Backend verify and coverage: from `backend/`, run `mvn clean verify`. JaCoCo is configured in `pom.xml`; there is currently no separate `coverage` profile.
 - Frontend install: `cd frontend && npm ci`
 - Frontend build: `cd frontend && npm run build`
 - Frontend test: `cd frontend && npm run test -- --coverage --watchAll=false --ci`
 - Frontend lint: `cd frontend && npm run lint`
 
-On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
+Use `./mvnw` (Windows: `mvnw.cmd`) instead of `mvn` if a wrapper is available locally. The wrapper is not currently tracked; CI generates it. Never report passing checks unless they actually ran.
 
 ## Workflow
 
@@ -69,6 +86,7 @@ On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
 - Reuse approved prompts in `prompts/` when they cover the task.
 - Add a new prompt file when AI output materially shaped code, architecture, tests, or review decisions.
 - Each prompt file must identify approval, use case, prompt text, and notes.
+- Record request authorization separately from team approval. Work requested in the current session can be prepared for review; never invent team approval or publish a pending prompt as approved.
 - Do not keep important project rules only in a chat transcript or local AI profile.
 
 ## Code Review Rules

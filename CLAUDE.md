@@ -1,29 +1,11 @@
-# Claude Code instructions
+# Claude Code entry point
 
-Claude Code must follow the shared repository rules in `AGENTS.md` plus the closest nested `AGENTS.md` for the directory being edited.
+Read and follow [AGENTS.md](AGENTS.md), including its startup and handoff protocol, then the closest nested `AGENTS.md` for the area being changed. Follow those links explicitly; this file does not duplicate shared policy.
 
-## Provider-specific usage
+- Project map: [docs/ai/CONTEXT.md](docs/ai/CONTEXT.md).
+- Task ownership and overlap checks: [docs/ai/COORDINATION.md](docs/ai/COORDINATION.md).
+- Canonical workflows: `.agents/skills/`. `.claude/skills/` contains wrappers only.
+- Provider commands and reviewer definitions: `.claude/commands/` and `.claude/agents/`.
+- Reusable prompts and approval status: `prompts/`.
 
-- Use `.claude/agents/` for Claude subagents.
-- Use `.claude/commands/` for reusable slash-command prompts.
-- Use `.claude/skills/` only as Claude-facing wrappers around the canonical workflows in `.agents/skills/`.
-- Keep approved task prompts in `prompts/`, not only in Claude chats.
-
-## Working rules
-
-- Read `README.md`, `REQUIREMENT.md`, and the relevant `AGENTS.md` before feature work.
-- Keep backend work inside the normal Controller -> Service -> Repository layering.
-- Return DTOs from APIs and avoid exposing persistence entities.
-- Keep secrets and local paths out of source files.
-- Add or update tests with every changed behavior.
-- Run the narrowest useful verification first, then the full command required by the changed area.
-
-## Useful commands
-
-- Backend: `cd backend && ./mvnw clean verify`
-- Backend coverage: `cd backend && ./mvnw clean verify -Pcoverage`
-- Frontend: `cd frontend && npm run build && npm run test -- --coverage --watchAll=false --ci && npm run lint`
-
-## AI usage policy
-
-If Claude generates code, architecture, tests, or review conclusions that the team will reuse, preserve the prompt in `prompts/` using `prompts/TEMPLATE.md`.
+Do not assume another teammate's branch or unfinished work is visible locally. Do not assign tasks from commit authorship or silently take over a reserved scope.
