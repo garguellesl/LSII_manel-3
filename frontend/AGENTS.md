@@ -23,6 +23,7 @@ These instructions apply to all work inside `frontend/`. Follow the repository-l
 - Use one `describe` per component or hook under test unless a split makes the tests clearer.
 - Cover loading, success, empty, and error states for data-driven UI.
 - Run `npm run test -- --coverage --watchAll=false --ci` for CI-like verification.
+- Completed frontend implementation and test changes require build, CI-like tests and lint using the commands below. Planning-only work does not require these checks; documentation-only work uses document verification. Reuse checks already run for the same unchanged scope.
 
 ## Commands
 

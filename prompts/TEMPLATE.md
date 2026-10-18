@@ -1,9 +1,9 @@
 # <Short title>
 
-**Status:** Proposed / Approved
+**Approval status:** Pending team review / approved with evidence
 **Request authorization:** <request/date, distinct from team approval>
-**Approved on:** Pending, or actual YYYY-MM-DD
-**Approved by:** Pending, or actual team members / PR link
+**Approved on:** <date if evidenced; otherwise pending>
+**Approved by:** <team members / PR link if evidenced; otherwise pending>
 **Used for:** <task type, for example "scaffolding a Spring REST controller">
 **Provider:** <Claude / Codex / Antigravity / Any>
 

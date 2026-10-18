@@ -1,6 +1,10 @@
 # Pro tube project
 
-For shared AI context and task coordination across the three teammates, start with [Trabajar los tres con agentes de IA](docs/AI_TEAM_WORKFLOW.md). Agent entry rules are in [AGENTS.md](AGENTS.md).
+## Desarrollo con agentes y SDD
+
+El proyecto utiliza un flujo de desarrollo guiado por especificaciones. Antes de cambiar comportamiento, los agentes siguen [AGENTS.md](AGENTS.md), la [constitución](.agents/constitution.md) y la [guía SDD](docs/SDD.md). Las [plantillas](docs/SDD.md#plantillas) separan requisitos, diseño y tareas con evidencia de verificación. Las instrucciones compartidas se aplican a Codex, Claude y Gemini; Claude dispone también del comando `/sdd`.
+
+For shared AI context and task coordination across the three teammates, see [Trabajar los tres con agentes de IA](docs/AI_TEAM_WORKFLOW.md). The coordination protocol and SDD share the rules in [AGENTS.md](AGENTS.md).
 
 ## Project
 
