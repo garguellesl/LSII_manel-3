@@ -6,6 +6,24 @@ Protube is a video platform monorepo.
 - `frontend/`: React, TypeScript, Vite.
 - `tooling/videoGrabber/`: Python tooling for generating local video store files.
 
+## Start here: shared context and coordination
+
+All three teammates work across the stack. Ownership is temporary and per task, never inferred from a directory or commit author.
+
+Before implementation:
+
+1. Read `docs/ai/CONTEXT.md` for the implementation map and known gaps. Check its baseline against the current branch; verify relevant facts in source before relying on them.
+2. Read `docs/ai/COORDINATION.md`. Identify the task, owner, branch, allowed paths, shared contracts, and dependencies. Check the shared task record and open PRs for overlapping work. A local task file is a handoff, not a cross-clone lock.
+3. Inspect `git status --short`, `git branch --show-current`, and recent commits. Preserve existing changes. Never reset, stash, switch branches, or overwrite someone else's work just to obtain a clean tree.
+4. Read the closest nested `AGENTS.md`, the task's handoff in `docs/ai/tasks/` if one exists, the relevant acceptance criteria in `REQUIREMENT.md`, and only the source/tests needed for the task. Do not reread the entire repository or every skill on each session.
+5. State the intended scope and verification. Resolve ownership overlaps before editing the overlapping files or contracts; continue independent work where possible.
+
+For read-only questions/reviews, no reservation or handoff file is required. Do not create files merely to record that you read them.
+
+At handoff, update the task record with actual changes, checks and results, unfinished work, and the next concrete step. Update `CONTEXT.md` only when its facts change. Follow existing skills for the task; this startup protocol applies before their workflows.
+
+Shared rules live here and in nested `AGENTS.md` files. `CLAUDE.md` and `GEMINI.md` are entry points, not separate copies of project policy. Code/configuration describe current behavior; `REQUIREMENT.md` describes the target. If either differs from a summary, report the difference instead of assuming the feature is implemented.
+
 ## AI configuration map
 
 This repository keeps durable AI guidance in source control, following the structure from `AI_in_the_repository.pdf`:
@@ -26,16 +44,17 @@ Do not place AI agents, skills, prompts, or provider instructions in `.github/` 
 
 Run commands from the repository root unless noted.
 
-- Backend verify: `cd backend && ./mvnw clean verify`
-- Backend coverage: `cd backend && ./mvnw clean verify -Pcoverage`
+- Backend verify and coverage: from `backend/`, run `mvn clean verify`. JaCoCo is configured in `pom.xml`; there is currently no separate `coverage` profile.
 - Frontend install: `cd frontend && npm ci`
 - Frontend build: `cd frontend && npm run build`
 - Frontend test: `cd frontend && npm run test -- --coverage --watchAll=false --ci`
 - Frontend lint: `cd frontend && npm run lint`
 
-On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
+Use `./mvnw` (Windows: `mvnw.cmd`) instead of `mvn` only if a wrapper is available locally. The wrapper is not currently tracked; CI generates it. Never report passing checks unless they actually ran.
 
 ## Workflow
+
+Coordination establishes ownership and scope; SDD defines requirements and execution within that scope. Keep owner, shared-task state and handoffs in `docs/ai/tasks/<ticket>.md`; link its relevant `specs/<NNN-short-name>/` when one applies. Record RF/task verification in the spec tasks and reference that evidence from the handoff instead of duplicating it. Completing local spec tasks does not imply the shared task is merged or its ownership released.
 
 ### Understand and verify before changing
 
@@ -49,7 +68,7 @@ On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
 ### Instruction ownership and routing
 
 - User instructions define authorized scope. Root and applicable nested `AGENTS.md` files define project and area constraints; nested rules specialize their area without silently relaxing shared architecture or security rules.
-- `docs/constitution.md` owns durable principles; `docs/SDD.md` owns phases and conditions. The SDD skill coordinates that workflow; specialist skills supply technical details within it, not an alternative sequence.
+- `.agents/constitution.md` owns durable principles; `docs/SDD.md` owns phases and conditions. The SDD skill coordinates that workflow; specialist skills supply technical details within it, not an alternative sequence.
 - Provider entry points, agents, commands and wrappers route to canonical workflows. Invoking an endpoint or test skill does not authorize coding during a spec-only or plan-only request.
 - Reviews use `.agents/skills/review-pull-request/SKILL.md` in read-only mode. Inspect relevant SDD artifacts without creating or repairing them.
 - Prompts are task inputs and traceability records, not competing project policy. Apply their actions only within the user's scope and current rules. Report unresolved material conflicts before implementing the affected behavior.
@@ -57,7 +76,7 @@ On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
 
 ### Spec-driven development (SDD)
 
-- Before implementation, read `docs/constitution.md`, `docs/SDD.md`, and the relevant specification in `specs/` alongside `REQUIREMENT.md` and nested instructions.
+- Before implementation, read `.agents/constitution.md`, `docs/SDD.md`, and the relevant specification in `specs/` alongside `REQUIREMENT.md` and nested instructions.
 - Use `.agents/skills/spec-driven-development/SKILL.md` for feature work and behavior changes. Keep `spec.md` (what/why), `plan.md` (how), and `tasks.md` (execution/evidence) together under `specs/<NNN-short-name>/`.
 - Identify the active specification from the user request, ticket, or matching scope; do not assume the highest number is active.
 - Update requirements and the plan before implementing a changed contract. Resolve blocking ambiguities with the user; record routine assumptions and continue authorized work.

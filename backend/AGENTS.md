@@ -21,7 +21,9 @@ Keep the normal Spring layering:
 - `src/main/resources/`: application properties and server-side templates.
 - `src/test/java/`: tests mirroring the production package structure.
 
-When persistence is introduced, keep repositories and entities separate from controllers and services. Do not access a repository directly from a controller. Prefer constructor injection for new components. Do not introduce field injection with `@Autowired` in new code.
+Persistence already uses JPA repositories and entities, with Flyway migrations under `src/main/resources/db/migration/`. Services use repositories; controllers use services and DTOs. Prefer constructor injection for new components. Do not introduce field injection with `@Autowired` in new code.
+
+Before editing shared DTOs, `VideoService`, migrations, or application configuration, check task ownership and API dependencies using `docs/ai/COORDINATION.md`. Coordinate migration version numbers across branches; do not change an already-applied migration to implement a new schema change.
 
 ## Spring and Java conventions
 
@@ -41,7 +43,7 @@ When persistence is introduced, keep repositories and entities separate from con
 ## Configuration and profiles
 
 - `dev` is the default profile and uses the in-memory H2 database.
-- `prod` uses the configured production datasource.
+- `prod` uses PostgreSQL with Flyway and Hibernate schema validation. Connection variables are `ENV_PROTUBE_DB_HOST`, `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, and `ENV_PROTUBE_DB_PASS`.
 - Do not commit credentials, tokens, or environment-specific absolute paths.
 - Read secrets and deployment settings from environment variables.
 - Do not add Google OAuth or database credentials to source files.
@@ -59,12 +61,11 @@ When persistence is introduced, keep repositories and entities separate from con
 Run from `backend/`:
 
 ```text
-./mvnw test
-./mvnw clean verify
-./mvnw clean verify -Pcoverage
+mvn test
+mvn clean verify
 ```
 
-On Windows, use `mvnw.cmd` instead of `./mvnw` when needed.
+JaCoCo runs through the normal Maven build; no `coverage` profile is currently defined. If a wrapper exists locally, use `./mvnw` (Windows: `mvnw.cmd`) instead of `mvn`.
 
 ## Definition of Done
 

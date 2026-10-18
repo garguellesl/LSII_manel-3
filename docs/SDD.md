@@ -62,3 +62,7 @@ Ejemplos de petición para cualquier agente:
 - «Valida esta spec requisito por requisito sin modificar código».
 
 El flujo ejecutable compartido está en [spec-driven-development](../.agents/skills/spec-driven-development/SKILL.md). Claude dispone de `/sdd`; los demás agentes pueden seguir el mismo archivo. Los prompts reutilizables y el registro de esta adaptación están en [prompts/04-spec-driven-development.md](../prompts/04-spec-driven-development.md).
+
+## Coordinación del equipo
+
+El protocolo de arranque y traspaso de `AGENTS.md` se aplica antes de ejecutar SDD. El registro compartido y `docs/ai/tasks/<ticket>.md` conservan responsable, alcance y siguiente paso; la carpeta de spec conserva requisitos, diseño y evidencia por RF. Enlazar ambos registros sin duplicar criterios ni resultados. Completar las tareas locales de una spec no equivale a fusionar la PR ni liberar la asignación del equipo.
