@@ -1,5 +1,7 @@
 # Pro tube project
 
+For shared AI context and task coordination across the three teammates, start with [Trabajar los tres con agentes de IA](docs/AI_TEAM_WORKFLOW.md). Agent entry rules are in [AGENTS.md](AGENTS.md).
+
 ## Project
 
 The project consists of building a web application where the user can watch and comment on videos uploaded by

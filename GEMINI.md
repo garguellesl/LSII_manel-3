@@ -1,23 +1,11 @@
-# Google Antigravity and Gemini instructions
+# Google Antigravity and Gemini entry point
 
-Follow the shared repository rules in `AGENTS.md` and the closest nested `AGENTS.md` for the code being edited.
+Read and follow [AGENTS.md](AGENTS.md), including its startup and handoff protocol, then the closest nested `AGENTS.md` for the area being changed. Follow those links explicitly; this file does not duplicate shared policy.
 
-## Provider-specific usage
+- Project map: [docs/ai/CONTEXT.md](docs/ai/CONTEXT.md).
+- Task ownership and overlap checks: [docs/ai/COORDINATION.md](docs/ai/COORDINATION.md).
+- Canonical workflows: `.agents/skills/`.
+- Workspace rules and reviewer definitions: `.agents/rules/` and `.agents/agents/`.
+- Reusable prompts and approval status: `prompts/`.
 
-- Antigravity workspace rules live in `.agents/rules/`.
-- Antigravity custom agents live in `.agents/agents/`.
-- Shared skills live in `.agents/skills/` and are also available to Codex.
-- Approved prompts live in `prompts/`.
-
-## Working rules
-
-- Keep changes scoped to the user request.
-- Use the existing project architecture before adding abstractions.
-- Backend changes must respect Controller -> Service -> Repository layering.
-- Frontend tests must mock API boundaries and query by accessible roles where practical.
-- Never commit secrets, tokens, local absolute paths, generated output, or media-store files.
-- Verify changed behavior with the relevant backend or frontend command before reporting completion.
-
-## Review focus
-
-When reviewing a branch, prioritize blockers first: broken behavior, missing tests, architecture violations, security risks, and CI failures.
+Do not assume another teammate's branch or unfinished work is visible locally. Do not assign tasks from commit authorship or silently take over a reserved scope.
