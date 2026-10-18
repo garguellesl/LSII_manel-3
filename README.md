@@ -1,5 +1,9 @@
 # Pro tube project
 
+## Desarrollo con agentes y SDD
+
+El proyecto utiliza un flujo de desarrollo guiado por especificaciones. Antes de cambiar comportamiento, los agentes siguen [AGENTS.md](AGENTS.md), la [constitución](.agents/constitution.md) y la [guía SDD](docs/SDD.md). Las [plantillas](docs/SDD.md#plantillas) separan requisitos, diseño y tareas con evidencia de verificación. Las instrucciones compartidas se aplican a Codex, Claude y Gemini; Claude dispone también del comando `/sdd`.
+
 ## Project
 
 The project consists of building a web application where the user can watch and comment on videos uploaded by
