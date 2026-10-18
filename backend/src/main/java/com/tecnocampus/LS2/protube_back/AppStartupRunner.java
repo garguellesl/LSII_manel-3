@@ -1,9 +1,8 @@
 package com.tecnocampus.LS2.protube_back;
 
-import com.tecnocampus.LS2.protube_back.services.VideoService;
+import com.tecnocampus.LS2.protube_back.services.VideoImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.env.Environment;
@@ -17,26 +16,41 @@ public class AppStartupRunner implements ApplicationRunner {
     private static final Logger LOG =
             LoggerFactory.getLogger(AppStartupRunner.class);
 
-    @Autowired
-    VideoService videoService;
-
-    // Example variables from our implementation. 
-    // Feel free to adapt them to your needs
-    private final Environment env;
+    private final VideoImportService videoImportService;
     private final Path rootPath;
-    private final Boolean loadInitialData;
+    private final boolean loadInitialData;
 
-    public AppStartupRunner(Environment env) {
-        this.env = env;
+    public AppStartupRunner(Environment env, VideoImportService videoImportService) {
+        this.videoImportService = videoImportService;
         final var rootDir = env.getProperty("pro_tube.store.dir");
-        this.rootPath = Paths.get(rootDir);
-        loadInitialData = env.getProperty("pro_tube.load_initial_data", Boolean.class);
-
-
+        this.rootPath = resolveStoreDirectory(rootDir);
+        this.loadInitialData = env.getProperty("pro_tube.load_initial_data", Boolean.class, false);
     }
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
-        // Should your backend perform any task during the bootstrap, do it here
+    public void run(ApplicationArguments args) {
+        if (loadInitialData) {
+            if (rootPath == null) {
+                LOG.warn("Skipping initial video metadata import because ENV_PROTUBE_STORE_DIR is not configured");
+                return;
+            }
+            LOG.info("Loading initial video metadata from {}", rootPath);
+            videoImportService.importFromStore(rootPath);
+        }
+    }
+
+    private Path resolveStoreDirectory(String configuredPath) {
+        if (configuredPath == null || configuredPath.isBlank()) {
+            return null;
+        }
+        Path path = Paths.get(configuredPath);
+        if (path.toFile().isDirectory()) {
+            return path;
+        }
+        Path parentPath = Paths.get("..").resolve(configuredPath).normalize();
+        if (parentPath.toFile().isDirectory()) {
+            return parentPath;
+        }
+        return path;
     }
 }
