@@ -1,3 +1,3 @@
-Apply `.agents/skills/review-pull-request/SKILL.md` to: $ARGUMENTS
+Review the current branch against `main` using the rules in `AGENTS.md` and `.agents/skills/review-pull-request/SKILL.md`.
 
-Follow root and applicable nested `AGENTS.md` files. Review only; do not edit files. The shared skill owns comparison scope, SDD checks and output format.
+Do not modify files. Lead with blockers and include file/line references when available.

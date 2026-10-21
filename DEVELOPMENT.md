@@ -187,7 +187,7 @@ database (NFR-01 in [REQUIREMENT.md](./REQUIREMENT.md)). The PostgreSQL driver i
   review comments resolved before merging.
 * Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) and reference the task.
 * If AI generated part of a change, mark it in the commit message and reference the prompt from `prompts/` that was
-  used (see [prompt traceability rules](./AGENTS.md#prompt-and-ai-traceability)).
+  used (see [prompts/README.md](./prompts/README.md)).
 * Setting up the GitHub repository: [docs/GITHUB_SETUP.md](./docs/GITHUB_SETUP.md).
 
 ## Troubleshooting

@@ -1,3 +1,3 @@
-Apply `.agents/skills/create-rest-endpoint/SKILL.md` to: $ARGUMENTS
+Create or update a backend REST endpoint using the workflow in `.agents/skills/create-rest-endpoint/SKILL.md`.
 
-Follow root and applicable nested `AGENTS.md` files. The shared skill integrates with SDD and owns the procedure. Respect the requested phase/task; this command does not independently authorize implementation.
+Before editing, identify the API contract: HTTP method, `/api/...` path, request DTO, response DTO, status codes, validation rules, and tests.
