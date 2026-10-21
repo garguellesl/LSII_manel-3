@@ -115,6 +115,16 @@ Cuando una persona autenticada edite las etiquetas de un vídeo propio, el siste
 - El servidor rechazará cualquier cambio de etiquetas sobre vídeos ajenos, aunque se invoque la API directamente.
 - No habrá pantalla ni endpoints de administración global de etiquetas en este sprint. **Confirmado por el usuario:** «Gestionarlas dentro de mis vídeos; sin renombrar/borrar etiquetas compartidas globalmente».
 
+### RF-9 - Arranque conjunto de desarrollo en IntelliJ
+
+Cuando un desarrollador ejecute la configuración conjunta de desarrollo, el sistema deberá iniciar PostgreSQL, comprobar que está listo e iniciar backend y frontend sin tres arranques manuales.
+
+- Mantener PostgreSQL en 5432, backend en 8080 y frontend en 5174; un puerto frontend ocupado debe dar un error claro, sin cambiar silenciosamente de puerto.
+- Reutilizar la configuración del backend y sus variables, sin copiar contraseñas o rutas personales a nuevas configuraciones compartidas.
+- El backend no se ejecutará si falla el arranque/healthcheck de PostgreSQL. Conservar el volumen y los datos existentes.
+- Backend y frontend permanecerán como procesos de desarrollo gestionables desde IntelliJ; detenerlos no borrará la base.
+- Alcance autorizado por el usuario: «Desde IntelliJ con una configuración conjunta de desarrollo (frontend en 5174 y backend en 8080)». Docker Desktop debe estar activo; no se añade despliegue completo en contenedores ni se cambian APIs.
+
 ## Requisitos no funcionales y Definition of Done
 
 - Mantener Controller -> Service -> Repository, DTOs públicos y acceso a datos del frontend a través de hooks/clientes.
@@ -134,6 +144,8 @@ Base de datos no disponible; reinicio y reimportación; descripciones vacías o 
 ## Fuera de alcance
 
 Implementar código en esta petición; implementar todo el MVP; OAuth de Google, recuperación de contraseña o administración de cuentas; subir vídeos; nuevas funciones de comentarios o analíticas; edición pública/privada del perfil no solicitada; desplegar, publicar, crear issues, cambiar ramas, realizar commits o aceptar PRs en esta preparación documental.
+
+Ese límite corresponde a la preparación documental original. Las peticiones posteriores autorizan la implementación local acotada de PostgreSQL y del arranque IntelliJ RF-9; sus resultados constan en `task.md`. No autorizan implementar el resto del sprint ni publicar cambios.
 
 Los endpoints privados existentes deben inventariarse al definir la seguridad (RF-5); su existencia no permite dejarlos públicos por omisión. Quedan fuera la administración global de etiquetas, la subida/borrado de archivos físicos y el CRUD adicional de cuentas. Para cuentas se recomienda conservar alta, login y consulta propia; ampliar su edición/borrado exige acordar privacidad y tratamiento de los datos relacionados.
 

@@ -90,6 +90,11 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Hecho cuando: PR revisada e integrada con squash; versión desplegada en staging mediante procedimiento acordado; smoke tests de sesión/CSRF, persistencia, búsqueda, CRUD propio y rutas SPA pasan; queda referencia de versión, fecha, entorno y resultados sin secretos. Acordar entrega contenerizada conforme a NFR-03.
   - Evidencia: pendiente. Esta tarea no está autorizada para ejecutarse en la petición documental actual.
 
+- [x] T21 - Preparar y verificar arranque conjunto de IntelliJ (RF-9).
+  - Depende de: T2 y configuración local de entorno/Docker del usuario.
+  - Hecho cuando: `Protube [DEV - ALL]` inicia ambos procesos, el backend ejecuta primero `database [DEV]` con healthcheck, frontend responde en 5174 y API en 8080, sin añadir secretos ni modificar datos/volumen. Registrar prueba real de la configuración y su límite de disponibilidad.
+  - Evidencia: ejecución real en IntelliJ y comprobación HTTP satisfactoria; véase el registro RF-9 al final. No equivale a integración/staging ni a probar un volumen nuevo.
+
 ## Orden y reparto
 
 T1 cierra coordinación/contratos. Después pueden prepararse persistencia (T2), búsqueda (T4/T5) y seguridad (T7) en alcances acordados. Frontend puede usar mocks de contratos acordados; no necesita esperar a toda la implementación backend. CRUD y búsqueda comparten `VideoService`/DTOs: acordar métodos y orden antes de editar. Las tareas son unidades de entrega, no asignaciones permanentes por módulo.
@@ -164,3 +169,13 @@ La tabla conserva el alcance de todo el sprint. La ejecución acotada PostgreSQL
 - Se reinició `ProtubeBackApplication` desde IntelliJ. Comprobación HTTP real: GET `http://localhost:8080/api/videos`, 200, 72 vídeos. El backend accede a la base PostgreSQL de aplicación y al catálogo importado.
 - Esta corrección afecta a la configuración local de ejecución, no al código Java; no se repitieron las suites de código sin cambios. No acredita E2E completo ni reinicio de volumen.
 - El usuario ha añadido valores locales a Compose y a la configuración compartida `.run`; no incluir sus credenciales en un commit. No se han volcado valores de contraseña ni rutas locales en este registro.
+
+## Ejecución acotada: arranque conjunto IntelliJ (RF-9, 2026-10-21)
+
+- Baseline actual: `76e38dd`, rama `feature/DBpostreSQL`; el usuario ha guardado previamente la migración PostgreSQL. Esta tarea modifica solo scripts/configuraciones de desarrollo y documentación; no cambia dependencias, lockfile, Java ni contratos HTTP.
+- Añadidos `Protube [DEV - ALL]` (Compound) y `database [DEV]` (npm `db:up`). El backend tiene la tarea de base previa a Build; `npm run dev` fija `5174 --strictPort`. XML analizado correctamente; IntelliJ muestra ambos componentes del Compound.
+- `frontend/`: `npm run db:up` satisfactorio, Compose espera el healthcheck. `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (10 suites, 38 tests, 1 snapshot) y `npm run lint` satisfactorios. Build repetido fuera del sandbox tras un error de acceso de esbuild; no se alteró código para resolver esa restricción.
+- Prueba real del Compound desde IntelliJ: frontend intentó arrancar y mostró el error claro de puerto 5174 ocupado por una instancia previa de Vite del mismo proyecto. Se identificó y detuvo esa instancia; la repetición mostró Vite listo en 5174. Se reinició también la configuración del backend durante la comprobación.
+- Resultado final HTTP: frontend `/` en 5174 devuelve 200; API `/api/videos` en 8080 devuelve 200 y 72 vídeos; CORS devuelve `http://localhost:5174`. `postgres_db` está healthy en 5432. Se conserva el catálogo y no se borra ni sustituye el volumen.
+- Límite: frontend y backend arrancan en paralelo y su disponibilidad no es inmediata; esperar al backend antes de abrir el catálogo. PostgreSQL permanece detached al detener los procesos de IntelliJ. No se verificó en esta tarea un arranque con contenedor/volumen nuevos, un fallo de Docker, E2E completo ni CI/staging.
+- T21 verificada localmente. Las demás tareas pendientes del sprint mantienen su estado; sin commit, push, PR ni despliegue creados por esta tarea.

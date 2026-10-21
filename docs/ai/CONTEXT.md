@@ -23,6 +23,7 @@ Backend Java paths below are relative to `backend/src/main/java/com/tecnocampus/
 | UI | `frontend/src/components/`, `frontend/src/App.css` | Search bar, linked video cards and player. `VideoGrid` and `TestLink*` are examples, not the catalog's primary data path. |
 | Verification | `backend/src/test/`, `frontend/src/**/__tests__/`, `frontend/jest.config.ts`, `backend/pom.xml` | Spring integration tests use isolated PostgreSQL Testcontainers; restart test checks dev/prod against one database. Controller mocks and Jest/Testing Library mocks remain. See task evidence for executed checks. |
 | CI/build | `.github/workflows/main.yml`, `backend/pom.xml`, `frontend/package.json` | Frontend build/tests/lint and backend verification. Maven prod build bundles frontend assets into the jar. |
+| Local development startup | `.run/Protube [DEV - ALL].run.xml`, `.run/database [DEV].run.xml`, backend/npm run configurations | Compound launches frontend on 5174 and backend on 8080. Backend first runs the npm `db:up` task, which waits for PostgreSQL health through Compose. Docker Desktop and local connection/media settings are required. |
 | Video preparation | `tooling/videoGrabber/main.py` | Uses yt-dlp/ffmpeg/ffprobe to produce sample media and metadata. Requires a local `vars` module; do not execute recreate mode casually. |
 
 ## API map

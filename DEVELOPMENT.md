@@ -69,10 +69,27 @@ $env:ENV_PROTUBE_STORE_DIR = "D:\code\videos\"
 In development the backend and frontend run as two separate processes:
 
 ```
-Browser ──► Vite dev server (http://localhost:5173) ──fetch──► Spring Boot (http://localhost:8080/api, /media)
+Browser ──► Vite dev server (http://localhost:5174) ──fetch──► Spring Boot (http://localhost:8080/api, /media)
 ```
 
-### Backend
+### Start everything from IntelliJ
+
+With Docker Desktop running, select **Protube [DEV - ALL]** in the run configuration selector and press Run.
+It launches `frontend [DEV]` on **http://localhost:5174** and `ProtubeBackApplication` on
+**http://localhost:8080**. Before starting Java, the backend configuration runs `database [DEV]`, which executes
+`npm run db:up` and waits for PostgreSQL's healthcheck. It reuses the existing Compose volume and backend
+environment settings. Wait until the backend reports that it has started before opening the catalog.
+
+Run `npm ci` in `frontend/` once if dependencies are missing. If Compose references `ENV_PROTUBE_DB_*`, provide
+those variables to `database [DEV]` through a local run configuration or the environment inherited by IntelliJ;
+variables on `ProtubeBackApplication` alone are not inherited by the separate npm configuration. Keep passwords
+and media paths in local configuration, not shared `.run` files.
+
+The frontend uses a strict port: if 5174 is occupied, stop the old frontend instead of opening a different URL.
+Stop the frontend/backend processes from IntelliJ's Run/Services controls. PostgreSQL runs detached and retains
+its data; stop it separately with `docker compose stop db` when needed. No volume deletion is required.
+
+### Backend separately
 
 ```bash
 cd backend
@@ -94,7 +111,7 @@ npm install
 npm run dev
 ```
 
-* Starts on **http://localhost:5173** with hot reload (or use the **frontend [DEV]** IntelliJ run configuration).
+* Starts on **http://localhost:5174** with hot reload (or use the **frontend [DEV]** IntelliJ run configuration).
 * API and media URLs come from `frontend/.env.development`:
   ```
   VITE_API_DOMAIN=http://localhost:8080

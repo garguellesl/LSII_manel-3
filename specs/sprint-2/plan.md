@@ -183,6 +183,14 @@ Comandos de implementación futura, no ejecutados en esta preparación:
 
 La CI inicial invocaba `-Pcoverage` sin perfil Maven correspondiente. La ejecución PostgreSQL alinea el workflow con `-Pprod clean verify` para verificar también el empaquetado de producción, sin rebajar las puertas de JaCoCo/Jest. La preparación puramente documental se verifica con diff, enlaces y coherencia RF/T; la ejecución de PostgreSQL tiene su propia evidencia funcional.
 
+## Arranque conjunto de desarrollo (RF-9)
+
+Reutilizar `ProtubeBackApplication` y `frontend [DEV]`. Añadir una configuración Compound `Protube [DEV - ALL]` que lance ambas, y una configuración npm `database [DEV]` que ejecute `db:up` desde `frontend/package.json`. El script usa Compose sobre el archivo raíz con `up -d --wait db`; añadirlo como primera tarea Before launch del backend, antes de Build. No poner el backend de larga duración como dependencia secuencial del frontend, porque impediría que este arrancara.
+
+Fijar el script `dev` de Vite en `--port 5174 --strictPort`. No se incorporan dependencias ni se cambia el lockfile. Las configuraciones nuevas usan rutas relativas de proyecto y no contienen credenciales; conservan las variables ya configuradas en el backend. Cuando Compose utilice variables, `database [DEV]` deberá recibir las variables PostgreSQL desde su entorno/configuración local, independientemente del backend.
+
+El Compound inicia backend/frontend en paralelo; el Before launch garantiza que el backend espere a PostgreSQL. La disponibilidad final se comprueba mediante HTTP del frontend y API, no por la mera aparición del proceso. Documentación de referencia: [configuraciones compuestas y Before launch de IntelliJ](https://www.jetbrains.com/help/idea/run-debug-multiple.html).
+
 ## Dependencias, coordinación y riesgos
 
 - Resolver D1 antes del contrato definitivo de combinación de etiquetas de búsqueda. D2 está incorporado a RF-7/RF-8; verificar ese CRUD antes de marcar RF-1 completo. Identificar staging antes de ejecutar su entrega.
