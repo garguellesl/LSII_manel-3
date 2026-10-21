@@ -43,10 +43,10 @@ jobs:
         working-directory: backend
         run: mvn -N io.takari:maven:wrapper
 
-      - name: Build and test backend with coverage
+      - name: Build production jar and test with PostgreSQL
         working-directory: backend
         run: |
-          ./mvnw clean verify -Pcoverage
+          ./mvnw -Pprod clean verify
 
       - name: Run frontend lint
         working-directory: frontend

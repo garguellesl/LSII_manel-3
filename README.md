@@ -212,10 +212,10 @@ Before starting coding you have to be sure you have the following software alrea
 
 ### Database
 
-* By default, the [h2 database](https://h2database.com/html/main.html) is used. For the final delivery, the data has
-  to be persisted in a database selected by the team. It's important to note that since the delivery is dockerized,
-  the database must be installed there as well. The choice of database remains up to the team, although it's
-  strongly recommended to use PostgreSQL
+* Development and production use PostgreSQL with Flyway migrations and Hibernate schema validation. The database
+  can run through `compose.yaml`, retaining its data in a named volume. Integration tests use isolated PostgreSQL
+  containers and require Docker. See [PostgreSQL setup](./DEVELOPMENT.md#using-postgresql) for configuration and
+  commands; H2 is not used.
 
 ### Video grabber
 

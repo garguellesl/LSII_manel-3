@@ -42,8 +42,8 @@ Before editing shared DTOs, `VideoService`, migrations, or application configura
 
 ## Configuration and profiles
 
-- `dev` is the default profile and uses the in-memory H2 database.
-- `prod` uses PostgreSQL with Flyway and Hibernate schema validation. Connection variables are `ENV_PROTUBE_DB_HOST`, `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, and `ENV_PROTUBE_DB_PASS`.
+- `dev` is the default profile; both `dev` and `prod` use PostgreSQL with Flyway and Hibernate schema validation. Connection variables are `ENV_PROTUBE_DB_HOST`, `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, and `ENV_PROTUBE_DB_PASS`; optional `ENV_PROTUBE_DB_PORT` defaults to 5432.
+- Spring integration tests use isolated PostgreSQL Testcontainers and the `test` profile, without application database credentials. Docker must be running; do not silently skip these tests or substitute H2.
 - Do not commit credentials, tokens, or environment-specific absolute paths.
 - Read secrets and deployment settings from environment variables.
 - Do not add Google OAuth or database credentials to source files.

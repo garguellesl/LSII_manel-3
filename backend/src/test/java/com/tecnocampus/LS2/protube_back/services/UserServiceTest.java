@@ -3,9 +3,9 @@ package com.tecnocampus.LS2.protube_back.services;
 import com.tecnocampus.LS2.protube_back.model.LoginRequest;
 import com.tecnocampus.LS2.protube_back.model.RegisterRequest;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
+import com.tecnocampus.LS2.protube_back.support.PostgreSqlIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,12 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest({
-        "pro_tube.store.dir=.",
-        "pro_tube.load_initial_data=false"
-})
 @Transactional
-class UserServiceTest {
+class UserServiceTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     UserService userService;
