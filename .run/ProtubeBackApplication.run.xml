@@ -1,6 +1,14 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ProtubeBackApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
     <option name="ACTIVE_PROFILES" value="dev" />
+    <envs>
+      <env name="ENV_PROTUBE_DB_HOST" value="localhost" />
+      <env name="ENV_PROTUBE_DB_PORT" value="5432" />
+      <env name="ENV_PROTUBE_DB_USER" value="protube" />
+      <env name="ENV_PROTUBE_DB_PASS" value="admin" />
+      <env name="ENV_PROTUBE_DB" value="protube" />
+      <env name="ENV_PROTUBE_STORE_DIR" value="C:\Users\alexb\OneDrive\Escritorio\Ingenieria\4t Curso\1r TRIM\LabSoftware\LSII_manel-3\videos" />
+    </envs>
     <module name="protube-back" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="com.tecnocampus.LS2.protube_back.ProtubeBackApplication" />
     <extension name="coverage">

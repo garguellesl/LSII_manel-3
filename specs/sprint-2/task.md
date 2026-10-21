@@ -1,9 +1,9 @@
 # Tareas - Sprint 2
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md).
-Alcance autorizado en esta sesión: especificación, plan y desglose; sin implementar código ni ejecutar despliegues.
-Estado: planificación preparada para revisión; todas las tareas de implementación siguen pendientes.
-Baseline: `main`, `71c144d`, 2026-10-21. Las pruebas existentes fueron inspeccionadas, no ejecutadas.
+Alcance actual autorizado: implementar RF-1/T2 y la infraestructura de persistencia de T3, incluido corregir Maven prod, en `feature/DBpostreSQL` desde `ca778b2`. El resto de historias y despliegues siguen fuera de esta ejecución.
+Estado: infraestructura PostgreSQL verificada localmente; resto del sprint pendiente.
+Evidencia histórica: la preparación documental sobre `main`/`71c144d` solo inspeccionó pruebas. Los nuevos resultados se registran aparte, sin sustituir esa evidencia.
 
 Se conserva `task.md` como registro único solicitado para esta carpeta. Los identificadores T/RF se citan con `specs/sprint-2/` desde otros documentos.
 
@@ -13,14 +13,14 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: ninguna.
   - Hecho cuando: D1 tiene decisión sobre OR/AND; responsable, revisor, issue/alcance y dependencias están confirmados en el registro compartido. D2 ya está incorporado a RF-7/RF-8 y no exige CRUD global de etiquetas. Los contratos y cambios de DTOs tienen acuerdo antes de dividir backend/frontend.
   - Evidencia: pendiente. Preguntas enviadas; no se presume reserva ni aprobación remota.
-- [ ] T2 - Preparar PostgreSQL y configuración segura para la aplicación entregada (RF-1).
+- [x] T2 - Preparar PostgreSQL y configuración segura para la aplicación entregada (RF-1).
   - Depende de: T1 para coordinación; no depende de la elección OR/AND.
   - Hecho cuando: perfiles entregables arrancan con PostgreSQL y Flyway; configuración sin secretos/rutas locales; la diferencia actual de H2 dev con NFR-01 está resuelta y documentada; migraciones V1/V2 existentes conservadas.
-  - Evidencia: pendiente.
+  - Evidencia: 2026-10-21, `mvn -B -ntp clean verify` y `mvn -Pprod clean verify` satisfactorios con Java 21/Docker, 34 tests sin fallos/errores/omisiones y puertas JaCoCo cumplidas. Prueba de reinicio arranca `dev` y después `prod` con variables `ENV_PROTUBE_DB_*`; V1/V2 aplicadas y datos conservados. Compose válido; jar con PostgreSQL/frontend, sin H2 ni Testcontainers. Detalle al final.
 - [ ] T3 - Verificar persistencia y relaciones con PostgreSQL (RF-1).
   - Depende de: T2; T14/T15 para verificar el CRUD final completo.
   - Hecho cuando: usuarios, perfiles, vídeos/descripciones largas y etiquetas/relaciones se guardan y recuperan; las operaciones acordadas de creación/actualización/borrado respetan integridad; los datos sobreviven a reinicio conservando volumen y la importación no duplica registros. Registrar comandos concretos de la prueba de reinicio.
-  - Evidencia: pendiente; la inspección de entidades/migraciones no satisface esta tarea.
+  - Evidencia parcial: `PostgreSqlPersistenceTest` pasa con PostgreSQL real; comprueba reinicio de contexto dev -> prod, datos de usuario/perfil/vídeo/etiquetas e interacciones, descripción larga, actualización y borrado por repositorio con cascadas. T3 permanece abierta: RF-7/RF-8 y la interfaz/API CRUD final todavía no se han implementado; tampoco se ha probado un reinicio del contenedor/volumen Compose.
 - [ ] T4 - Implementar búsqueda por texto en backend (RF-2).
   - Depende de: T1 para coordinación; T2 para comprobación de integración.
   - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva DTO/consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
@@ -96,13 +96,13 @@ T1 cierra coordinación/contratos. Después pueden prepararse persistencia (T2),
 
 ## Validación por requisito
 
-Todos los resultados funcionales de esta tabla están **no ejecutados en esta sesión**. Las pruebas indicadas como nuevas son propuestas, no archivos ya presentes ni resultados aprobados.
+La tabla conserva el alcance de todo el sprint. La ejecución acotada PostgreSQL actualiza solo los resultados RF-1 que se han comprobado; el resto sigue pendiente. Las pruebas descritas como futuras no se consideran ejecutadas por existir pruebas de persistencia.
 
 | RF / AC | Prueba o comprobación concreta prevista | Comando/directorio o tarea de evidencia | Resultado real |
 | --- | --- | --- | --- |
-| RF-1 / Database AC1 | Arranque PostgreSQL y migraciones/validación del esquema | Procedimiento exacto a registrar en T2, entorno acordado | No ejecutado |
-| RF-1 / Database AC2 y DoD CRUD | Pruebas nuevas de persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: `mvn clean verify`; comprobación adicional T3 con PostgreSQL | No ejecutado |
-| RF-1 / Database AC3 | Revisión de configuración por perfiles, secretos/rutas y dependencias entregables | Diff/inspección en T2/T19 | No ejecutado sobre implementación final |
+| RF-1 / Database AC1 | Arranque PostgreSQL y migraciones/validación del esquema | `PostgreSqlPersistenceTest` en ambos comandos Maven del registro final | Satisfactorio local: conexión dev/prod y V1/V2 verificadas |
+| RF-1 / Database AC2 y DoD CRUD | Persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: ambos Maven verify; prueba de contexto dev -> prod | Persistencia y CRUD de repositorio satisfactorios; CRUD API/UI y reinicio de volumen siguen pendientes |
+| RF-1 / Database AC3 | Revisión de configuración por perfiles, secretos/rutas y dependencias entregables | Diff, `docker compose config --quiet` y contenido del jar | Satisfactorio para esta configuración local; credenciales por entorno y H2 ausente |
 | RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | No ejecutado |
 | RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | No ejecutado |
 | RF-3 / Tags AC1-AC3 | Varias etiquetas según D1, coincidencia exacta/parcial, normalización y texto combinado | Maven verify; Jest; T5/T6 | No ejecutado; D1 pendiente |
@@ -129,8 +129,38 @@ Todos los resultados funcionales de esta tabla están **no ejecutados en esta se
 
 - Preparado: requisitos RF-1 a RF-8, diseño basado en fuentes, contratos propuestos, tareas y matriz AC/RF; confirmaciones de login automático y etiquetas propias incorporadas.
 - Verificación documental (2026-10-21): `git diff --check` sin errores; inspección PowerShell de los cinco documentos: 16 enlaces locales con destino existente; RF-1 a RF-8 presentes en spec/plan/task; 20 tareas de implementación abiertas y ninguna marcada como completada. Revisados alcance, aclaraciones y trazabilidad AC/RF/T. Comprobación de espacios/conflictos de los cinco archivos incluida en la revisión final; sin pruebas funcionales ejecutadas.
-- Aplicación: no se ejecutaron Maven, build, Jest, lint, E2E ni despliegues porque esta petición solo autoriza documentos.
+- Aplicación en la preparación documental original: no se ejecutaron Maven, build, Jest, lint, E2E ni despliegues. La implementación PostgreSQL autorizada después tiene los resultados del apartado siguiente.
 - Criterios funcionales de finalización: pendientes. Ninguna casilla anterior se marca por la mera existencia de código previo.
 - Pendientes: D1 OR/AND de búsqueda; D3 coordinación/revisión; D4 staging. La edición/borrado de cuentas se mantiene fuera del alcance recomendado de este sprint.
 - Siguiente paso: revisar los documentos, resolver D1, confirmar la tarea compartida y autorizar una tarea de implementación concreta o el sprint completo.
-- Veredicto: **planificado; no implementado ni validado en esta sesión**. El DoD de merge/staging sigue pendiente.
+- Veredicto actualizado: **T2 verificada localmente y T3 parcialmente comprobada**; el sprint completo y el DoD de merge/staging siguen pendientes. La preparación inicial solo produjo documentos.
+
+## Ejecución acotada: PostgreSQL (2026-10-21)
+
+- Rama/baseline: `feature/DBpostreSQL`, `ca778b2`. Usuario autoriza PostgreSQL y reparar Maven prod; informa «no hay otro compañero (en principio)».
+- Diagnóstico previo: Java 21, `mvn -Pprod clean verify`, 33 tests, 13 errores de contexto por `UnknownHostException: ${ENV_PROTUBE_DB_HOST}`; compilación Java/frontend completada. Primer intento aislado bloqueado por Maven Central; repetición fuera del sandbox reproduce el fallo real.
+- Cambios: datasource PostgreSQL común dev/prod, puerto configurable, H2 eliminado, PostgreSQL JDBC runtime, Testcontainers test-only con contraseña generada y base compartida para los tests Spring. Compose conserva volumen y añade variables requeridas/healthcheck. Maven prod usa `npm ci`; CI verifica el jar de producción sin el perfil inexistente `coverage`.
+- Prueba nueva `backend/src/test/java/com/tecnocampus/LS2/protube_back/PostgreSqlPersistenceTest.java`: inicia PostgreSQL temporal; arranca app dev usando `ENV_PROTUBE_DB_*`, guarda usuarios/campos de perfil, vídeos/descripción >2000, etiquetas, comentarios/likes/historial; cierra el contexto; arranca prod sobre la misma base y verifica recuperación, actualización/borrado y cascadas sin borrar etiquetas compartidas. V1/V2 se conservan sin cambios.
+- Verificación final (Java 21; Maven 3 incluido en IntelliJ, invocado por su ruta local sin incorporarla al proyecto):
+
+| Comando / inspección | Directorio | Resultado, 2026-10-21 Europe/Madrid |
+| --- | --- | --- |
+| `mvn -B -ntp clean verify` | `backend/` | BUILD SUCCESS, 34 tests, 0 fallos, 0 errores, 0 omitidos; 17:43:52 |
+| `mvn -Pprod clean verify` | `backend/` | BUILD SUCCESS, frontend compilado y jar ejecutable generado; mismos 34 tests correctos; 17:45:09 |
+| JaCoCo del build final | `backend/target/site/jacoco/` (ignorado) | Líneas 87.90%, instrucciones 85.87%, métodos 86.62%; puertas existentes satisfechas |
+| `docker compose config --quiet` con variables temporales | Raíz | Exit 0; sin crear contenedores/volúmenes de aplicación ni imprimir contraseña |
+| Inspección Zip del jar prod | Artefacto ignorado en `backend/target/` | `BOOT-INF/classes/static/index.html` presente, perfil filtrado `prod`, driver PostgreSQL presente; 0 bibliotecas H2/Testcontainers |
+| `git diff --check` y revisión de alcance | Raíz | Sin errores de whitespace; sin cambios en entidades, migraciones V1/V2, contratos Java de producción o fuentes/lockfile frontend |
+
+- Se corrigió durante el desarrollo un dato de la nueva prueba que incluía un espacio final, coherente con el `trim()` existente del servicio; no se alteró el contrato para ocultar un fallo de persistencia.
+- Sin ejecutar: Jest/lint independientes (no cambió código frontend), E2E, CI remota, arranque de jar contra base del usuario, reinicio del contenedor/volumen Compose, despliegue o merge. El build prod sí ejecutó TypeScript/Vite.
+- Advertencias preexistentes: npm reporta vulnerabilidades en el árbol actual; no se ha ejecutado `npm audit fix` ni alterado dependencias frontend fuera del alcance.
+- T2 completa localmente. T3, RF-1 completo y el sprint conservan los criterios pendientes de integración/UI y entrega que no cubre esta tarea. No se han creado commits ni publicado cambios.
+
+### Comprobación del arranque local desde IntelliJ
+
+- Tras configurar Docker e IntelliJ, el usuario informó de que el backend se paraba. PostgreSQL estaba healthy, pero registraba intentos de autenticación con el nombre literal `${ENV_PROTUBE_DB_USER}`.
+- Causa local: cinco nombres de variables de la configuración de ejecución tenían un espacio inicial. Se quitaron únicamente esos espacios, preservando los valores del usuario. Se comprobó sin imprimir secretos que los datos de conexión coincidían con Compose y que existía la carpeta de medios.
+- Se reinició `ProtubeBackApplication` desde IntelliJ. Comprobación HTTP real: GET `http://localhost:8080/api/videos`, 200, 72 vídeos. El backend accede a la base PostgreSQL de aplicación y al catálogo importado.
+- Esta corrección afecta a la configuración local de ejecución, no al código Java; no se repitieron las suites de código sin cambios. No acredita E2E completo ni reinicio de volumen.
+- El usuario ha añadido valores locales a Compose y a la configuración compartida `.run`; no incluir sus credenciales en un commit. No se han volcado valores de contraseña ni rutas locales en este registro.

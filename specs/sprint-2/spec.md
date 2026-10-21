@@ -39,6 +39,7 @@ Cuando la aplicación cree o consulte usuarios, vídeos, descripciones, etiqueta
 - Dada la configuración de una entrega o de staging, cuando se inspeccione, entonces los datos de aplicación no dependerán de H2 ni de memoria; las credenciales vendrán del entorno o de secretos del despliegue y no habrá rutas absolutas locales en el repositorio (Database AC3).
 - Cuando se verifique la persistencia, deberán comprobarse creación, lectura, actualización y borrado de metadatos de vídeos y de las asociaciones de etiquetas de vídeos propios (RF-7/RF-8), respetando relaciones e integridad. Las cuentas cubren alta y lectura propia; editar/borrar cuentas no se añade como obligación sin acuerdo específico. La existencia de métodos de repositorio no acredita por sí sola ese criterio.
 - Una conexión fallida o una migración fallida no se presentará como una integración satisfactoria.
+- Actualización autorizada el 2026-10-21: implementar RF-1/T2 y la parte de T3 de infraestructura. PostgreSQL será el motor en `dev`, `prod` y pruebas de integración, sin dependencia H2. `mvn -Pprod clean verify` debe ejecutar pruebas aisladas de las credenciales/datos reales de producción, conservar cobertura y generar el jar con frontend. No se amplía esta petición al resto de historias ni al CRUD de interfaz todavía pendiente.
 
 ### RF-2 - Búsqueda por descripción
 

@@ -3,7 +3,7 @@
 Spec: [spec.md](spec.md). Tareas: [task.md](task.md).
 Estado: borrador técnico; D1 de la spec sigue pendiente; el CRUD de vídeos y etiquetas propias está incorporado.
 Alcance autorizado actual: preparar documentos, sin implementar ni desplegar.
-Baseline comprobado: `main`, `71c144d`, inspección de fuentes el 2026-10-21. Las rutas nuevas citadas como propuestas todavía no existen.
+Baseline de la planificación inicial: `main`, `71c144d`, inspección de fuentes el 2026-10-21; describe el punto de partida. La ejecución PostgreSQL posterior usa `feature/DBpostreSQL`/`ca778b2` y se documenta en su sección y en `task.md`. Las rutas nuevas citadas como propuestas todavía no existen.
 
 ## Contexto técnico comprobado
 
@@ -127,8 +127,20 @@ Frontend: añadir un editor de metadatos reutilizable para crear/editar vídeos 
 
 ## Persistencia y configuración
 
+### Ejecución autorizada: PostgreSQL y build de producción
+
+Petición del usuario de 2026-10-21 sobre `feature/DBpostreSQL`, baseline `ca778b2`: implementar el cambio de motor y corregir la verificación Maven de producción. El usuario informa de que no hay otro compañero trabajando en principio. No se implementan búsquedas, autenticación ni pantallas CRUD en esta tarea.
+
+Diagnóstico reproducido: `mvn -Pprod clean verify` compila Java/frontend y falla con 13 errores de contexto; causa raíz `UnknownHostException: ${ENV_PROTUBE_DB_HOST}`. Las pruebas Spring actuales heredan el perfil filtrado de producción y necesitan una base/credenciales independientes.
+
+Diseño concreto: configuración PostgreSQL común a `dev`/`prod`, puerto opcional `ENV_PROTUBE_DB_PORT` (5432 por defecto), driver PostgreSQL de runtime y Flyway con Hibernate validate; retirar H2. Mantener solo la diferencia de importación inicial entre perfiles. Compose conserva su volumen y añade validación de variables y healthcheck.
+
+Pruebas: Testcontainers PostgreSQL, scope test, en contenedores aislados y sin credenciales de producción; contraseña de prueba generada en ejecución. Compartir infraestructura para las tres pruebas Spring existentes mediante una base de tests y `DynamicPropertySource`. Añadir una prueba de persistencia que cierre/reabra contextos de aplicación sobre la misma base PostgreSQL, compruebe V1/V2, datos/relaciones, actualización y borrado de persistencia, sin equivaler a implementar CRUD público. Testcontainers 1.21.4 se fija por compatibilidad con Docker Engine 29 presente en este entorno; [nota oficial de la versión](https://github.com/testcontainers/testcontainers-java/releases/tag/1.21.4). No se desactivan pruebas al faltar Docker.
+
+Maven prod: conservar empaquetado/frontend y puertas de cobertura, usar `npm ci` para respetar lockfile, y comprobar ambos builds `mvn clean verify` y `mvn -Pprod clean verify`. Docker deberá estar activo en local y CI. No hay cambio de API, entidades ni nueva migración previsto.
+
 - Mantener las entidades, relaciones, índices y migraciones existentes salvo defecto demostrado; no reescribir V1/V2 ya aplicadas. No reservar V3 sin consultar las tareas compartidas.
-- Preparar PostgreSQL para la aplicación entregada, staging y la comprobación de persistencia. Propuesta para reconciliar `dev` con NFR-01: usar también PostgreSQL en ejecución dev, mover/eliminar H2 de la configuración entregable y valorar su uso únicamente en pruebas aisladas, sin sustituir las pruebas con PostgreSQL.
+- Preparar PostgreSQL para dev, entrega, staging y pruebas, retirando H2 conforme a la ejecución autorizada anterior. Las pruebas aisladas usan también PostgreSQL real.
 - Reutilizar `ENV_PROTUBE_DB_HOST`, `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, `ENV_PROTUBE_DB_PASS`; documentar preparación, perfil activo y migraciones sin valores reales ni rutas de máquinas. Eliminar cualquier dependencia de un `.env` versionado.
 - Verificar el volumen ya declarado en Compose y repetir lectura tras reiniciar servicios conservando volumen. No ejecutar limpieza de volúmenes para comprobar reinicio.
 - Cubrir usuarios/perfil, vídeos/descripciones, etiquetas/relaciones, unicidad y el CRUD acordado en RF-7/RF-8. No ampliar la administración de cuentas por suposición.
@@ -169,7 +181,7 @@ Comandos de implementación futura, no ejecutados en esta preparación:
 | Entorno E2E acordado | Comando de la herramienta que se incorpore | Golden paths del sprint; no inventar un script existente |
 | PR y staging | CI del resultado combinado, revisión, integración y smoke tests de la versión desplegada | Enlaces, commit, fecha/entorno, sesión/cookies, persistencia y rutas directas |
 
-La CI actual invoca `-Pcoverage` sin perfil Maven correspondiente. Al implementar, alinear el workflow con el comando canónico si se modifica esa configuración, sin rebajar las puertas de JaCoCo/Jest. La preparación documental se verifica con diff, enlaces y coherencia RF/T; no requiere ejecutar la aplicación.
+La CI inicial invocaba `-Pcoverage` sin perfil Maven correspondiente. La ejecución PostgreSQL alinea el workflow con `-Pprod clean verify` para verificar también el empaquetado de producción, sin rebajar las puertas de JaCoCo/Jest. La preparación puramente documental se verifica con diff, enlaces y coherencia RF/T; la ejecución de PostgreSQL tiene su propia evidencia funcional.
 
 ## Dependencias, coordinación y riesgos
 
