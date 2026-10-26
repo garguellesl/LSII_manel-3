@@ -6,9 +6,9 @@ import com.tecnocampus.LS2.protube_back.model.RegisterRequest;
 import com.tecnocampus.LS2.protube_back.model.UpdateCommentRequest;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
+import com.tecnocampus.LS2.protube_back.support.PostgreSqlIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -17,12 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest({
-        "pro_tube.store.dir=.",
-        "pro_tube.load_initial_data=false"
-})
 @Transactional
-class VideoServiceTest {
+class VideoServiceTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     UserService userService;

@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Protube [DEV - ALL]" type="CompoundRunConfigurationType">
+    <toRun name="frontend [DEV]" type="js.build_tools.npm" />
+    <toRun name="ProtubeBackApplication" type="SpringBootApplicationConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
