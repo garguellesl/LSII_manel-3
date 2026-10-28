@@ -8,9 +8,9 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class IndexController {
 
-    @GetMapping({"/", "/videos/{id}"})
+    @GetMapping("")
     public ModelAndView home() {
-        return new ModelAndView("forward:/index.html");
+        return new ModelAndView("index");
     }
     @PostMapping("logout")
     public ModelAndView logout() {
