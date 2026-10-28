@@ -3,6 +3,8 @@
 How to set up, run, test and build ProTube locally. For the assignment rules see [README.md](./README.md), and for
 the MVP spec see [REQUIREMENT.md](./REQUIREMENT.md).
 
+For the complete class delivery, only Docker is required: see [Docker delivery](#docker-delivery). The Java/Node prerequisites and manual environment setup below apply when running development tools on the host.
+
 ## Repository layout
 
 | Folder                   | What it is                                                                 |
@@ -181,7 +183,7 @@ cd backend
 mvn -Pprod spring-boot:run
 ```
 
-(IntelliJ: the shared **Production** run configuration does the same.)
+(For host execution, this command still requires the environment variables above. The shared IntelliJ **Production** configuration now starts the complete Docker delivery as described below.)
 
 ### Build and run the jar
 
@@ -245,3 +247,50 @@ application data and is not part of normal restart or verification.
 * **Frontend can't reach the API in dev**: make sure the backend is running on port 8080, or adjust
   `VITE_API_DOMAIN` in `.env.development.local`.
 * **Port already in use**: change `server.port` (backend) or run `npm run dev -- --port 5174` (frontend).
+
+
+## Docker delivery
+
+From a checkout with Docker Desktop running (Linux containers), use:
+
+```bash
+docker compose up --build -d --wait
+```
+
+The professor can open http://localhost:8080 without configuring IntelliJ or installing host Java/Node. The first build downloads Maven/frontend dependencies. The runtime image contains the production jar and a Java 21 JRE, runs as an unprivileged user, and checks `/api/videos` for readiness. Compose waits for PostgreSQL before starting the app. `/` and direct `/videos/{id}` navigation serve React; API/media use relative URLs on the same origin.
+
+### Configuration
+
+- Compose shares its existing local demonstration database defaults with the app. Optional overrides are `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, `ENV_PROTUBE_DB_PASS`; use matching credentials for an existing volume. Changing environment settings does not rotate the password already stored in PostgreSQL.
+- `ENV_PROTUBE_DB_PORT` changes the published host database port (default 5432); the app container always connects to `db:5432`. `ENV_PROTUBE_DB_HOST` from the host is deliberately not used inside the container.
+- `PROTUBE_HTTP_PORT` changes the web host port (default 8080).
+- `PROTUBE_MEDIA_DIR` selects a host directory; the existing `./videos` is the demonstration default. Compose mounts it read-only at `/media-store/` and passes that container path through `ENV_PROTUBE_STORE_DIR`. This differs from starting Java on the host, where ENV_PROTUBE_STORE_DIR must be a host path.
+- The media directory must already exist; Compose fails rather than silently creating a directory for a typo. Use an external store for your own media. The image build excludes all media and local environment files.
+- Only the Compose demonstration command enables initial metadata import in prod. Existing media paths are skipped on restart. Plain Maven/jar prod retains its existing import-disabled default; host execution still requires the variables described above. Configuration variables defined on one IntelliJ run configuration are not inherited by another.
+
+Stop development Vite/backend processes before a production Maven build; `npm ci` replaces node_modules and Windows can lock Rollup files used by Vite. Also free port 8080 before starting Compose. Docker and the database should stay running.
+
+### Checks and lifecycle
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+# Optional HTTP smoke test; requires Python 3 only on the verification machine.
+python tooling/docker/smoke_test.py
+docker compose restart app
+python tooling/docker/smoke_test.py
+docker compose stop
+```
+
+The smoke test checks React/assets, API, imported catalog, direct video navigation, thumbnails, partial video requests (206), and missing resources (404). For a new empty database with an empty mounted store, use `python tooling/docker/smoke_test.py http://localhost:8080 --empty`. The build inside Docker skips tests because it has no Docker socket; run `mvn clean verify` in backend separately to execute the Testcontainers suite and coverage gates. This does not skip the production frontend build.
+
+`docker compose stop` preserves database data. Restart with `docker compose up -d --wait`; rebuild after source changes with `--build`. Avoid `down -v`, which removes persisted data. Inspect logs if a healthcheck fails; do not treat an unhealthy container as a successful delivery.
+
+
+### Start the delivery with Maven Production in IntelliJ
+
+With Docker Desktop running, select the shared **Production** Maven configuration and press Run. It uses Maven Exec to run `docker compose -f ../compose.yaml up --build -d --wait` from backend. This builds/starts frontend, backend and PostgreSQL together using Compose's existing local demo settings; no manual environment variables are required. Open http://localhost:8080 after BUILD SUCCESS.
+
+If IntelliJ still displays `spring-boot:run` in Production, reload the shared run configuration from disk (close/reopen the project if necessary). The saved goal is `org.codehaus.mojo:exec-maven-plugin:3.6.4:exec`, with `exec.executable=docker` and `exec.args=compose -f ../compose.yaml up --build -d --wait` in Maven properties. Docker must be on PATH; the first run downloads the Maven Exec plugin. Maven/JDK are needed for this IDE shortcut; the direct Docker command still only requires Docker.
+
+Maven exits successfully once both containers are ready; they continue running detached. Stop them with `docker compose stop` from the repository root. The green Maven exit is expected. Do not also start a host backend on port 8080. Keep the variables in ProtubeBackApplication for host development: they are independent of this delivery shortcut and are not changed by it. Plain `mvn -Pprod spring-boot:run` and running the jar on the host continue to require their own environment settings.
