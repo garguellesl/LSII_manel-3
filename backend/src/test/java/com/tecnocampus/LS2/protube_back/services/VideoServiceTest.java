@@ -89,7 +89,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 null,
                 "New description",
                 List.of("database")
-        ));
+        ), userId);
 
         assertEquals("New description", updated.description());
         assertEquals(List.of("database"), updated.tags());
@@ -101,10 +101,10 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         Long videoId = createVideo(userId, "4.mp4").id();
 
         var comment = videoService.addComment(videoId, new CommentRequest(userId, "Nice video"));
-        var updatedComment = videoService.updateComment(comment.id(), new UpdateCommentRequest("Updated comment"));
+        var updatedComment = videoService.updateComment(comment.id(), new UpdateCommentRequest("Updated comment"), userId);
         var like = videoService.likeVideo(videoId, userId);
         var watch = videoService.recordWatch(videoId, new WatchHistoryRequest(userId, 7));
-        var analytics = videoService.getAnalyticsForOwner(userId).get(0);
+        var analytics = videoService.getAnalyticsForOwner(userId, userId).get(0);
 
         assertEquals("Nice video", comment.text());
         assertEquals("Updated comment", updatedComment.text());
@@ -113,7 +113,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(1, analytics.commentsCount());
         assertEquals(1, analytics.likesCount());
         assertEquals(1, analytics.viewsCount());
-        assertEquals(1, videoService.getWatchHistory(userId).size());
+        assertEquals(1, videoService.getWatchHistory(userId, userId).size());
     }
 
     @Test

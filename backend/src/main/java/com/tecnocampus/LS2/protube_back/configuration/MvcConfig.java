@@ -41,18 +41,6 @@ public class MvcConfig implements WebMvcConfigurer {
            .setCachePeriod(3600);
     }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
-                .allowedHeaders("*");
-        registry.addMapping("/auth/**")
-                .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "OPTIONS")
-                .allowedHeaders("*");
-    }
-
     private Path resolveStoreDirectory(String configuredPath) {
         Path path = Paths.get(configuredPath);
         if (path.toFile().isDirectory()) {

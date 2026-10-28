@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   font-size: calc(10px + 2vmin);
   color: white;
 }
@@ -49,7 +49,9 @@
   outline: none;
   background-color: #1e2126;
   color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .search-input::placeholder {
@@ -191,3 +193,144 @@
   border-radius: 12px;
 }
 
+.account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  min-height: 5rem;
+  font-size: 0.95rem;
+}
+
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #63738b;
+  border-radius: 999px;
+  color: #f5f7fa;
+  background: transparent;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-link:hover,
+.account-link:focus-visible {
+  border-color: #61dafb;
+  color: #61dafb;
+}
+
+.account-link:focus-visible,
+.auth-card input:focus-visible,
+.auth-submit:focus-visible {
+  outline: 3px solid #61dafb;
+  outline-offset: 3px;
+}
+
+.account-link--primary,
+.auth-submit {
+  background: #61dafb;
+  border-color: #61dafb;
+  color: #14202a;
+  font-weight: 650;
+}
+
+.account-link--primary:hover {
+  background: #a0eaff;
+  color: #14202a;
+}
+
+.account-avatar {
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: #61dafb;
+  color: #14202a;
+  font-weight: 700;
+}
+
+.account-profile span:last-child {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-card {
+  width: min(92%, 30rem);
+  margin: 1rem auto 3rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #485366;
+  border-radius: 1.25rem;
+  background: #1e2126;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.auth-card h1 {
+  font-size: 1.75rem;
+}
+
+.auth-card p,
+.auth-card small {
+  color: #d1d5db;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #63738b;
+  border-radius: 0.6rem;
+  background: #282c34;
+  color: white;
+}
+
+.auth-field input[aria-invalid='true'] {
+  border-color: #f5a9a9;
+}
+
+.auth-card .auth-field-error,
+.auth-card [role='alert'],
+.account-bar [role='alert'] {
+  color: #ffbaba;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.auth-alternative {
+  margin-top: 1.25rem;
+}
+
+.auth-card a {
+  color: #61dafb;
+}
+
+.profile-card dd {
+  overflow-wrap: anywhere;
+  margin-bottom: 1rem;
+  color: #d1d5db;
+}

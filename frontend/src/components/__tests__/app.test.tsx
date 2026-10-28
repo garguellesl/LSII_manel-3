@@ -2,8 +2,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 import App from '../../App';
+import { authClient } from '../../utils/authClient';
 
 jest.mock('axios');
+jest.mock('../../utils/authClient', () => ({ authClient: { currentUser: jest.fn() } }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const sampleVideos = [
@@ -37,14 +39,16 @@ const renderApp = (path = '/') =>
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (authClient.currentUser as jest.Mock).mockResolvedValue(null);
   });
 
-  it('renders loading state initially', () => {
+  it('renders loading state initially', async () => {
     mockedAxios.get.mockReturnValue(new Promise(() => {}));
     renderApp();
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: /search videos by title/i })).toBeInTheDocument();
+    await screen.findByRole('link', { name: 'Registrarse' });
   });
 
   it('renders prominently visible search input and full video list on success', async () => {
@@ -224,9 +228,10 @@ describe('App Component', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
   });
 
-  it('shows a not found message for unknown routes', () => {
+  it('shows a not found message for unknown routes', async () => {
     renderApp('/does/not/exist');
 
     expect(screen.getByRole('alert')).toHaveTextContent('Page not found.');
+    await screen.findByRole('link', { name: 'Registrarse' });
   });
 });

@@ -108,7 +108,7 @@ class VideosControllerTest {
         ));
 
         mockMvc.perform(post("/api/videos")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "title", "Created",
                                 "description", "desc",
@@ -124,7 +124,7 @@ class VideosControllerTest {
     @Test
     void createVideoReturnsBadRequestForInvalidInput() throws Exception {
         mockMvc.perform(post("/api/videos")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "title", "",
                                 "description", "",
@@ -137,13 +137,13 @@ class VideosControllerTest {
 
     @Test
     void updateVideoReturnsUpdatedMetadata() throws Exception {
-        when(videoService.updateVideo(eq(7L), any())).thenReturn(new VideoDetail(
+        when(videoService.updateVideo(eq(7L), any(), eq(3L))).thenReturn(new VideoDetail(
                 7L, "Seventh", "Author", "New description", 79.5,
                 "/media/7.webp", "/media/7.mp4", List.of("db"), 0, 0, 0
         ));
 
         mockMvc.perform(patch("/api/videos/7")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "description", "New description",
                                 "tags", List.of("db")
@@ -160,7 +160,7 @@ class VideosControllerTest {
         ));
 
         mockMvc.perform(post("/api/videos/7/likes")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("userId", 3))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(true))
@@ -173,7 +173,7 @@ class VideosControllerTest {
                 7L, 3L, false, 0
         ));
 
-        mockMvc.perform(delete("/api/videos/7/likes").param("userId", "3"))
+        mockMvc.perform(delete("/api/videos/7/likes").principal(() -> "3").param("userId", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(false))
                 .andExpect(jsonPath("$.likesCount").value(0));

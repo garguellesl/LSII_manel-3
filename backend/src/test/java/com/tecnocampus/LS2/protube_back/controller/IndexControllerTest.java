@@ -11,10 +11,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(IndexController.class)
+@org.springframework.context.annotation.Import(com.tecnocampus.LS2.protube_back.configuration.SecurityConfig.class)
 class IndexControllerTest {
     IndexController indexController = new IndexController();
+    private final MockMvc mockMvc;
+
     @Autowired
-    MockMvc mockMvc;
+    IndexControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void homeServesReactApplication() throws Exception {
@@ -32,7 +37,7 @@ class IndexControllerTest {
 
     @Test
     void unknownApiAndMediaPathsAreNotForwardedToReact() throws Exception {
-        mockMvc.perform(get("/api/unknown")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/unknown").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1"))).andExpect(status().isNotFound());
         mockMvc.perform(get("/media/missing.mp4")).andExpect(status().isNotFound());
     }
 

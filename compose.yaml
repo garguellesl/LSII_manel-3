@@ -35,6 +35,11 @@ services:
       ENV_PROTUBE_DB_PASS: "${ENV_PROTUBE_DB_PASS:-admin}"
       ENV_PROTUBE_DB: "${ENV_PROTUBE_DB:-protube}"
       ENV_PROTUBE_STORE_DIR: /media-store/
+      ENV_PROTUBE_SESSION_SECURE: "${ENV_PROTUBE_SESSION_SECURE:-false}"
+      ENV_PROTUBE_WEB_ORIGINS: "${ENV_PROTUBE_WEB_ORIGINS:-http://localhost:5174}"
+      ENV_PROTUBE_DEMO_ADMIN_EMAIL: "${ENV_PROTUBE_DEMO_ADMIN_EMAIL:-admin@protube.local}"
+      ENV_PROTUBE_DEMO_ADMIN_ACCOUNT: "${ENV_PROTUBE_DEMO_ADMIN_ACCOUNT:-admin}"
+      ENV_PROTUBE_DEMO_ADMIN_PASSWORD: "${ENV_PROTUBE_DEMO_ADMIN_PASSWORD:-admin1234}"
     # Import existing sample triples; the importer skips videos already in PostgreSQL.
     command: ["--pro_tube.load_initial_data=true"]
     ports:

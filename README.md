@@ -22,6 +22,8 @@ The existing database volume is retained. `docker compose down -v` deletes datab
 
 Media files are mounted read-only from the existing `videos/` folder and are not included in the image. Set `PROTUBE_MEDIA_DIR` to an external folder containing JSON/MP4/WebP triples to use your own store. Keep this folder available while running; an empty folder gives an empty catalog on a new database. See [delivery configuration and verification](DEVELOPMENT.md#docker-delivery).
 
+Use the account links in the top-right corner to register, sign in, view your own profile and sign out. Registration signs you in automatically. The local Compose demo includes account **admin**, email **admin@protube.local**, password **admin1234**. Sign in with the email. This account owns the imported videos and has ordinary owner permissions; it has no access to other users' private data or global administration. Profile consultation is implemented; the video management UI remains a separate task.
+
 ## Desarrollo con agentes y SDD
 
 El proyecto utiliza un flujo de desarrollo guiado por especificaciones. Antes de cambiar comportamiento, los agentes siguen [AGENTS.md](AGENTS.md), la [constitución](.agents/constitution.md) y la [guía SDD](docs/SDD.md). Las [plantillas](docs/SDD.md#plantillas) separan requisitos, diseño y tareas con evidencia de verificación. Las instrucciones compartidas se aplican a Codex, Claude y Gemini; Claude dispone también del comando `/sdd`.

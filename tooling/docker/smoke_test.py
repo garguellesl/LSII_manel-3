@@ -17,11 +17,11 @@ def fetch(path, headers=None):
     with urlopen(Request(base + path, headers=headers or {}), timeout=30) as response:
         return response.status, response.headers, response.read()
 
-def missing(path):
+def missing(path, expected=404):
     try:
         fetch(path)
     except HTTPError as error:
-        assert error.code == 404, (path, error.code)
+        assert error.code == expected, (path, error.code)
     else:
         raise AssertionError("Expected 404: " + path)
 
@@ -48,6 +48,6 @@ else:
     status, headers, chunk = fetch(quote(video["videoUrl"], safe="/"), {"Range": "bytes=0-31"})
     assert status == 206 and len(chunk) == 32 and headers.get("Content-Range", "").startswith("bytes 0-31/"), "Video Range failed"
 missing("/media/protube-missing-check.mp4")
-missing("/api/protube-missing-check")
+missing("/api/protube-missing-check", expected=401)
 missing("/api/videos/9223372036854775807")
 print("PASS: React, assets, API, catalog=" + str(len(videos)) + (", empty state" if empty else ", detail, direct route, thumbnail, video Range") + ", missing resources")

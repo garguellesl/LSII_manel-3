@@ -68,10 +68,10 @@ class PostgreSqlPersistenceTest {
                 assertEquals(description, persistedVideo.description());
                 assertEquals(List.of("java", "postgresql"), persistedVideo.tags());
                 assertEquals(1, videos.getComments(videoId).size());
-                assertEquals(1, videos.getWatchHistory(userId).size());
-                assertEquals(1, videos.getAnalyticsForOwner(userId).getFirst().likesCount());
+                assertEquals(1, videos.getWatchHistory(userId, userId).size());
+                assertEquals(1, videos.getAnalyticsForOwner(userId, userId).getFirst().likesCount());
 
-                videos.updateVideo(videoId, new UpdateVideoRequest(null, "Updated after restart", List.of("java")));
+                videos.updateVideo(videoId, new UpdateVideoRequest(null, "Updated after restart", List.of("java")), userId);
                 assertEquals("Updated after restart", videos.getVideo(videoId).orElseThrow().description());
 
                 application.getBean(VideoRepository.class).deleteById(videoId);
