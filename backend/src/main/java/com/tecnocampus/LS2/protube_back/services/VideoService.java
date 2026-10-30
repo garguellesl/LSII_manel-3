@@ -64,7 +64,7 @@ public class VideoService {
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
         var result = videoRepository.search(normalized, PageRequest.of(page, size));
         return new VideoPage(result.getContent().stream().map(this::toSummary).toList(),
-                page, size, result.hasNext());
+                page, size, result.hasNext(), result.getTotalElements());
     }
 
     @Transactional(readOnly = true)

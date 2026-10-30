@@ -59,6 +59,8 @@ Actualización autorizada 2026-10-30 (T4/RF-2 y conexión frontend):
 - Si falla la petición, se mostrará un error y una acción de reintento. No se presentará como ausencia de resultados.
 - Esta ejecución no incluye RF-3/T5 (etiquetas), cuya decisión D1 sigue pendiente.
 
+Ampliación autorizada: el sistema deberá devolver el total de vídeos que coinciden con el filtro desde la base de datos, sin descargarlos todos. La interfaz solo mostrará Previous/Next y el indicador de página cuando ese total supere el tamaño de página (24). Con 0, 1 o exactamente 24 coincidencias no mostrará paginación. En la última página de un conjunto mayor conservará los controles para poder volver atrás.
+
 ### RF-3 - Búsqueda por etiquetas
 
 Cuando una persona seleccione o introduzca una o varias etiquetas, el sistema deberá mostrar los vídeos relacionados con los valores buscados sin distinguir mayúsculas y minúsculas.

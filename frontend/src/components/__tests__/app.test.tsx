@@ -54,7 +54,7 @@ describe('App Component', () => {
   it('renders prominently visible search input and full video list on success', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       status: 200,
-      data: { content: sampleVideos, page: 0, size: 24, hasNext: false },
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
     });
     renderApp();
 
@@ -72,7 +72,10 @@ describe('App Component', () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/1')
         ? Promise.resolve({ status: 200, data: { ...sampleVideos[0], user: '', description: '', duration: 0 } })
-        : Promise.resolve({ status: 200, data: { content: sampleVideos, page: 0, size: 24, hasNext: false } })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp();
 
@@ -85,10 +88,14 @@ describe('App Component', () => {
   });
 
   it('requests matches from the server including description-only results and clears search', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[0]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
     renderApp();
     await screen.findByText(sampleVideos[0].title);
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[1]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: ' description fragment ' } });
     expect(await screen.findByText(sampleVideos[1].title)).toBeInTheDocument();
     expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
@@ -98,14 +105,16 @@ describe('App Component', () => {
         params: { q: 'description fragment', page: 0, size: 24 },
       })
     );
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[0]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
     fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
     expect(await screen.findByText(sampleVideos[0].title)).toBeInTheDocument();
     expect(screen.getByRole('searchbox')).toHaveValue('');
   });
 
   it('shows an empty search result without treating it as an error', async () => {
-    mockedAxios.get.mockResolvedValue({ data: { content: [], hasNext: false } });
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
     renderApp();
     await screen.findByText('No videos are available.');
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'missing' } });
@@ -114,12 +123,16 @@ describe('App Component', () => {
   });
 
   it('requests pages on demand, replaces results, and resets page when searching', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[0]], hasNext: true } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
     renderApp();
     await screen.findByText(sampleVideos[0].title);
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[1]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 1, size: 24, hasNext: false, totalElements: 25 },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText(sampleVideos[1].title);
     expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
@@ -129,27 +142,80 @@ describe('App Component', () => {
       'other/videos',
       expect.objectContaining({ params: { q: '', page: 1, size: 24 } })
     );
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[0]], hasNext: true } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
     await screen.findByText(sampleVideos[0].title);
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[1]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 1, size: 24, hasNext: false, totalElements: 25 },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText(sampleVideos[1].title);
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'new query' } });
     await screen.findByText('No videos found matching "new query".');
-    expect(screen.getByText('Page 1')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
     expect(mockedAxios.get).toHaveBeenLastCalledWith(
       'other/videos',
       expect.objectContaining({ params: { q: 'new query', page: 0, size: 24 } })
     );
   });
 
+  it.each([0, 1, 24, 25])(
+    'shows pagination only when the server reports more than one page (%i matches)',
+    async (totalElements) => {
+      const content = Array.from({ length: Math.min(totalElements, 24) }, (_, index) => ({
+        ...sampleVideos[0],
+        id: index + 1,
+        title: `Video ${index + 1}`,
+      }));
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content, page: 0, size: 24, hasNext: totalElements > 24, totalElements },
+      });
+      renderApp();
+      if (totalElements) await screen.findByText('Video 1');
+      else await screen.findByText('No videos are available.');
+      expect(screen.queryAllByRole('link', { name: /^Watch / })).toHaveLength(Math.min(totalElements, 24));
+      if (totalElements > 24) {
+        expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      } else {
+        expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
+      }
+    }
+  );
+
+  it('hides pagination after filtering to one match and restores it when cleared', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
+    renderApp();
+    await screen.findByRole('button', { name: 'Next' });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'description' } });
+    await screen.findByText(sampleVideos[1].title);
+    expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(await screen.findByRole('button', { name: 'Next' })).toBeEnabled();
+  });
+
   it('can retry a failed request', async () => {
     mockedAxios.get.mockRejectedValueOnce(new Error('Offline'));
     renderApp();
     await screen.findByRole('alert');
-    mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[0]], hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText(sampleVideos[0].title)).toBeInTheDocument();
   });
@@ -175,13 +241,15 @@ describe('App Component', () => {
       });
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
       expect(oldSignal?.aborted).toBe(true);
-      mockedAxios.get.mockResolvedValueOnce({ data: { content: [sampleVideos[1]], hasNext: false } });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+      });
       await act(async () => {
         jest.advanceTimersByTime(1);
       });
       expect(screen.getByText(sampleVideos[1].title)).toBeInTheDocument();
       await act(async () => {
-        resolveOld({ data: { content: [sampleVideos[0]], hasNext: false } });
+        resolveOld({ data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 } });
       });
       expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
       let rejectOld!: (reason: Error) => void;
@@ -194,7 +262,9 @@ describe('App Component', () => {
       await act(async () => {
         jest.advanceTimersByTime(300);
       });
-      mockedAxios.get.mockResolvedValueOnce({ data: { content: [], hasNext: false } });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+      });
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'latest' } });
       await act(async () => {
         jest.advanceTimersByTime(300);
@@ -210,7 +280,10 @@ describe('App Component', () => {
   });
 
   it('displays message when API returns no available videos', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { content: [], page: 0, size: 24, hasNext: false } });
+    mockedAxios.get.mockResolvedValueOnce({
+      status: 200,
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
     renderApp();
 
     await waitFor(() => {
@@ -230,7 +303,7 @@ describe('App Component', () => {
   it('renders each video as a link to its player page', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       status: 200,
-      data: { content: sampleVideos, page: 0, size: 24, hasNext: false },
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
     });
     renderApp();
 
@@ -246,7 +319,10 @@ describe('App Component', () => {
             status: 200,
             data: { ...sampleVideos[1], user: 'Author', description: 'Desc', duration: 10 },
           })
-        : Promise.resolve({ status: 200, data: { content: sampleVideos, page: 0, size: 24, hasNext: false } })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp();
 
@@ -262,7 +338,10 @@ describe('App Component', () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/3')
         ? Promise.resolve({ status: 200, data: { ...sampleVideos[2], user: '', description: '', duration: 0 } })
-        : Promise.resolve({ status: 200, data: { content: sampleVideos, page: 0, size: 24, hasNext: false } })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp('/videos/3');
 

@@ -9,7 +9,13 @@ export type VideoSummary = {
   thumbnailUrl: string;
   videoUrl: string;
 };
-export type VideoPage = { content: VideoSummary[]; page: number; size: number; hasNext: boolean };
+export type VideoPage = {
+  content: VideoSummary[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+  totalElements: number;
+};
 const VIDEOS_URL = `${getEnv().API_BASE_URL}/videos`;
 
 export function useAllVideos(query: string, page: number) {
@@ -22,8 +28,20 @@ export function useAllVideos(query: string, page: number) {
     loading: LoadingState;
     value: VideoSummary[];
     hasNext: boolean;
+    totalElements: number;
+    size: number;
     message: string;
-  }>({ q: '', page: 0, attempt: 0, loading: 'loading', value: [], hasNext: false, message: '' });
+  }>({
+    q: '',
+    page: 0,
+    attempt: 0,
+    loading: 'loading',
+    value: [],
+    hasNext: false,
+    totalElements: 0,
+    size: 24,
+    message: '',
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,6 +61,8 @@ export function useAllVideos(query: string, page: number) {
               loading: 'success',
               value: response.data.content,
               hasNext: response.data.hasNext,
+              totalElements: response.data.totalElements,
+              size: response.data.size,
               message: '',
             });
         } catch (error: unknown) {
@@ -54,6 +74,8 @@ export function useAllVideos(query: string, page: number) {
               loading: 'error',
               value: [],
               hasNext: false,
+              totalElements: 0,
+              size: 24,
               message: 'Error fetching videos: ' + (error instanceof Error ? error.message : 'Unknown error'),
             });
         }
@@ -72,6 +94,8 @@ export function useAllVideos(query: string, page: number) {
     loading: current ? result.loading : ('loading' as LoadingState),
     value: current ? result.value : [],
     hasNext: current && result.hasNext,
+    totalElements: current ? result.totalElements : 0,
+    pageSize: result.size,
     message: current ? result.message : '',
     retry: () => setAttempt((value) => value + 1),
   };

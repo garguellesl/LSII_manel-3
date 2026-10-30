@@ -216,3 +216,18 @@ Evidencia pendiente.
 - Diagnosticos resueltos: Docker inicialmente apagado (arrancado); residuo antiguo application.properties en target/test-classes (eliminado mediante clean); Jest config TypeScript requeria cargador ausente/incompatible con extends multiple (config equivalente renombrada a jest.config.cjs). Sin dependencias nuevas ni cambios del lockfile. Se corrigieron un parentesis en un test nuevo y una consulta ambigua por role=status en el test de autenticacion, acotandola al menu de cuenta.
 - Contrato sincronizado con scripts smoke existentes, sin afirmar haberlos ejecutado contra un despliegue. Revisados consumidores del catalogo; ya no existe ruta de listado ilimitado. Solo la pagina se transforma a DTO; sin fetch join de colecciones con Pageable.
 - No ejecutado: E2E visual, staging, CI remota ni benchmark de un millon de filas. Ranking por subcadena y offset profundo pueden requerir indices/cursores tras medir. Sin migraciones, etiquetas ni nuevas funcionalidades de cuenta. El sprint completo permanece pendiente.
+
+## Ampliacion RF-2: total de resultados y controles condicionales
+
+Autorizacion posterior del usuario sobre 35f23da, misma rama fixing-search-on-frontend-to-backend. Mantener evidencias anteriores como historicas. Esta ampliacion reabre la aceptacion de T4/RF-2 hasta verificar los cambios de contrato.
+
+- [x] C1: VideoPage.totalElements y consulta COUNT con el filtro textual; tests PostgreSQL y contrato HTTP.
+- [x] C2: ocultar paginacion cuando totalElements <= size, conservar navegacion en la ultima pagina; tests de 0/1/24/25 resultados y cambio de filtro.
+- [x] C3: checks de backend/frontend y evidencia final.
+
+Verificado localmente el 2026-10-30 Europe/Madrid; sin commit ni push para esta ampliacion.
+
+- `backend/`: `mvn -B -ntp -Pprod clean verify` con Java 21: BUILD SUCCESS, 62 tests, 0 fallos/errores/omisiones, puertas JaCoCo satisfechas; npm ci/build:prod y jar ejecutable incluidos. PostgreSQL Testcontainers aislado. `countsFilteredResultsWithoutLoadingTheWholeCatalog` guarda 25 videos y verifica primera pagina de 24, ultima de 1 con total 25, filtro unico total 1, filtro de 24 con total 24 y filtro sin resultados total 0. Ranking/paginas de 2 y pagina fuera de rango conservan total correcto. MockMvc verifica totalElements en JSON, tambien para cero y total mayor que pagina.
+- `frontend/`: `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (12 suites, 68 tests, 1 snapshot), `npm run lint`: satisfactorios. Umbrales de cobertura existentes satisfechos. Tests mockeados de 0/1/24/25 coincidencias, ultima pagina con total 25, buscar/limpiar y controles ocultos/restaurados. Sin llamadas de tests frontend al backend real.
+- Contrato ampliado de forma aditiva: totalElements (long en Java), con COUNT y exactamente el mismo filtro del listado. Solo se cargan videos de la pagina; no se descarga el catalogo para contarlo. Spring puede inferir el total en paginas incompletas.
+- No se ejecutaron E2E visual, despliegue, CI remota ni benchmark de gran volumen. El COUNT puede aumentar el trabajo SQL; no afecta al limite de 24 videos transferidos por pagina. Sin migraciones/dependencias nuevas. Prompt 10 pendiente de revision del equipo.

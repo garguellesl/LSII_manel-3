@@ -65,7 +65,7 @@ interface ContentAppProps {
 }
 
 function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
-  const { loading, message, value, hasNext, retry } = useAllVideos(searchQuery, page);
+  const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page);
   switch (loading) {
     case 'loading':
       return <div>Loading...</div>;
@@ -79,7 +79,7 @@ function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
         </div>
       );
     case 'success': {
-      const pagination = (
+      const pagination = totalElements > pageSize && (
         <nav aria-label="Video pages">
           <button type="button" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
             Previous

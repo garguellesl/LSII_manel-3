@@ -143,12 +143,15 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         var first = videoService.getVideos("  jAvA  ", 0, 2);
         assertEquals(List.of(exact.id(), partial.id()), first.content().stream().map(v -> v.id()).toList());
         assertTrue(first.hasNext());
+        assertEquals(3, first.totalElements());
         var second = videoService.getVideos("java", 1, 2);
         assertEquals(List.of(description.id()), second.content().stream().map(v -> v.id()).toList());
         assertTrue(!second.hasNext());
+        assertEquals(3, second.totalElements());
         assertEquals(List.of(description.id(), partial.id()), videoService.getVideos("  ", 0, 2).content().stream().map(v -> v.id()).toList());
         assertTrue(videoService.getVideos("missing", 0, 24).content().isEmpty());
         assertTrue(videoService.getVideos("java", 9, 2).content().isEmpty());
+        assertEquals(3, videoService.getVideos("java", 9, 2).totalElements());
         assertEquals(3, videoService.getVideos(null, 0, 100).content().size());
     }
 
@@ -160,6 +163,32 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         for (String query : List.of("%", "_", "\\", "100%_")) {
             assertEquals(List.of(literal.id()), videoService.getVideos(query, 0, 24).content().stream().map(v -> v.id()).toList());
         }
+    }
+
+    @Test
+    void countsFilteredResultsWithoutLoadingTheWholeCatalog() {
+        Long owner = registerUser("count@example.com", "count").id();
+        for (int index = 0; index < 25; index++) {
+            videoService.createVideo(new CreateVideoRequest("Catalog " + index,
+                    index == 0 ? "Unique description" : "Shared description",
+                    "count-" + index + ".mp4", null, 0, owner, List.of("one", "two")));
+        }
+        var first = videoService.getVideos("", 0, 24);
+        assertEquals(24, first.content().size());
+        assertEquals(25, first.totalElements());
+        assertTrue(first.hasNext());
+        var last = videoService.getVideos("", 1, 24);
+        assertEquals(1, last.content().size());
+        assertEquals(25, last.totalElements());
+        assertTrue(!last.hasNext());
+        var single = videoService.getVideos("unique", 0, 24);
+        assertEquals(1, single.content().size());
+        assertEquals(1, single.totalElements());
+        var exactPage = videoService.getVideos("shared", 0, 24);
+        assertEquals(24, exactPage.content().size());
+        assertEquals(24, exactPage.totalElements());
+        assertTrue(!exactPage.hasNext());
+        assertEquals(0, videoService.getVideos("missing", 0, 24).totalElements());
     }
 
     private com.tecnocampus.LS2.protube_back.model.UserResponse registerUser(String email, String accountName) {

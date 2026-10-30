@@ -44,11 +44,11 @@ Alcance autorizado: T4/RF-2, conexion frontend y paginacion. Sustituye para esta
 
 GET `/api/videos?q=<texto>&page=0&size=24`, publico. q opcional, trim y minusculas; vacio equivale a catalogo. page >= 0; size entre 1 y 100 (24 por defecto); q maximo 500 caracteres. Entrada invalida: 400. Sin coincidencias: 200 con content vacio; fallo de infraestructura: 5xx.
 
-DTO `VideoPage`: `{content: VideoSummary[], page: number, size: number, hasNext: boolean}`. Sustituye el array ilimitado en todos los consumidores del repo. No hay COUNT global: Slice obtiene como maximo size+1 filas mediante LIMIT/OFFSET en SQL. Sin fetch join de colecciones que causaria paginacion en memoria. Solo se mapean los elementos de la pagina a DTO, con sus campos existentes.
+DTO `VideoPage`: `{content: VideoSummary[], page: number, size: number, hasNext: boolean, totalElements: number}`. Sustituye el array ilimitado en todos los consumidores del repo. Ampliacion autorizada posterior: Page obtiene filas limitadas mediante LIMIT/OFFSET y un COUNT con el mismo filtro (Spring puede inferir el total en paginas incompletas). El total incluye todas las coincidencias, no solo las de la pagina actual. Sin fetch join de colecciones que causaria paginacion en memoria. Solo se mapean los elementos de la pagina a DTO, con sus campos existentes.
 
 Repositorio: JPQL parametrizado, LOCATE para coincidencia literal parcial en titulo O descripcion en minusculas; %, _ y barra son literales. Ranking: titulo exacto, fragmento en titulo, descripcion, desempate ID ascendente. Sin texto, ID ascendente. Sin migraciones ni nuevas dependencias.
 
-Frontend: useAllVideos(query, page), debounce 300 ms, AbortController y guardia contra respuestas obsoletas. Botones Previous/Next y Retry; cambiar consulta vuelve a pagina cero; reemplaza resultados sin acumular paginas. Mantener navegacion desde reproductor y estados carga/error/vacio. Sin filtrado local.
+Frontend: useAllVideos(query, page), debounce 300 ms, AbortController y guardia contra respuestas obsoletas. Botones Previous/Next e indicador visibles solo si totalElements > size de la respuesta; mantenerlos en la ultima pagina aunque hasNext sea false. Boton Retry para errores. Cambiar consulta vuelve a pagina cero; reemplaza resultados sin acumular paginas. Mantener navegacion desde reproductor y estados carga/error/vacio. Sin filtrado local. Pruebas de 0/1/24/25 resultados, ultima pagina y cambio de filtro.
 
 Verificar con PostgreSQL real: ranking, fragmentos, mayusculas, literales, vacio, limites de pagina y tags sin duplicados; MockMvc: defaults, contrato y entrada invalida; Jest mockeado: consultas, paginacion, debounce, carreras y estados. Checks de area: Maven clean verify; build, Jest con cobertura y lint.
 
