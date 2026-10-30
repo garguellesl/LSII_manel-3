@@ -27,12 +27,15 @@ class AuthControllerTest {
     @Mock
     UserService userService;
 
+    @Mock
+    com.tecnocampus.LS2.protube_back.configuration.SessionAuthentication sessions;
+
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(userService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(userService, sessions))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -83,5 +86,25 @@ class AuthControllerTest {
                         ))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Invalid email or password"));
+    }
+
+    @Test
+    void failedSessionAfterRegistrationClearlyReportsThatAccountWasCreated() throws Exception {
+        when(userService.register(any())).thenReturn(new UserResponse(
+                1L, "created@example.test", "created", "First", "Last", LocalDateTime.now()));
+        org.mockito.Mockito.doThrow(new IllegalStateException("session unavailable"))
+                .when(sessions).start(any(), any(), any());
+        mockMvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", "created@example.test", "accountName", "created", "firstName", "First",
+                                "lastName", "Last", "password", "password123"))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("Account created")));
+    }
+
+    @Test
+    void csrfResponseStringDoesNotExposeToken() {
+        var response = new com.tecnocampus.LS2.protube_back.model.CsrfResponse("sensitive-token", "X-CSRF-TOKEN");
+        org.junit.jupiter.api.Assertions.assertFalse(response.toString().contains("sensitive-token"));
     }
 }

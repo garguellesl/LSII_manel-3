@@ -5,8 +5,20 @@ import { SearchBar } from './components/SearchBar';
 import { VideoCard } from './components/VideoCard';
 import { VideoPlayerPage } from './components/VideoPlayerPage';
 import { useAllVideos } from './useAllVideos';
+import { AuthProvider } from './components/AuthProvider';
+import { AccountMenu } from './components/AccountMenu';
+import { AuthPage } from './components/AuthPage';
+import { ProfilePage } from './components/ProfilePage';
 
 function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
+}
+
+function AppRoutes() {
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -22,6 +34,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
+        <AccountMenu />
         <Link to="/" aria-label="Go to home">
           <img
             src="/protube-logo-removebg-preview.png"
@@ -33,6 +46,9 @@ function App() {
         <Routes>
           <Route path="/" element={<ContentApp searchQuery={searchQuery} />} />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
+          <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+          <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<p role="alert">Page not found.</p>} />
         </Routes>
       </header>

@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.Set;
 
 @Service
@@ -90,8 +92,9 @@ public class VideoService {
     }
 
     @Transactional
-    public VideoDetail updateVideo(Long id, UpdateVideoRequest request) {
+    public VideoDetail updateVideo(Long id, UpdateVideoRequest request, Long actorId) {
         Video video = findDetailedVideo(id);
+        requireSameUser(video.getOwner().getId(), actorId);
         video.updateMetadata(
                 blankToNull(request.title()),
                 request.description() == null ? null : request.description().trim(),
@@ -119,19 +122,20 @@ public class VideoService {
     }
 
     @Transactional
-    public CommentResponse updateComment(Long commentId, UpdateCommentRequest request) {
+    public CommentResponse updateComment(Long commentId, UpdateCommentRequest request, Long actorId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        requireSameUser(comment.getUser().getId(), actorId);
         comment.updateText(request.text().trim());
         return toCommentResponse(comment);
     }
 
     @Transactional
-    public void deleteComment(Long commentId) {
-        if (!commentRepository.existsById(commentId)) {
-            throw new ResourceNotFoundException("Comment not found");
-        }
-        commentRepository.deleteById(commentId);
+    public void deleteComment(Long commentId, Long actorId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        requireSameUser(comment.getUser().getId(), actorId);
+        commentRepository.delete(comment);
     }
 
     @Transactional
@@ -161,7 +165,8 @@ public class VideoService {
     }
 
     @Transactional(readOnly = true)
-    public List<WatchHistoryResponse> getWatchHistory(Long userId) {
+    public List<WatchHistoryResponse> getWatchHistory(Long userId, Long actorId) {
+        requireSameUser(userId, actorId);
         if (!userAccountRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found");
         }
@@ -171,7 +176,8 @@ public class VideoService {
     }
 
     @Transactional(readOnly = true)
-    public List<VideoAnalyticsResponse> getAnalyticsForOwner(Long ownerUserId) {
+    public List<VideoAnalyticsResponse> getAnalyticsForOwner(Long ownerUserId, Long actorId) {
+        requireSameUser(ownerUserId, actorId);
         if (!userAccountRepository.existsById(ownerUserId)) {
             throw new ResourceNotFoundException("User not found");
         }
@@ -184,6 +190,12 @@ public class VideoService {
                         commentRepository.countByVideoId(video.getId())
                 ))
                 .toList();
+    }
+
+    private void requireSameUser(Long ownerId, Long actorId) {
+        if (actorId == null || !Objects.equals(ownerId, actorId)) {
+            throw new AccessDeniedException("Access denied");
+        }
     }
 
     private VideoSummary toSummary(Video video) {
