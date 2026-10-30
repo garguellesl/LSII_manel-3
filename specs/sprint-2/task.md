@@ -21,17 +21,13 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T2; T14/T15 para verificar el CRUD final completo.
   - Hecho cuando: usuarios, perfiles, vídeos/descripciones largas y etiquetas/relaciones se guardan y recuperan; las operaciones acordadas de creación/actualización/borrado respetan integridad; los datos sobreviven a reinicio conservando volumen y la importación no duplica registros. Registrar comandos concretos de la prueba de reinicio.
   - Evidencia parcial: `PostgreSqlPersistenceTest` pasa con PostgreSQL real; comprueba reinicio de contexto dev -> prod, datos de usuario/perfil/vídeo/etiquetas e interacciones, descripción larga, actualización y borrado por repositorio con cascadas. T3 permanece abierta: RF-7/RF-8 y la interfaz/API CRUD final todavía no se han implementado; tampoco se ha probado un reinicio del contenedor/volumen Compose.
-- [ ] T4 - Implementar búsqueda por texto en backend (RF-2).
+- [x] T4 - Implementar búsqueda por descripción en backend (RF-2).
   - Depende de: T1 para coordinación; T2 para comprobación de integración.
-  - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva DTO/consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
-  - Evidencia: pendiente.
+  - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva VideoSummary dentro de VideoPage y consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
+  - Evidencia: verificacion final T4/RF-2 al final de este documento; Maven 61 tests y Jest 63 tests, build/lint satisfactorios.
 - [ ] T5 - Implementar búsqueda por etiquetas en backend (RF-3).
   - Depende de: T1, T4; D1 resuelta.
   - Hecho cuando: `tag` repetido filtra parcialmente sin distinguir mayúsculas según OR/AND acordado, se combina con texto, no duplica vídeos y maneja valores vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
-  - Evidencia: pendiente.
-- [ ] T6 - Integrar búsqueda en frontend (RF-2/RF-3).
-  - Depende de: contrato de T4/T5 acordado; puede prepararse con mocks antes de su implementación.
-  - Hecho cuando: hook/cliente envía los filtros; controles accesibles permiten texto y varias etiquetas; limpiar restablece catálogo; carga/error/vacío y respuestas fuera de orden están cubiertos; desaparece el filtro local por título que impediría resultados solo de descripción. Pruebas sin backend real.
   - Evidencia: pendiente.
 - [x] T7 - Preparar sesión y frontera de seguridad (RF-4/RF-5/RF-6).
   - Depende de: T1 para contratos, topología y coordinación.
@@ -108,8 +104,8 @@ La tabla conserva el alcance de todo el sprint. Los registros acotados actualiza
 | RF-1 / Database AC1 | Arranque PostgreSQL y migraciones/validación del esquema | `PostgreSqlPersistenceTest` en ambos comandos Maven del registro final | Satisfactorio local: conexión dev/prod y V1/V2 verificadas |
 | RF-1 / Database AC2 y DoD CRUD | Persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: ambos Maven verify; prueba de contexto dev -> prod | Persistencia y CRUD de repositorio satisfactorios; CRUD API/UI y reinicio de volumen siguen pendientes |
 | RF-1 / Database AC3 | Revisión de configuración por perfiles, secretos/rutas y dependencias entregables | Diff, `docker compose config --quiet` y contenido del jar | Satisfactorio para esta configuración local; credenciales por entorno y H2 ausente |
-| RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | No ejecutado |
-| RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | No ejecutado |
+| RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
+| RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
 | RF-3 / Tags AC1-AC3 | Varias etiquetas según D1, coincidencia exacta/parcial, normalización y texto combinado | Maven verify; Jest; T5/T6 | No ejecutado; D1 pendiente |
 | RF-3 / Tags AC4 | Etiqueta desconocida, vacíos, duplicados y estado sin resultados | Maven verify; Jest; T5/T6 | No ejecutado |
 | RF-4 / Register AC1 y aclaración | Alta válida en formulario y petición autenticada al perfil usando la misma sesión | Pruebas con filtros, Jest y E2E; T8/T12/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
@@ -202,3 +198,21 @@ T1/T3-T6/T14-T16/T18-T20 no se dan por completas con este alcance; T17 solo tien
 ### Entrega local autorizada
 
 El usuario autoriza posteriormente el commit local («vale haz el commit yo hago el push»). Se conserva la evidencia anterior, tomada antes del commit. El siguiente paso de publicación corresponde al usuario; sin push, PR, merge ni cambios funcionales adicionales en esta acción.
+
+## Ejecucion de busqueda paginada (2026-10-30)
+
+Autorizadas T4/RF-2 y conexion frontend con paginacion. Rama fixing-search-on-frontend-to-backend; baseline d994fca. Se conserva la edicion previa del usuario (renombrado T4 y retirada T6). T5/RF-3 y D1 siguen pendientes.
+
+- [x] S1: consulta paginada SQL y contrato; tests MockMvc y PostgreSQL.
+- [x] S2: hook, debounce, cancelacion, controles de pagina/reintento y tests mockeados.
+- [x] S3: verificaciones de area y evidencia.
+
+Evidencia pendiente.
+
+### Evidencia final de T4/RF-2
+
+- Backend: Java 21, Maven de IntelliJ (sin wrapper local), `mvn -B -ntp clean verify` desde backend: BUILD SUCCESS, 61 tests, 0 fallos/errores/omisiones; puertas JaCoCo satisfechas. PostgreSQL Testcontainers aislado, sin base de aplicacion. `VideoServiceTest` demuestra titulo/descripcion, mayusculas/trim, ranking y paginas consecutivas sin duplicados, consulta vacia, fuera de rango, no resultados, %, _ y barra literales. `VideosControllerTest` demuestra defaults, DTO, page/size/q y 400 antes de servicio.
+- Frontend: `npm ci` con lockfile original, `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (12 suites, 63 tests, 1 snapshot) y `npm run lint`: satisfactorios. API mockeada; descripcion sin coincidencia en titulo, limpiar, carga/error/reintento, paginas y reset, debounce 300 ms, abort y respuestas/errores tardios, navegacion desde reproductor. Umbrales de cobertura existentes satisfechos.
+- Diagnosticos resueltos: Docker inicialmente apagado (arrancado); residuo antiguo application.properties en target/test-classes (eliminado mediante clean); Jest config TypeScript requeria cargador ausente/incompatible con extends multiple (config equivalente renombrada a jest.config.cjs). Sin dependencias nuevas ni cambios del lockfile. Se corrigieron un parentesis en un test nuevo y una consulta ambigua por role=status en el test de autenticacion, acotandola al menu de cuenta.
+- Contrato sincronizado con scripts smoke existentes, sin afirmar haberlos ejecutado contra un despliegue. Revisados consumidores del catalogo; ya no existe ruta de listado ilimitado. Solo la pagina se transforma a DTO; sin fetch join de colecciones con Pageable.
+- No ejecutado: E2E visual, staging, CI remota ni benchmark de un millon de filas. Ranking por subcadena y offset profundo pueden requerir indices/cursores tras medir. Sin migraciones, etiquetas ni nuevas funcionalidades de cuenta. El sprint completo permanece pendiente.

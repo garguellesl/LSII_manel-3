@@ -33,8 +33,9 @@ assert assets, "No production assets"
 for asset in assets:
     assert fetch(asset)[0] == 200
 status, _, body = fetch("/api/videos")
-videos = json.loads(body)
-assert status == 200 and isinstance(videos, list)
+page = json.loads(body)
+videos = page["content"]
+assert status == 200 and isinstance(videos, list) and len(videos) <= 24
 assert len({video["id"] for video in videos}) == len(videos), "Duplicate video IDs"
 if empty:
     assert videos == [], "Expected empty store/catalog"

@@ -44,7 +44,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals("/media/1.mp4", created.videoUrl());
         assertEquals(List.of("java", "spring"), created.tags());
         assertEquals(created, videoService.getVideo(created.id()).orElseThrow());
-        assertEquals(1, videoService.getVideos().size());
+        assertEquals(1, videoService.getVideos("", 0, 24).content().size());
     }
 
     @Test
@@ -118,7 +118,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
 
     @Test
     void returnsEmptyVideoListWhenNoVideosExist() {
-        assertEquals(List.of(), videoService.getVideos());
+        assertEquals(List.of(), videoService.getVideos("", 0, 24).content());
     }
 
     @Test
@@ -132,6 +132,34 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> videoService.addComment(99L, new CommentRequest(userId, "Missing video")));
+    }
+
+    @Test
+    void searchesDescriptionsAndTitlesWithStableRankingAndDatabasePagination() {
+        Long owner = registerUser("search@example.com", "search").id();
+        var description = videoService.createVideo(new CreateVideoRequest("Other", "Learn JAVA today", "search1.mp4", null, 0, owner, List.of("one", "two")));
+        var partial = videoService.createVideo(new CreateVideoRequest("Java tutorial", "Other", "search2.mp4", null, 0, owner, List.of()));
+        var exact = videoService.createVideo(new CreateVideoRequest("Java", "Other", "search3.mp4", null, 0, owner, List.of()));
+        var first = videoService.getVideos("  jAvA  ", 0, 2);
+        assertEquals(List.of(exact.id(), partial.id()), first.content().stream().map(v -> v.id()).toList());
+        assertTrue(first.hasNext());
+        var second = videoService.getVideos("java", 1, 2);
+        assertEquals(List.of(description.id()), second.content().stream().map(v -> v.id()).toList());
+        assertTrue(!second.hasNext());
+        assertEquals(List.of(description.id(), partial.id()), videoService.getVideos("  ", 0, 2).content().stream().map(v -> v.id()).toList());
+        assertTrue(videoService.getVideos("missing", 0, 24).content().isEmpty());
+        assertTrue(videoService.getVideos("java", 9, 2).content().isEmpty());
+        assertEquals(3, videoService.getVideos(null, 0, 100).content().size());
+    }
+
+    @Test
+    void treatsLikeWildcardsAndBackslashesAsLiteralText() {
+        Long owner = registerUser("literal@example.com", "literal").id();
+        var literal = videoService.createVideo(new CreateVideoRequest("100%_done", "A back\\slash", "literal.mp4", null, 0, owner, List.of()));
+        videoService.createVideo(new CreateVideoRequest("100Xdone", "Different", "other.mp4", null, 0, owner, List.of()));
+        for (String query : List.of("%", "_", "\\", "100%_")) {
+            assertEquals(List.of(literal.id()), videoService.getVideos(query, 0, 24).content().stream().map(v -> v.id()).toList());
+        }
     }
 
     private com.tecnocampus.LS2.protube_back.model.UserResponse registerUser(String email, String accountName) {

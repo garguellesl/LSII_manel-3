@@ -6,7 +6,11 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placeholder = 'Search videos by title...' }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({
+  value,
+  onChange,
+  placeholder = 'Search videos by title or description...',
+}) => {
   return (
     <div className="search-bar-container">
       <input
@@ -14,7 +18,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placehold
         role="searchbox"
         className="search-input"
         placeholder={placeholder}
-        aria-label="Search videos by title"
+        aria-label="Search videos by title or description"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

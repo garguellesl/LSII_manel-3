@@ -6,7 +6,7 @@ import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
-import com.tecnocampus.LS2.protube_back.model.VideoSummary;
+import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -36,8 +37,14 @@ public class VideosController {
     }
 
     @GetMapping("")
-    public ResponseEntity<List<VideoSummary>> getVideos() {
-        return ResponseEntity.ok().body(videoService.getVideos());
+    public ResponseEntity<VideoPage> getVideos(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size) {
+        if (page < 0 || size < 1 || size > 100 || q.length() > 500) {
+            throw new IllegalArgumentException("Expected page >= 0, size between 1 and 100, and q at most 500 characters");
+        }
+        return ResponseEntity.ok(videoService.getVideos(q, page, size));
     }
 
     @GetMapping("/{id}")

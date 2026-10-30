@@ -2,7 +2,7 @@
 
 Spec: [spec.md](spec.md). Tareas: [task.md](task.md).
 Estado: borrador técnico; D1 de la spec sigue pendiente; el CRUD de vídeos y etiquetas propias está incorporado.
-Alcance autorizado actual: preparar documentos, sin implementar ni desplegar.
+Alcance autorizado actual: T4/RF-2 con conexion frontend y paginacion, autorizado el 2026-10-30; resto del sprint segun sus registros historicos.
 Baseline de la planificación inicial: `main`, `71c144d`, inspección de fuentes el 2026-10-21; describe el punto de partida. La ejecución PostgreSQL posterior usa `feature/DBpostreSQL`/`ca778b2` y se documenta en su sección y en `task.md`. Las rutas nuevas citadas como propuestas todavía no existen.
 
 ## Contexto técnico comprobado
@@ -38,29 +38,21 @@ Mantener Java 21, Spring Boot 3.3.3, Maven, React/TypeScript/Vite, Axios y React
 
 Controllers: HTTP, validación y DTOs. Servicios: reglas y orquestación. Repositorios: persistencia/consultas. Seguridad: filtros/adaptadores e integración de contexto; no poner consultas a repositorios en controladores. Frontend: peticiones en hooks/clientes, componentes de presentación sin URLs o Axios dispersos.
 
-## Contratos propuestos de búsqueda
+## Contrato autorizado de busqueda paginada (2026-10-30)
 
-Extender la ruta existente, evitando un segundo endpoint de catálogo y conservando su respuesta `List<VideoSummary>`.
+Alcance autorizado: T4/RF-2, conexion frontend y paginacion. Sustituye para esta tarea el alcance documental inicial. RF-3/T5 depende de D1 y sigue pendiente.
 
-| Petición | Resultado propuesto |
-| --- | --- |
-| `GET /api/videos` | 200, catálogo sin filtros; conservar orden por ID ascendente |
-| `GET /api/videos?q=<texto>` | 200, coincidencia literal parcial sin distinguir mayúsculas en título O descripción |
-| `GET /api/videos?tag=<valor>&tag=<otro>` | 200, etiquetas parciales sin distinguir mayúsculas; combinación entre etiquetas pendiente de D1 |
-| `GET /api/videos?q=<texto>&tag=<valor>` | 200, intersección entre filtro textual y filtro por etiquetas |
-| Sin coincidencias | 200 y `[]`, no 404 |
-| Parámetros malformados según validación del contrato cerrado | 400 con error consistente; no convertir una búsqueda legítima sin resultados en entrada inválida |
-| Error de infraestructura | Error 5xx controlado; no exponer excepciones SQL ni presentar `[]` como éxito |
+GET `/api/videos?q=<texto>&page=0&size=24`, publico. q opcional, trim y minusculas; vacio equivale a catalogo. page >= 0; size entre 1 y 100 (24 por defecto); q maximo 500 caracteres. Entrada invalida: 400. Sin coincidencias: 200 con content vacio; fallo de infraestructura: 5xx.
 
-Normalizar espacios exteriores y mayúsculas de forma coherente. Texto vacío implica ausencia de filtro; ignorar etiquetas vacías y deduplicar. Tratar `%`/`_` como texto de usuario, escapándolos si se usa LIKE; usar parámetros, nunca concatenación de SQL. Los vídeos sin etiquetas solo coinciden cuando no hay filtro de etiquetas.
+DTO `VideoPage`: `{content: VideoSummary[], page: number, size: number, hasNext: boolean}`. Sustituye el array ilimitado en todos los consumidores del repo. No hay COUNT global: Slice obtiene como maximo size+1 filas mediante LIMIT/OFFSET en SQL. Sin fetch join de colecciones que causaria paginacion en memoria. Solo se mapean los elementos de la pagina a DTO, con sus campos existentes.
 
-Para D1 se propone OR entre etiquetas (coincidir con cualquiera), pendiente de respuesta del usuario. No se presenta como contrato aprobado ni se implementará esa combinación antes de cerrar la decisión.
+Repositorio: JPQL parametrizado, LOCATE para coincidencia literal parcial en titulo O descripcion en minusculas; %, _ y barra son literales. Ranking: titulo exacto, fragmento en titulo, descripcion, desempate ID ascendente. Sin texto, ID ascendente. Sin migraciones ni nuevas dependencias.
 
-Relevancia propuesta para conservar US-08: título exacto, después fragmento en título, después coincidencia solo en descripción; dentro de la misma categoría, ID ascendente. Sin texto, ID ascendente. Es una regla inicial explícita y comprobable, no un ranking ya implementado. Se podrá cambiar con actualización previa de spec/plan/pruebas.
+Frontend: useAllVideos(query, page), debounce 300 ms, AbortController y guardia contra respuestas obsoletas. Botones Previous/Next y Retry; cambiar consulta vuelve a pagina cero; reemplaza resultados sin acumular paginas. Mantener navegacion desde reproductor y estados carga/error/vacio. Sin filtrado local.
 
-Implementar la consulta en repositorio mediante consulta parametrizada/Criteria y recuperar resultados distintos para evitar duplicados por el join de etiquetas. El servicio normaliza, orquesta y transforma a DTO; no descargar todo el catálogo al navegador para buscar descripciones. No añadir paginación o un motor externo en este sprint sin ampliar el contrato.
+Verificar con PostgreSQL real: ranking, fragmentos, mayusculas, literales, vacio, limites de pagina y tags sin duplicados; MockMvc: defaults, contrato y entrada invalida; Jest mockeado: consultas, paginacion, debounce, carreras y estados. Checks de area: Maven clean verify; build, Jest con cobertura y lint.
 
-Frontend: adaptar `useAllVideos` para aceptar texto/etiquetas, conservar los estados de carga/error/vacío y descartar respuestas obsoletas mediante cancelación o identificación de la última consulta. Retirar el segundo filtrado local por título que eliminaría coincidencias exclusivas de descripción. Mantener el campo textual y añadir entrada de etiquetas múltiples con nombre accesible; limpiar filtros restaura el catálogo. Mockear Axios o el cliente en tests.
+Limite: memoria y respuesta acotadas; subcadenas y offset profundo pueden requerir indices o cursores tras mediciones. No se acredita latencia para un millon de filas.
 
 ## Contratos propuestos de cuentas y perfil
 
@@ -115,7 +107,7 @@ El usuario ha confirmado la gestión de etiquetas dentro de los vídeos propios,
 | Método/ruta | Comportamiento propuesto y autorización |
 | --- | --- |
 | POST `/api/videos` existente | Crear metadatos, 201 + `VideoDetail`; propietario derivado del principal, nunca aceptado como autoridad desde `ownerUserId` |
-| GET `/api/videos` y `/api/videos/{id}` existentes | Consultar catálogo/detalle, conservar acceso público y respuesta actual |
+| GET `/api/videos` y `/api/videos/{id}` existentes | Consultar catálogo/detalle, conservar acceso publico; catalogo usa VideoPage segun contrato actualizado |
 | PATCH `/api/videos/{id}` existente | Actualizar metadatos/etiquetas, 200 + `VideoDetail`; solo propietario; 400 inválido, 401 sin sesión, 403 ajeno, 404 inexistente |
 | DELETE `/api/videos/{id}` nuevo | Eliminar registro y asociaciones, 204; solo propietario y CSRF válido; 401/403/404 según causa; no borrar archivos físicos |
 

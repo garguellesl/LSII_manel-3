@@ -51,6 +51,14 @@ Cuando una persona introduzca texto de una descripción en el buscador, el siste
 - Las coincidencias por título ya disponibles se conservarán. Cuando existan varias coincidencias textuales, deberán ordenarse por relevancia con un desempate estable, manteniendo el objetivo de US-08.
 - Dado un fallo de consulta, cuando ocurra, entonces se distinguirá del catálogo vacío y se podrá reintentar. Una respuesta antigua no sustituirá los resultados de una consulta más reciente.
 
+Actualización autorizada 2026-10-30 (T4/RF-2 y conexión frontend):
+- Cuando se abra el catálogo, se busque o se limpie el campo, el sistema deberá devolver únicamente una página de vídeos desde la base de datos.
+- Cuando se avance o retroceda, el sistema deberá solicitar esa página; no precargar ni acumular el catálogo completo en el navegador.
+- Cuando cambie el texto, se deberá volver a la primera página, esperar 300 ms de inactividad y descartar respuestas anteriores.
+- Se conservarán coincidencias literales parciales por título O descripción, sin distinguir mayúsculas; prioridad título exacto, fragmento en título y descripción, desempate ID ascendente.
+- Si falla la petición, se mostrará un error y una acción de reintento. No se presentará como ausencia de resultados.
+- Esta ejecución no incluye RF-3/T5 (etiquetas), cuya decisión D1 sigue pendiente.
+
 ### RF-3 - Búsqueda por etiquetas
 
 Cuando una persona seleccione o introduzca una o varias etiquetas, el sistema deberá mostrar los vídeos relacionados con los valores buscados sin distinguir mayúsculas y minúsculas.

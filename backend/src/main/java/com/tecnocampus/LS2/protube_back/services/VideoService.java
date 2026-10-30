@@ -15,6 +15,7 @@ import com.tecnocampus.LS2.protube_back.model.UpdateCommentRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoAnalyticsResponse;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
 import com.tecnocampus.LS2.protube_back.model.VideoSummary;
+import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.repositories.CommentRepository;
@@ -23,6 +24,7 @@ import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoLikeRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import com.tecnocampus.LS2.protube_back.repositories.WatchHistoryRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Objects;
 import org.springframework.security.access.AccessDeniedException;
@@ -57,10 +60,11 @@ public class VideoService {
     }
 
     @Transactional(readOnly = true)
-    public List<VideoSummary> getVideos() {
-        return videoRepository.findAllDetailedByOrderByIdAsc().stream()
-                .map(this::toSummary)
-                .toList();
+    public VideoPage getVideos(String query, int page, int size) {
+        String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        var result = videoRepository.search(normalized, PageRequest.of(page, size));
+        return new VideoPage(result.getContent().stream().map(this::toSummary).toList(),
+                page, size, result.hasNext());
     }
 
     @Transactional(readOnly = true)
