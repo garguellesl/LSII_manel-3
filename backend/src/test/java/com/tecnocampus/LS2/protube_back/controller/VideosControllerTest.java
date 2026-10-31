@@ -166,7 +166,7 @@ class VideosControllerTest {
                         Map.of("tags[0]", "tag must not be blank")));
 
         mockMvc.perform(post("/api/videos")
-                        .contentType("application/json")
+                        .principal(() -> "5").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "title", "Created",
                                 "description", "desc",
@@ -181,12 +181,12 @@ class VideosControllerTest {
 
     @Test
     void updateVideoReturnsBadRequestWithTagFieldErrorWhenTagIsInvalid() throws Exception {
-        when(videoService.updateVideo(eq(7L), any())).thenThrow(
+        when(videoService.updateVideo(eq(7L), any(), eq(3L))).thenThrow(
                 new com.tecnocampus.LS2.protube_back.services.InvalidTagsException(
                         Map.of("tags", "must not contain more than 40 distinct tags")));
 
         mockMvc.perform(patch("/api/videos/7")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "tags", List.of("a", "b")
                         ))))

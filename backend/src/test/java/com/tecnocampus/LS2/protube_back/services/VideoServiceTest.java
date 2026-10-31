@@ -121,7 +121,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 "New title",
                 null,
                 null
-        ));
+        ), userId);
 
         assertEquals(List.of("kept"), updated.tags());
     }
@@ -135,7 +135,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 null,
                 null,
                 List.of()
-        ));
+        ), userId);
 
         assertEquals(List.of(), updated.tags());
     }
@@ -154,7 +154,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 List.of("", "rock")
         )));
 
-        assertEquals(List.of(), videoService.getVideos());
+        assertEquals(List.of(), videoService.getVideos("", 0, 24).content());
     }
 
     @Test
@@ -166,7 +166,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 "New title",
                 "New description",
                 List.of("what;s up")
-        )));
+        ), userId));
 
         var unchanged = videoService.getVideo(videoId).orElseThrow();
         assertEquals("Title", unchanged.title());
@@ -181,7 +181,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         Long videoOneId = createVideoWithTags(ownerOneId, "shared-tag-one.mp4", List.of("shared")).id();
         Long videoTwoId = createVideoWithTags(ownerTwoId, "shared-tag-two.mp4", List.of("shared")).id();
 
-        videoService.updateVideo(videoOneId, new UpdateVideoRequest(null, null, List.of("renamed")));
+        videoService.updateVideo(videoOneId, new UpdateVideoRequest(null, null, List.of("renamed")), ownerOneId);
 
         var videoOne = videoService.getVideo(videoOneId).orElseThrow();
         var videoTwo = videoService.getVideo(videoTwoId).orElseThrow();
