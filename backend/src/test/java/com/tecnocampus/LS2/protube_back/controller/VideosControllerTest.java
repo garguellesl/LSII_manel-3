@@ -136,6 +136,41 @@ class VideosControllerTest {
     }
 
     @Test
+    void createVideoReturnsBadRequestWithTagFieldErrorWhenTagIsInvalid() throws Exception {
+        when(videoService.createVideo(any())).thenThrow(
+                new com.tecnocampus.LS2.protube_back.services.InvalidTagsException(
+                        Map.of("tags[0]", "tag must not be blank")));
+
+        mockMvc.perform(post("/api/videos")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "Created",
+                                "description", "desc",
+                                "mediaPath", "created.mp4",
+                                "durationSeconds", 1,
+                                "ownerUserId", 5,
+                                "tags", List.of("")
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['tags[0]']").value("tag must not be blank"));
+    }
+
+    @Test
+    void updateVideoReturnsBadRequestWithTagFieldErrorWhenTagIsInvalid() throws Exception {
+        when(videoService.updateVideo(eq(7L), any())).thenThrow(
+                new com.tecnocampus.LS2.protube_back.services.InvalidTagsException(
+                        Map.of("tags", "must not contain more than 40 distinct tags")));
+
+        mockMvc.perform(patch("/api/videos/7")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tags", List.of("a", "b")
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.tags").value("must not contain more than 40 distinct tags"));
+    }
+
+    @Test
     void updateVideoReturnsUpdatedMetadata() throws Exception {
         when(videoService.updateVideo(eq(7L), any())).thenReturn(new VideoDetail(
                 7L, "Seventh", "Author", "New description", 79.5,

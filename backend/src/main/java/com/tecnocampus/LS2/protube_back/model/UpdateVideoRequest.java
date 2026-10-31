@@ -7,6 +7,6 @@ import java.util.List;
 public record UpdateVideoRequest(
         @Size(max = 255) String title,
         String description,
-        List<@Size(max = 80) String> tags
+        List<String> tags
 ) {
 }

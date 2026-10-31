@@ -14,6 +14,6 @@ public record CreateVideoRequest(
         @Size(max = 500) String thumbnailPath,
         @PositiveOrZero double durationSeconds,
         @NotNull Long ownerUserId,
-        List<@Size(max = 80) String> tags
+        List<String> tags
 ) {
 }
