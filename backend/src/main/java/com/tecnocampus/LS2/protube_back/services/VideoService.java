@@ -252,19 +252,28 @@ public class VideoService {
         );
     }
 
-    private Set<Tag> resolveTags(List<String> tagNames) {
-        Set<Tag> tags = new LinkedHashSet<>();
-        if (tagNames == null) {
-            return tags;
+    private Set<Tag> resolveTags(List<String> rawTagNames) {
+        if (rawTagNames == null) {
+            return new LinkedHashSet<>();
         }
-        tagNames.stream()
-                .map(String::trim)
-                .filter(tag -> !tag.isBlank())
-                .map(String::toLowerCase)
-                .distinct()
-                .map(name -> tagRepository.findByNameIgnoreCase(name).orElseGet(() -> new Tag(name)))
-                .forEach(tags::add);
+        TagNormalizer.Result result = TagNormalizer.normalizeAndValidate(rawTagNames);
+        if (!result.isValid()) {
+            throw new InvalidTagsException(result.fieldErrors());
+        }
+        Set<Tag> tags = new LinkedHashSet<>();
+        for (String name : result.normalizedTags()) {
+            tags.add(findOrCreateTag(name));
+        }
         return tags;
+    }
+
+    private Tag findOrCreateTag(String name) {
+        return tagRepository.findByNameIgnoreCase(name)
+                .orElseGet(() -> {
+                    tagRepository.insertIfAbsent(name);
+                    return tagRepository.findByNameIgnoreCase(name)
+                            .orElseThrow(() -> new IllegalStateException("Tag lookup failed after insert: " + name));
+                });
     }
 
     private List<String> tagNames(Video video) {

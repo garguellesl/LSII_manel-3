@@ -96,6 +96,100 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void createsVideoWithoutTagsWhenTagsFieldIsAbsentOrNull() {
+        Long userId = registerUser("tags-absent@example.com", "tags-absent").id();
+
+        var created = videoService.createVideo(new CreateVideoRequest(
+                "No tags",
+                "Description",
+                "no-tags.mp4",
+                null,
+                0,
+                userId,
+                null
+        ));
+
+        assertEquals(List.of(), created.tags());
+    }
+
+    @Test
+    void nullTagsOnUpdateLeavesExistingTagsUnchanged() {
+        Long userId = registerUser("tags-null-update@example.com", "tags-null-update").id();
+        Long videoId = createVideoWithTags(userId, "tags-null-update.mp4", List.of("kept")).id();
+
+        var updated = videoService.updateVideo(videoId, new UpdateVideoRequest(
+                "New title",
+                null,
+                null
+        ), userId);
+
+        assertEquals(List.of("kept"), updated.tags());
+    }
+
+    @Test
+    void emptyTagsListOnUpdateClearsAllTags() {
+        Long userId = registerUser("tags-empty-update@example.com", "tags-empty-update").id();
+        Long videoId = createVideoWithTags(userId, "tags-empty-update.mp4", List.of("removable")).id();
+
+        var updated = videoService.updateVideo(videoId, new UpdateVideoRequest(
+                null,
+                null,
+                List.of()
+        ), userId);
+
+        assertEquals(List.of(), updated.tags());
+    }
+
+    @Test
+    void invalidTagOnCreationThrowsAndDoesNotCreateVideo() {
+        Long userId = registerUser("tags-invalid-create@example.com", "tags-invalid-create").id();
+
+        assertThrows(InvalidTagsException.class, () -> videoService.createVideo(new CreateVideoRequest(
+                "Invalid tags",
+                "Description",
+                "invalid-tags.mp4",
+                null,
+                0,
+                userId,
+                List.of("", "rock")
+        )));
+
+        assertEquals(List.of(), videoService.getVideos("", 0, 24).content());
+    }
+
+    @Test
+    void invalidTagOnUpdateThrowsAndDoesNotChangeExistingTags() {
+        Long userId = registerUser("tags-invalid-update@example.com", "tags-invalid-update").id();
+        Long videoId = createVideoWithTags(userId, "tags-invalid-update.mp4", List.of("original")).id();
+
+        assertThrows(InvalidTagsException.class, () -> videoService.updateVideo(videoId, new UpdateVideoRequest(
+                "New title",
+                "New description",
+                List.of("what;s up")
+        ), userId));
+
+        var unchanged = videoService.getVideo(videoId).orElseThrow();
+        assertEquals("Title", unchanged.title());
+        assertEquals("Description", unchanged.description());
+        assertEquals(List.of("original"), unchanged.tags());
+    }
+
+    @Test
+    void twoVideosSharingATagRemainIndependentWhenEditingOne() {
+        Long ownerOneId = registerUser("shared-tag-one@example.com", "shared-tag-one").id();
+        Long ownerTwoId = registerUser("shared-tag-two@example.com", "shared-tag-two").id();
+        Long videoOneId = createVideoWithTags(ownerOneId, "shared-tag-one.mp4", List.of("shared")).id();
+        Long videoTwoId = createVideoWithTags(ownerTwoId, "shared-tag-two.mp4", List.of("shared")).id();
+
+        videoService.updateVideo(videoOneId, new UpdateVideoRequest(null, null, List.of("renamed")), ownerOneId);
+
+        var videoOne = videoService.getVideo(videoOneId).orElseThrow();
+        var videoTwo = videoService.getVideo(videoTwoId).orElseThrow();
+        assertEquals(List.of("renamed"), videoOne.tags());
+        assertEquals(List.of("shared"), videoTwo.tags());
+    }
+
+    @Test
     void recordsCommentsLikesWatchHistoryAndAnalytics() {
         Long userId = registerUser("four@example.com", "four").id();
         Long videoId = createVideo(userId, "4.mp4").id();
@@ -204,6 +298,20 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
                 0,
                 userId,
                 List.of()
+        ));
+    }
+
+    private com.tecnocampus.LS2.protube_back.model.VideoDetail createVideoWithTags(
+            Long userId, String mediaPath, List<String> tags
+    ) {
+        return videoService.createVideo(new CreateVideoRequest(
+                "Title",
+                "Description",
+                mediaPath,
+                null,
+                0,
+                userId,
+                tags
         ));
     }
 }

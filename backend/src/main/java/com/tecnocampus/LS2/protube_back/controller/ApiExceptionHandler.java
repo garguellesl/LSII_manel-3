@@ -2,6 +2,7 @@ package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.services.DuplicateResourceException;
 import com.tecnocampus.LS2.protube_back.services.InvalidCredentialsException;
+import com.tecnocampus.LS2.protube_back.services.InvalidTagsException;
 import com.tecnocampus.LS2.protube_back.services.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException exception) {
         return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidTagsException.class)
+    ResponseEntity<Map<String, Object>> invalidTags(InvalidTagsException exception) {
+        return ResponseEntity.badRequest().body(Map.of("errors", exception.getFieldErrors()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
