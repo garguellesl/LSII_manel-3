@@ -54,6 +54,14 @@ public class UserAccount {
         }
     }
 
+    public void configureDemoIdentity(String email, String accountName, String passwordHash) {
+        this.email = email;
+        this.accountName = accountName;
+        this.passwordHash = passwordHash;
+        this.firstName = "Demo";
+        this.lastName = "Admin";
+    }
+
     public Long getId() {
         return id;
     }

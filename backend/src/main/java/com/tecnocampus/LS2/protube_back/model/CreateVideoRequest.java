@@ -13,7 +13,7 @@ public record CreateVideoRequest(
         @NotBlank @Size(max = 500) String mediaPath,
         @Size(max = 500) String thumbnailPath,
         @PositiveOrZero double durationSeconds,
-        @NotNull Long ownerUserId,
+        Long ownerUserId,
         List<String> tags
 ) {
 }

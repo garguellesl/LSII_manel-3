@@ -1,5 +1,29 @@
 # Pro tube project
 
+## Run the complete application with Docker (class delivery)
+
+With Docker Desktop running in Linux containers mode, run from the repository root:
+
+```bash
+docker compose up --build -d --wait
+```
+
+Alternatively, in IntelliJ with Docker running, select the shared Maven **Production** configuration and press Run; it launches this same Compose deployment without manual environment variables. Maven finishes after the services are ready; use `docker compose stop` to stop them.
+
+Open **http://localhost:8080**. Compose builds the Java 21 backend with the production React frontend, starts PostgreSQL, waits for readiness and imports the existing sample video metadata. No IntelliJ, host Java/Node or manually configured database variables are needed. The first build requires Internet access; ports 8080 and 5432 must be free. Stop development processes before running the delivery.
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+docker compose stop
+```
+
+The existing database volume is retained. `docker compose down -v` deletes database data and is not a restart command. The local demonstration database defaults already present in Compose are shared with the app; environment overrides are available. They are not suitable for a public deployment.
+
+Media files are mounted read-only from the existing `videos/` folder and are not included in the image. Set `PROTUBE_MEDIA_DIR` to an external folder containing JSON/MP4/WebP triples to use your own store. Keep this folder available while running; an empty folder gives an empty catalog on a new database. See [delivery configuration and verification](DEVELOPMENT.md#docker-delivery).
+
+Use the account links in the top-right corner to register, sign in, view your own profile and sign out. Registration signs you in automatically. The local Compose demo includes account **admin**, email **admin@protube.local**, password **admin1234**. Sign in with the email. This account owns the imported videos and has ordinary owner permissions; it has no access to other users' private data or global administration. Profile consultation is implemented; the video management UI remains a separate task.
+
 ## Desarrollo con agentes y SDD
 
 El proyecto utiliza un flujo de desarrollo guiado por especificaciones. Antes de cambiar comportamiento, los agentes siguen [AGENTS.md](AGENTS.md), la [constitución](.agents/constitution.md) y la [guía SDD](docs/SDD.md). Las [plantillas](docs/SDD.md#plantillas) separan requisitos, diseño y tareas con evidencia de verificación. Las instrucciones compartidas se aplican a Codex, Claude y Gemini; Claude dispone también del comando `/sdd`.
@@ -335,4 +359,3 @@ The command will generate 3 files for every video listed in `resources/video_lis
 * *.mp4: The trimmed video
 * *.webp: The thumbnail
 * *.json: Metadata info about the video
-

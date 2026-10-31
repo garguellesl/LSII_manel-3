@@ -1,21 +1,48 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WebMvcTest(IndexController.class)
+@org.springframework.context.annotation.Import(com.tecnocampus.LS2.protube_back.configuration.SecurityConfig.class)
 class IndexControllerTest {
     IndexController indexController = new IndexController();
+    private final MockMvc mockMvc;
+
+    @Autowired
+    IndexControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
-    void home() {
+    void homeServesReactApplication() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
 
-        assertEquals("index", indexController.home().getViewName());
+    @Test
+    void directVideoNavigationServesReactApplication() throws Exception {
+        mockMvc.perform(get("/videos/7"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    @Test
+    void unknownApiAndMediaPathsAreNotForwardedToReact() throws Exception {
+        mockMvc.perform(get("/api/unknown").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1"))).andExpect(status().isNotFound());
+        mockMvc.perform(get("/media/missing.mp4")).andExpect(status().isNotFound());
     }
 
     @Test
     void logout() {
-
         assertEquals("logout", indexController.logout().getViewName());
     }
 }

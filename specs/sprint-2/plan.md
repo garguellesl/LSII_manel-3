@@ -2,7 +2,7 @@
 
 Spec: [spec.md](spec.md). Tareas: [task.md](task.md).
 Estado: borrador técnico; D1 de la spec sigue pendiente; el CRUD de vídeos y etiquetas propias está incorporado.
-Alcance autorizado actual: preparar documentos, sin implementar ni desplegar.
+Alcance autorizado actual: T4/RF-2 con conexion frontend y paginacion, autorizado el 2026-10-30; resto del sprint segun sus registros historicos.
 Baseline de la planificación inicial: `main`, `71c144d`, inspección de fuentes el 2026-10-21; describe el punto de partida. La ejecución PostgreSQL posterior usa `feature/DBpostreSQL`/`ca778b2` y se documenta en su sección y en `task.md`. Las rutas nuevas citadas como propuestas todavía no existen.
 
 ## Contexto técnico comprobado
@@ -38,29 +38,21 @@ Mantener Java 21, Spring Boot 3.3.3, Maven, React/TypeScript/Vite, Axios y React
 
 Controllers: HTTP, validación y DTOs. Servicios: reglas y orquestación. Repositorios: persistencia/consultas. Seguridad: filtros/adaptadores e integración de contexto; no poner consultas a repositorios en controladores. Frontend: peticiones en hooks/clientes, componentes de presentación sin URLs o Axios dispersos.
 
-## Contratos propuestos de búsqueda
+## Contrato autorizado de busqueda paginada (2026-10-30)
 
-Extender la ruta existente, evitando un segundo endpoint de catálogo y conservando su respuesta `List<VideoSummary>`.
+Alcance autorizado: T4/RF-2, conexion frontend y paginacion. Sustituye para esta tarea el alcance documental inicial. RF-3/T5 depende de D1 y sigue pendiente.
 
-| Petición | Resultado propuesto |
-| --- | --- |
-| `GET /api/videos` | 200, catálogo sin filtros; conservar orden por ID ascendente |
-| `GET /api/videos?q=<texto>` | 200, coincidencia literal parcial sin distinguir mayúsculas en título O descripción |
-| `GET /api/videos?tag=<valor>&tag=<otro>` | 200, etiquetas parciales sin distinguir mayúsculas; combinación entre etiquetas pendiente de D1 |
-| `GET /api/videos?q=<texto>&tag=<valor>` | 200, intersección entre filtro textual y filtro por etiquetas |
-| Sin coincidencias | 200 y `[]`, no 404 |
-| Parámetros malformados según validación del contrato cerrado | 400 con error consistente; no convertir una búsqueda legítima sin resultados en entrada inválida |
-| Error de infraestructura | Error 5xx controlado; no exponer excepciones SQL ni presentar `[]` como éxito |
+GET `/api/videos?q=<texto>&page=0&size=24`, publico. q opcional, trim y minusculas; vacio equivale a catalogo. page >= 0; size entre 1 y 100 (24 por defecto); q maximo 500 caracteres. Entrada invalida: 400. Sin coincidencias: 200 con content vacio; fallo de infraestructura: 5xx.
 
-Normalizar espacios exteriores y mayúsculas de forma coherente. Texto vacío implica ausencia de filtro; ignorar etiquetas vacías y deduplicar. Tratar `%`/`_` como texto de usuario, escapándolos si se usa LIKE; usar parámetros, nunca concatenación de SQL. Los vídeos sin etiquetas solo coinciden cuando no hay filtro de etiquetas.
+DTO `VideoPage`: `{content: VideoSummary[], page: number, size: number, hasNext: boolean, totalElements: number}`. Sustituye el array ilimitado en todos los consumidores del repo. Ampliacion autorizada posterior: Page obtiene filas limitadas mediante LIMIT/OFFSET y un COUNT con el mismo filtro (Spring puede inferir el total en paginas incompletas). El total incluye todas las coincidencias, no solo las de la pagina actual. Sin fetch join de colecciones que causaria paginacion en memoria. Solo se mapean los elementos de la pagina a DTO, con sus campos existentes.
 
-Para D1 se propone OR entre etiquetas (coincidir con cualquiera), pendiente de respuesta del usuario. No se presenta como contrato aprobado ni se implementará esa combinación antes de cerrar la decisión.
+Repositorio: JPQL parametrizado, LOCATE para coincidencia literal parcial en titulo O descripcion en minusculas; %, _ y barra son literales. Ranking: titulo exacto, fragmento en titulo, descripcion, desempate ID ascendente. Sin texto, ID ascendente. Sin migraciones ni nuevas dependencias.
 
-Relevancia propuesta para conservar US-08: título exacto, después fragmento en título, después coincidencia solo en descripción; dentro de la misma categoría, ID ascendente. Sin texto, ID ascendente. Es una regla inicial explícita y comprobable, no un ranking ya implementado. Se podrá cambiar con actualización previa de spec/plan/pruebas.
+Frontend: useAllVideos(query, page), debounce 300 ms, AbortController y guardia contra respuestas obsoletas. Botones Previous/Next e indicador visibles solo si totalElements > size de la respuesta; mantenerlos en la ultima pagina aunque hasNext sea false. Boton Retry para errores. Cambiar consulta vuelve a pagina cero; reemplaza resultados sin acumular paginas. Mantener navegacion desde reproductor y estados carga/error/vacio. Sin filtrado local. Pruebas de 0/1/24/25 resultados, ultima pagina y cambio de filtro.
 
-Implementar la consulta en repositorio mediante consulta parametrizada/Criteria y recuperar resultados distintos para evitar duplicados por el join de etiquetas. El servicio normaliza, orquesta y transforma a DTO; no descargar todo el catálogo al navegador para buscar descripciones. No añadir paginación o un motor externo en este sprint sin ampliar el contrato.
+Verificar con PostgreSQL real: ranking, fragmentos, mayusculas, literales, vacio, limites de pagina y tags sin duplicados; MockMvc: defaults, contrato y entrada invalida; Jest mockeado: consultas, paginacion, debounce, carreras y estados. Checks de area: Maven clean verify; build, Jest con cobertura y lint.
 
-Frontend: adaptar `useAllVideos` para aceptar texto/etiquetas, conservar los estados de carga/error/vacío y descartar respuestas obsoletas mediante cancelación o identificación de la última consulta. Retirar el segundo filtrado local por título que eliminaría coincidencias exclusivas de descripción. Mantener el campo textual y añadir entrada de etiquetas múltiples con nombre accesible; limpiar filtros restaura el catálogo. Mockear Axios o el cliente en tests.
+Limite: memoria y respuesta acotadas; subcadenas y offset profundo pueden requerir indices o cursores tras mediciones. No se acredita latencia para un millon de filas.
 
 ## Contratos propuestos de cuentas y perfil
 
@@ -115,7 +107,7 @@ El usuario ha confirmado la gestión de etiquetas dentro de los vídeos propios,
 | Método/ruta | Comportamiento propuesto y autorización |
 | --- | --- |
 | POST `/api/videos` existente | Crear metadatos, 201 + `VideoDetail`; propietario derivado del principal, nunca aceptado como autoridad desde `ownerUserId` |
-| GET `/api/videos` y `/api/videos/{id}` existentes | Consultar catálogo/detalle, conservar acceso público y respuesta actual |
+| GET `/api/videos` y `/api/videos/{id}` existentes | Consultar catálogo/detalle, conservar acceso publico; catalogo usa VideoPage segun contrato actualizado |
 | PATCH `/api/videos/{id}` existente | Actualizar metadatos/etiquetas, 200 + `VideoDetail`; solo propietario; 400 inválido, 401 sin sesión, 403 ajeno, 404 inexistente |
 | DELETE `/api/videos/{id}` nuevo | Eliminar registro y asociaciones, 204; solo propietario y CSRF válido; 401/403/404 según causa; no borrar archivos físicos |
 
@@ -214,3 +206,27 @@ El Compound inicia backend/frontend en paralelo; el Before launch garantiza que 
 - La nueva cadena de seguridad puede cambiar pruebas y rutas existentes: validar acceso público, autorizaciones, CSRF y errores antes de integrar.
 - Un frontend que guarde solo `UserResponse` puede aparentar login sin proteger nada: la evidencia debe incluir peticiones posteriores al backend y separación entre dos usuarios.
 - Las propuestas de sesión, CORS, política de contraseñas y búsqueda se revisan con el entorno real antes de implementar. Cualquier cambio de contrato requiere actualizar spec, plan y tareas, conservando los identificadores.
+
+## Diseño definitivo de la ejecución de autenticación (2026-10-28)
+
+RF-4/5/6 y T7-T13: Spring Security 6.3.3, versión efectiva del parent 3.3.3, con starter-security y security-test gestionados por Maven. Mantener BCrypt y repositorios; no añadir tablas ni migraciones. El controlador delega credenciales/perfil a UserService y la persistencia del contexto HTTP a un componente SessionAuthentication. Guardar en sesión únicamente un principal con ID de usuario, sin entidad JPA ni contraseña. Cambiar el ID de sesión y limpiar el token CSRF al autenticar; guardar explícitamente SecurityContext en HttpSessionSecurityContextRepository. Mantener CSRF por sesión y devolver su representación en GET /api/auth/csrf. Spring Security atiende POST /api/auth/logout (y el POST /logout legado) con 204, invalidación de sesión y borrado de cookie.
+
+Rutas y errores: contratos de cuentas/perfil de la tabla anterior confirmados. 401 JSON sin identidad, 403 JSON para permisos o CSRF (code CSRF_INVALID para este último), 400 para validación, 409 para duplicados incluidos los detectados al hacer flush. Perfil usa exclusivamente el ID del principal. El catálogo, detalle, comentarios de lectura y medios siguen públicos. GET /login, /register y /profile sirven la SPA también al recargar. Bajar logging web a INFO para no registrar respuestas con tokens CSRF ni datos de cuenta.
+
+Compatibilidad de escrituras: ownerUserId/userId de alta de vídeos, comentarios e historial pasan a opcionales y se ignoran como autoridad en HTTP; el controlador mapea un DTO con el ID del principal. Likes/unlikes derivan siempre el ID del principal y no necesitan userId de entrada. updateVideo, updateComment y deleteComment reciben además el actor y verifican propiedad en VideoService antes de modificar datos. Historial y analíticas con /users/{id} comparan id con actor antes de consultar. No se añade DELETE de vídeos en esta ejecución.
+
+Frontend: AuthProvider y hook/contexto separado; authClient encapsula Axios, cookies, adquisición de token antes de cada mutación y traducción de errores de campo/servidor. El contexto restaura /me, descarta respuestas anteriores a login/logout y revalida al recuperar el foco. Estados checking/anonymous/authenticated/error separados; no conservar datos privados ante 401 o fallo de comprobación. Rutas /login, /register, /profile; barra de cuenta superior derecha, formularios accesibles con autocompletado y estado de envío, perfil protegido con revalidación y reintento. Contraseñas solo en estado del formulario, nunca en almacenamiento del navegador.
+
+Dev: VITE_API_DOMAIN y VITE_MEDIA_DOMAIN vacíos, proxy Vite /api y /media hacia backend 8080; producción conserva mismo origen. Sustituir CORS indiscriminado por origen explícito ENV_PROTUBE_WEB_ORIGINS (por defecto localhost:5174) con credenciales, sin wildcard. Cookie Secure configurable con ENV_PROTUBE_SESSION_SECURE para HTTPS. No cambiar la entrega Maven/Compose.
+
+Pruebas: MockMvc con filtros reales, PostgreSQL aislado y dos cuentas; registro -> /me, login/logout, fijación/rotación CSRF, expiración/invalidez, duplicados/entradas inválidas y contraseña multibyte, propiedad de vídeos/comentarios e identidad derivada para likes/historial; público/privado, CORS rechazado y errores diferenciados. Conservar tests standalone de mapping adaptando Principal. Tests React con cliente mockeado: navegación de cuenta, formularios, restauración/expiración, perfil/carga/error/reintento y fallos de logout. Ejecutar Maven clean verify, frontend build/Jest con cobertura/lint y smoke real de producción con cookie, CSRF y rutas directas; sin modificar datos personales de la BD del usuario.
+
+### Cuenta interna de importación (revisión de autenticación)
+
+La cuenta sintética que VideoImportService usa como propietario técnico no es una cuenta interactiva. Su email y nombre de cuenta quedan reservados: el registro los rechaza y el login de esa identidad devuelve el mismo 401 genérico que unas credenciales inválidas, incluidas bases anteriores con contraseña conocida. Las nuevas cuentas internas reciben un secreto aleatorio generado en ejecución. No se modifica el propietario ni el hash de cuentas existentes, ni el catálogo o el volumen. Esta protección pertenece a RF-4/RF-5 y evita que el login nuevo dé acceso a la identidad interna de importación.
+
+### Cambio autorizado: cuenta demo propietaria del catálogo
+
+El usuario sustituye la decisión de cuenta interna no interactiva por una cuenta demo llamada admin, propietaria de los vídeos importados, para probar login y gestionar ese contenido. No tendrá permisos globales sobre cuentas o contenido ajenos. Identidad y contraseña se proporcionan por entorno; Compose aporta defaults de demostración compatibles con la política de contraseña. El login sigue usando email válido. Se reserva la identidad demo en el registro público.
+
+Al importar, convertir la antigua cuenta sintética conservando su ID y las relaciones de los vídeos; cambiar su identidad/hash únicamente en esa conversión autorizada. En reinicios reutilizar la cuenta demo sin rehash ni cambio de fecha/ID. Si la identidad configurada colisiona con otra cuenta, fallar de forma clara sin fusionar ni sobrescribir datos de esa otra cuenta. Sin nueva tabla, rol global, migración de esquema o permiso administrativo adicional. La contraseña se define en Compose/entorno, no en clases Java. Para importar por primera vez fuera de Compose se debe proporcionar ENV_PROTUBE_DEMO_ADMIN_PASSWORD; una cuenta demo ya creada puede reutilizarse sin esa variable.
