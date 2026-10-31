@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 import App from '../../App';
@@ -52,7 +52,10 @@ describe('App Component', () => {
   });
 
   it('renders prominently visible search input and full video list on success', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
+    mockedAxios.get.mockResolvedValueOnce({
+      status: 200,
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+    });
     renderApp();
 
     await waitFor(() => {
@@ -69,7 +72,10 @@ describe('App Component', () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/1')
         ? Promise.resolve({ status: 200, data: { ...sampleVideos[0], user: '', description: '', duration: 0 } })
-        : Promise.resolve({ status: 200, data: sampleVideos })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp();
 
@@ -81,92 +87,203 @@ describe('App Component', () => {
     expect(player).toHaveAttribute('src', 'development/1.mp4');
   });
 
-  it('filters video list dynamically with partial and case-insensitive query', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
-    renderApp();
-
-    await waitFor(() => {
-      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
+  it('requests matches from the server including description-only results and clears search', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
     });
-
-    const searchInput = screen.getByRole('searchbox', { name: /search videos by title/i });
-
-    // Partial and uppercase match for "react"
-    fireEvent.change(searchInput, { target: { value: 'REACT' } });
-
-    expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
-    expect(screen.queryByText('Spring Boot REST API Guide')).not.toBeInTheDocument();
-    expect(screen.queryByText('Advanced TypeScript Tips')).not.toBeInTheDocument();
-
-    // Another partial match: "api"
-    fireEvent.change(searchInput, { target: { value: 'api' } });
-
-    expect(screen.queryByText('React Tutorial for Beginners')).not.toBeInTheDocument();
-    expect(screen.getByText('Spring Boot REST API Guide')).toBeInTheDocument();
-    expect(screen.queryByText('Advanced TypeScript Tips')).not.toBeInTheDocument();
+    renderApp();
+    await screen.findByText(sampleVideos[0].title);
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: ' description fragment ' } });
+    expect(await screen.findByText(sampleVideos[1].title)).toBeInTheDocument();
+    expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({
+        params: { q: 'description fragment', page: 0, size: 24 },
+      })
+    );
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
+    expect(await screen.findByText(sampleVideos[0].title)).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toHaveValue('');
   });
 
-  it('displays empty state message when no videos match query', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
+  it('shows an empty search result without treating it as an error', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
     renderApp();
-
-    await waitFor(() => {
-      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByRole('searchbox', { name: /search videos by title/i });
-    fireEvent.change(searchInput, { target: { value: 'Nonexistent Video' } });
-
-    expect(screen.getByText(/no videos found matching "Nonexistent Video"/i)).toBeInTheDocument();
-    expect(screen.queryByText('React Tutorial for Beginners')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spring Boot REST API Guide')).not.toBeInTheDocument();
-    expect(screen.queryByText('Advanced TypeScript Tips')).not.toBeInTheDocument();
+    await screen.findByText('No videos are available.');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'missing' } });
+    expect(await screen.findByText('No videos found matching "missing".')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('restores full video list when search query is cleared', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
-    renderApp();
-
-    await waitFor(() => {
-      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
+  it('requests pages on demand, replaces results, and resets page when searching', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
     });
-
-    const searchInput = screen.getByRole('searchbox', { name: /search videos by title/i });
-    fireEvent.change(searchInput, { target: { value: 'TypeScript' } });
-
-    expect(screen.queryByText('React Tutorial for Beginners')).not.toBeInTheDocument();
-    expect(screen.getByText('Advanced TypeScript Tips')).toBeInTheDocument();
-
-    // Clear input
-    fireEvent.change(searchInput, { target: { value: '' } });
-
-    expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
-    expect(screen.getByText('Spring Boot REST API Guide')).toBeInTheDocument();
-    expect(screen.getByText('Advanced TypeScript Tips')).toBeInTheDocument();
+    renderApp();
+    await screen.findByText(sampleVideos[0].title);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 1, size: 24, hasNext: false, totalElements: 25 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText(sampleVideos[1].title);
+    expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
+    expect(screen.getByText('Page 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({ params: { q: '', page: 1, size: 24 } })
+    );
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    await screen.findByText(sampleVideos[0].title);
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 1, size: 24, hasNext: false, totalElements: 25 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText(sampleVideos[1].title);
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'new query' } });
+    await screen.findByText('No videos found matching "new query".');
+    expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({ params: { q: 'new query', page: 0, size: 24 } })
+    );
   });
 
-  it('restores full video list when clicking the clear button', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
-    renderApp();
+  it.each([0, 1, 24, 25])(
+    'shows pagination only when the server reports more than one page (%i matches)',
+    async (totalElements) => {
+      const content = Array.from({ length: Math.min(totalElements, 24) }, (_, index) => ({
+        ...sampleVideos[0],
+        id: index + 1,
+        title: `Video ${index + 1}`,
+      }));
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content, page: 0, size: 24, hasNext: totalElements > 24, totalElements },
+      });
+      renderApp();
+      if (totalElements) await screen.findByText('Video 1');
+      else await screen.findByText('No videos are available.');
+      expect(screen.queryAllByRole('link', { name: /^Watch / })).toHaveLength(Math.min(totalElements, 24));
+      if (totalElements > 24) {
+        expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      } else {
+        expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
+      }
+    }
+  );
 
-    await waitFor(() => {
-      expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
+  it('hides pagination after filtering to one match and restores it when cleared', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
     });
+    renderApp();
+    await screen.findByRole('button', { name: 'Next' });
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'description' } });
+    await screen.findByText(sampleVideos[1].title);
+    expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 25 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(await screen.findByRole('button', { name: 'Next' })).toBeEnabled();
+  });
 
-    const searchInput = screen.getByRole('searchbox', { name: /search videos by title/i });
-    fireEvent.change(searchInput, { target: { value: 'TypeScript' } });
+  it('can retry a failed request', async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error('Offline'));
+    renderApp();
+    await screen.findByRole('alert');
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText(sampleVideos[0].title)).toBeInTheDocument();
+  });
 
-    const clearButton = screen.getByRole('button', { name: /clear search/i });
-    fireEvent.click(clearButton);
-
-    expect(searchInput).toHaveValue('');
-    expect(screen.getByText('React Tutorial for Beginners')).toBeInTheDocument();
-    expect(screen.getByText('Spring Boot REST API Guide')).toBeInTheDocument();
-    expect(screen.getByText('Advanced TypeScript Tips')).toBeInTheDocument();
+  it('debounces typing, aborts old requests and ignores late results and errors', async () => {
+    jest.useFakeTimers();
+    try {
+      let resolveOld!: (value: unknown) => void;
+      mockedAxios.get.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+      );
+      renderApp();
+      await act(async () => {
+        jest.advanceTimersByTime(0);
+      });
+      const oldSignal = mockedAxios.get.mock.calls[0][1]?.signal;
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'j' } });
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'java' } });
+      await act(async () => {
+        jest.advanceTimersByTime(299);
+      });
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(oldSignal?.aborted).toBe(true);
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(screen.getByText(sampleVideos[1].title)).toBeInTheDocument();
+      await act(async () => {
+        resolveOld({ data: { content: [sampleVideos[0]], page: 0, size: 24, hasNext: false, totalElements: 1 } });
+      });
+      expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
+      let rejectOld!: (reason: Error) => void;
+      mockedAxios.get.mockReturnValueOnce(
+        new Promise((_resolve, reject) => {
+          rejectOld = reject;
+        })
+      );
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'old' } });
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+      });
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'latest' } });
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      await act(async () => {
+        rejectOld(new Error('Late error'));
+      });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText('No videos found matching "latest".')).toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('displays message when API returns no available videos', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: [] });
+    mockedAxios.get.mockResolvedValueOnce({
+      status: 200,
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
     renderApp();
 
     await waitFor(() => {
@@ -184,7 +301,10 @@ describe('App Component', () => {
   });
 
   it('renders each video as a link to its player page', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: sampleVideos });
+    mockedAxios.get.mockResolvedValueOnce({
+      status: 200,
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+    });
     renderApp();
 
     const link = await screen.findByRole('link', { name: /watch react tutorial for beginners/i });
@@ -199,7 +319,10 @@ describe('App Component', () => {
             status: 200,
             data: { ...sampleVideos[1], user: 'Author', description: 'Desc', duration: 10 },
           })
-        : Promise.resolve({ status: 200, data: sampleVideos })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp();
 
@@ -215,7 +338,10 @@ describe('App Component', () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/3')
         ? Promise.resolve({ status: 200, data: { ...sampleVideos[2], user: '', description: '', duration: 0 } })
-        : Promise.resolve({ status: 200, data: sampleVideos })
+        : Promise.resolve({
+            status: 200,
+            data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+          })
     );
     renderApp('/videos/3');
 

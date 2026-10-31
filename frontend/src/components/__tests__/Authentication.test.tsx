@@ -48,7 +48,9 @@ describe('Authentication navigation and pages', () => {
   it('keeps the public catalog available while checking the session, then offers both account links', async () => {
     client.currentUser.mockReturnValue(new Promise(() => {}));
     const page = renderPage();
-    expect(screen.getByRole('status')).toHaveTextContent('Comprobando sesión');
+    expect(within(screen.getByRole('navigation', { name: 'Cuenta de usuario' })).getByRole('status')).toHaveTextContent(
+      'Comprobando sesión'
+    );
     expect(screen.getByText('No videos are available.')).toBeInTheDocument();
     page.unmount();
     client.currentUser.mockResolvedValue(null);

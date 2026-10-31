@@ -70,6 +70,7 @@ demo_credentials = {
 demo_user, _ = demo.request("POST", "/api/auth/login", demo_credentials, demo.token())
 assert demo_user["accountName"] == os.environ.get("ENV_PROTUBE_DEMO_ADMIN_ACCOUNT", "admin")
 catalog, _ = demo.request("GET", "/api/videos")
+catalog = catalog["content"]
 assert catalog, "Run this smoke test with an imported test catalog"
 video_id = str(catalog[0]["id"])
 video, _ = demo.request("GET", "/api/videos/" + video_id)
