@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import java.util.Optional;
 import java.util.Map;
 
@@ -45,26 +46,49 @@ class VideosControllerTest {
 
     @Test
     void getVideosReturnsVideoSummaries() throws Exception {
-        when(videoService.getVideos()).thenReturn(List.of(
+        when(videoService.getVideos("", 0, 24)).thenReturn(new VideoPage(List.of(
                 new VideoSummary(1L, "video 1", "/media/1.webp", "/media/1.mp4", List.of(), 0, 0, 0),
                 new VideoSummary(2L, "video 2", "/media/2.webp", "/media/2.mp4", List.of(), 1, 2, 3)
-        ));
+        ), 0, 24, false, 2));
 
         mockMvc.perform(get("/api/videos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].title").value("video 1"))
-                .andExpect(jsonPath("$[1].videoUrl").value("/media/2.mp4"))
-                .andExpect(jsonPath("$[1].likesCount").value(1));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].title").value("video 1"))
+                .andExpect(jsonPath("$.content[1].videoUrl").value("/media/2.mp4"))
+                .andExpect(jsonPath("$.content[1].likesCount").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     @Test
     void getVideosReturnsEmptyListWhenNoVideos() throws Exception {
-        when(videoService.getVideos()).thenReturn(List.of());
+        when(videoService.getVideos("", 0, 24)).thenReturn(new VideoPage(List.of(), 0, 24, false, 0));
 
         mockMvc.perform(get("/api/videos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void forwardsSearchAndPagination() throws Exception {
+        when(videoService.getVideos("Java", 2, 10)).thenReturn(new VideoPage(List.of(), 2, 10, true, 40));
+        mockMvc.perform(get("/api/videos").param("q", "Java").param("page", "2").param("size", "10"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.size").value(10)).andExpect(jsonPath("$.hasNext").value(true))
+                .andExpect(jsonPath("$.totalElements").value(40));
+    }
+
+    @Test
+    void rejectsInvalidSearchParametersBeforeCallingService() throws Exception {
+        for (String page : List.of("-1", "abc", "2147483648")) {
+            mockMvc.perform(get("/api/videos").param("page", page)).andExpect(status().isBadRequest());
+        }
+        for (String size : List.of("0", "101", "abc")) {
+            mockMvc.perform(get("/api/videos").param("size", size)).andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(get("/api/videos").param("q", "x".repeat(501))).andExpect(status().isBadRequest());
+        verifyNoInteractions(videoService);
     }
 
     @Test
@@ -108,7 +132,7 @@ class VideosControllerTest {
         ));
 
         mockMvc.perform(post("/api/videos")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "title", "Created",
                                 "description", "desc",
@@ -124,7 +148,7 @@ class VideosControllerTest {
     @Test
     void createVideoReturnsBadRequestForInvalidInput() throws Exception {
         mockMvc.perform(post("/api/videos")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "title", "",
                                 "description", "",
@@ -172,13 +196,13 @@ class VideosControllerTest {
 
     @Test
     void updateVideoReturnsUpdatedMetadata() throws Exception {
-        when(videoService.updateVideo(eq(7L), any())).thenReturn(new VideoDetail(
+        when(videoService.updateVideo(eq(7L), any(), eq(3L))).thenReturn(new VideoDetail(
                 7L, "Seventh", "Author", "New description", 79.5,
                 "/media/7.webp", "/media/7.mp4", List.of("db"), 0, 0, 0
         ));
 
         mockMvc.perform(patch("/api/videos/7")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "description", "New description",
                                 "tags", List.of("db")
@@ -195,7 +219,7 @@ class VideosControllerTest {
         ));
 
         mockMvc.perform(post("/api/videos/7/likes")
-                        .contentType("application/json")
+                        .principal(() -> "3").contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("userId", 3))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(true))
@@ -208,7 +232,7 @@ class VideosControllerTest {
                 7L, 3L, false, 0
         ));
 
-        mockMvc.perform(delete("/api/videos/7/likes").param("userId", "3"))
+        mockMvc.perform(delete("/api/videos/7/likes").principal(() -> "3").param("userId", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(false))
                 .andExpect(jsonPath("$.likesCount").value(0));

@@ -3,6 +3,8 @@
 How to set up, run, test and build ProTube locally. For the assignment rules see [README.md](./README.md), and for
 the MVP spec see [REQUIREMENT.md](./REQUIREMENT.md).
 
+For the complete class delivery, only Docker is required: see [Docker delivery](#docker-delivery). The Java/Node prerequisites and manual environment setup below apply when running development tools on the host.
+
 ## Repository layout
 
 | Folder                   | What it is                                                                 |
@@ -12,7 +14,7 @@ the MVP spec see [REQUIREMENT.md](./REQUIREMENT.md).
 | `tooling/videoGrabber/`  | Python script that downloads sample videos into the video store folder     |
 | `resources/`             | Images for the docs and `video_list.txt` (input for the video grabber)     |
 | `.run/`                  | Shared IntelliJ IDEA run configurations                                    |
-| `prompts/`               | Approved AI prompts (see the "Usage of AI" section of the README)          |
+| `prompts/`               | AI prompt records with their actual approval status (see README)          |
 
 ## Prerequisites
 
@@ -51,6 +53,10 @@ python3 main.py --store=/absolute/path/to/videos --id=10 --videos=../../resource
 | `ENV_PROTUBE_DB_USER`              | `dev` and `prod`        | PostgreSQL application user |
 | `ENV_PROTUBE_DB_PASS`              | `dev` and `prod`        | PostgreSQL password; use this name, not `ENV_PROTUBE_DB_PWD` |
 | `ENV_PROTUBE_DB`                   | `dev` and `prod`        | PostgreSQL database name (see [Using PostgreSQL](#using-postgresql)) |
+| `ENV_PROTUBE_SESSION_SECURE` | optional, dev/prod | Set true when serving over HTTPS; false for the local HTTP demo. |
+| `ENV_PROTUBE_WEB_ORIGINS` | optional, dev/prod | Comma-separated allowed browser origins, default http://localhost:5174; credentials are enabled. |
+| `ENV_PROTUBE_DEMO_ADMIN_EMAIL` / `ENV_PROTUBE_DEMO_ADMIN_ACCOUNT` | optional, initial import | Demo owner identity; defaults admin@protube.local / admin. |
+| `ENV_PROTUBE_DEMO_ADMIN_PASSWORD` | initial import on host | Required when creating/converting the demo owner; at least 8 characters and at most 72 UTF-8 bytes. Compose supplies its local demo value automatically. |
 
 Never commit real secrets. Set them in your shell, your OS, or your (local, uncommitted) IDE run configuration.
 
@@ -69,7 +75,7 @@ $env:ENV_PROTUBE_STORE_DIR = "D:\code\videos\"
 In development the backend and frontend run as two separate processes:
 
 ```
-Browser ──► Vite dev server (http://localhost:5174) ──fetch──► Spring Boot (http://localhost:8080/api, /media)
+Browser ──► Vite (http://localhost:5174) ──proxy /api, /media──► Spring Boot (http://localhost:8080)
 ```
 
 ### Start everything from IntelliJ
@@ -101,7 +107,7 @@ mvn spring-boot:run
   first. The Compose volume retains application data across backend/container restarts.
 * From IntelliJ you can instead use the shared **ProtubeBackApplication** run configuration (`.run/`) — edit its
   environment variables to point to your own store folder.
-* CORS is open for `/api/**` and `/auth/**`, so the Vite dev server can call the API directly.
+* API CORS permits the explicit configured origins with credentials; wildcard access is removed. The default Vite proxy keeps browser API/media requests on the frontend origin.
 
 ### Frontend
 
@@ -112,14 +118,7 @@ npm run dev
 ```
 
 * Starts on **http://localhost:5174** with hot reload (or use the **frontend [DEV]** IntelliJ run configuration).
-* API and media URLs come from `frontend/.env.development`:
-  ```
-  VITE_API_DOMAIN=http://localhost:8080
-  VITE_MEDIA_DOMAIN=http://localhost:8080
-  ```
-  and are read through `src/utils/Env.ts` (`API_BASE_URL = ${VITE_API_DOMAIN}/api`,
-  `MEDIA_BASE_URL = ${VITE_MEDIA_DOMAIN}/media`). To override locally without touching the committed file, create
-  `frontend/.env.development.local`.
+* `VITE_API_DOMAIN` and `VITE_MEDIA_DOMAIN` are empty in `frontend/.env.development`. `src/utils/Env.ts` therefore produces relative `/api` and `/media` URLs; `vite.config.ts` proxies these paths to http://localhost:8080. Production also uses relative URLs, served by Spring Boot. Local overrides belong in an uncommitted `frontend/.env.development.local`; a separate browser API origin must also be allowed by backend CORS.
 
 ## 4. Tests, lint and formatting
 
@@ -181,7 +180,7 @@ cd backend
 mvn -Pprod spring-boot:run
 ```
 
-(IntelliJ: the shared **Production** run configuration does the same.)
+(For host execution, this command still requires the environment variables above. The shared IntelliJ **Production** configuration now starts the complete Docker delivery as described below.)
 
 ### Build and run the jar
 
@@ -245,3 +244,60 @@ application data and is not part of normal restart or verification.
 * **Frontend can't reach the API in dev**: make sure the backend is running on port 8080, or adjust
   `VITE_API_DOMAIN` in `.env.development.local`.
 * **Port already in use**: change `server.port` (backend) or run `npm run dev -- --port 5174` (frontend).
+
+
+## Docker delivery
+
+From a checkout with Docker Desktop running (Linux containers), use:
+
+```bash
+docker compose up --build -d --wait
+```
+
+The professor can open http://localhost:8080 without configuring IntelliJ or installing host Java/Node. The first build downloads Maven/frontend dependencies. The runtime image contains the production jar and a Java 21 JRE, runs as an unprivileged user, and checks `/api/videos` for readiness. Compose waits for PostgreSQL before starting the app. `/` and direct `/videos/{id}` navigation serve React; API/media use relative URLs on the same origin.
+
+### Accounts, sessions and permissions
+
+The top-right account links open `/register`, `/login` and the protected `/profile`. The profile displays the current account's fields. Registration returns 201 and signs in automatically; login uses email and returns 200. Passwords are BCrypt hashes in PostgreSQL and are absent from response DTOs. If account creation succeeds but session initialization fails, the API returns 503 with instructions to sign in; it does not claim that registration was rolled back.
+
+`GET /api/auth/csrf` returns `{token, headerName}`. Send that token in the indicated header for every POST/PATCH/DELETE, with the same session cookie; get a new token after authentication. The frontend auth client centralizes this for register/login/logout. `GET /api/users/me` restores the current identity. `POST /api/auth/logout` returns 204 and invalidates the session. Cookies are HttpOnly, SameSite=Lax, and optionally Secure. Server sessions expire after 30 inactive minutes and are not persisted across app restarts; sign in again after restarting. The frontend rechecks identity on focus and distinguishes a network error from an anonymous session.
+
+Catalog, detail, comment reads and media are public. API writes, history and analytics require a server identity; owner operations reject another user with 403. Missing authentication returns 401; missing/invalid CSRF returns 403 with `CSRF_INVALID` and may be rejected before authentication. Supplied user/owner IDs do not select the authenticated actor. The demo account has the same owner rules as every other account.
+
+Compose provides the local demonstration account: name `admin`, login email `admin@protube.local`, password `admin1234`. The importer converts its legacy synthetic owner in place, retaining its ID, creation date and video associations; subsequent starts reuse it without changing its hash. Other accounts are never merged or overwritten. An identity collision or a configured password that differs from an existing demo account stops import with a clear error. Changing an environment value is not a password reset. Public registration reserves the demo identity. A first import on the host needs `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`; an existing demo owner can be reused without that variable. No global administrator role or video editor UI is introduced here.
+
+### Configuration
+
+- Compose shares its existing local demonstration database defaults with the app. Optional overrides are `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, `ENV_PROTUBE_DB_PASS`; use matching credentials for an existing volume. Changing environment settings does not rotate the password already stored in PostgreSQL.
+- `ENV_PROTUBE_DB_PORT` changes the published host database port (default 5432); the app container always connects to `db:5432`. `ENV_PROTUBE_DB_HOST` from the host is deliberately not used inside the container.
+- `PROTUBE_HTTP_PORT` changes the web host port (default 8080).
+- `PROTUBE_MEDIA_DIR` selects a host directory; the existing `./videos` is the demonstration default. Compose mounts it read-only at `/media-store/` and passes that container path through `ENV_PROTUBE_STORE_DIR`. This differs from starting Java on the host, where ENV_PROTUBE_STORE_DIR must be a host path.
+- The media directory must already exist; Compose fails rather than silently creating a directory for a typo. Use an external store for your own media. The image build excludes all media and local environment files.
+- Only the Compose demonstration command enables initial metadata import in prod. Existing media paths are skipped on restart. Plain Maven/jar prod retains its existing import-disabled default; host execution still requires the variables described above. Configuration variables defined on one IntelliJ run configuration are not inherited by another.
+
+Stop development Vite/backend processes before a production Maven build; `npm ci` replaces node_modules and Windows can lock Rollup files used by Vite. Also free port 8080 before starting Compose. Docker and the database should stay running.
+
+### Checks and lifecycle
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+# Optional HTTP smoke test; requires Python 3 only on the verification machine.
+python tooling/docker/smoke_test.py
+docker compose restart app
+python tooling/docker/smoke_test.py
+docker compose stop
+```
+
+The smoke test checks React/assets, API, imported catalog, direct video navigation, thumbnails, partial video requests (206), and missing resources (404). `tooling/docker/auth_smoke_test.py <base-url>` additionally checks demo login/owner editing, registration, sessions, CSRF, private data isolation and logout; run it only against an isolated test database with imported videos, supplying the demo password through `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`. It creates disposable accounts and prints no credentials or tokens. For a new empty database with an empty mounted store, use `python tooling/docker/smoke_test.py http://localhost:8080 --empty`. The build inside Docker skips tests because it has no Docker socket; run `mvn clean verify` in backend separately to execute the Testcontainers suite and coverage gates. This does not skip the production frontend build.
+
+`docker compose stop` preserves database data. Restart with `docker compose up -d --wait`; rebuild after source changes with `--build`. Avoid `down -v`, which removes persisted data. Inspect logs if a healthcheck fails; do not treat an unhealthy container as a successful delivery.
+
+
+### Start the delivery with Maven Production in IntelliJ
+
+With Docker Desktop running, select the shared **Production** Maven configuration and press Run. It uses Maven Exec to run `docker compose -f ../compose.yaml up --build -d --wait` from backend. This builds/starts frontend, backend and PostgreSQL together using Compose's existing local demo settings; no manual environment variables are required. Open http://localhost:8080 after BUILD SUCCESS.
+
+If IntelliJ still displays `spring-boot:run` in Production, reload the shared run configuration from disk (close/reopen the project if necessary). The saved goal is `org.codehaus.mojo:exec-maven-plugin:3.6.4:exec`, with `exec.executable=docker` and `exec.args=compose -f ../compose.yaml up --build -d --wait` in Maven properties. Docker must be on PATH; the first run downloads the Maven Exec plugin. Maven/JDK are needed for this IDE shortcut; the direct Docker command still only requires Docker.
+
+Maven exits successfully once both containers are ready; they continue running detached. Stop them with `docker compose stop` from the repository root. The green Maven exit is expected. Do not also start a host backend on port 8080. Keep the variables in ProtubeBackApplication for host development: they are independent of this delivery shortcut and are not changed by it. Plain `mvn -Pprod spring-boot:run` and running the jar on the host continue to require their own environment settings.

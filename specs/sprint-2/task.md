@@ -1,8 +1,8 @@
 # Tareas - Sprint 2
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md).
-Alcance actual autorizado: implementar RF-1/T2 y la infraestructura de persistencia de T3, incluido corregir Maven prod, en `feature/DBpostreSQL` desde `ca778b2`. El resto de historias y despliegues siguen fuera de esta ejecución.
-Estado: infraestructura PostgreSQL verificada localmente; resto del sprint pendiente.
+Alcance actual autorizado: RF-4/RF-5/RF-6, T7-T13 y verificación local correspondiente de T17, en `feature/session-auth-profile` desde `24b8dcf`. Se conservan abajo los registros históricos de PostgreSQL y arranque.
+Estado: autenticación/perfil y cuenta demo verificados localmente; sprint completo y entrega remota pendientes.
 Evidencia histórica: la preparación documental sobre `main`/`71c144d` solo inspeccionó pruebas. Los nuevos resultados se registran aparte, sin sustituir esa evidencia.
 
 Se conserva `task.md` como registro único solicitado para esta carpeta. Los identificadores T/RF se citan con `specs/sprint-2/` desde otros documentos.
@@ -21,46 +21,42 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T2; T14/T15 para verificar el CRUD final completo.
   - Hecho cuando: usuarios, perfiles, vídeos/descripciones largas y etiquetas/relaciones se guardan y recuperan; las operaciones acordadas de creación/actualización/borrado respetan integridad; los datos sobreviven a reinicio conservando volumen y la importación no duplica registros. Registrar comandos concretos de la prueba de reinicio.
   - Evidencia parcial: `PostgreSqlPersistenceTest` pasa con PostgreSQL real; comprueba reinicio de contexto dev -> prod, datos de usuario/perfil/vídeo/etiquetas e interacciones, descripción larga, actualización y borrado por repositorio con cascadas. T3 permanece abierta: RF-7/RF-8 y la interfaz/API CRUD final todavía no se han implementado; tampoco se ha probado un reinicio del contenedor/volumen Compose.
-- [ ] T4 - Implementar búsqueda por texto en backend (RF-2).
+- [x] T4 - Implementar búsqueda por descripción en backend (RF-2).
   - Depende de: T1 para coordinación; T2 para comprobación de integración.
-  - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva DTO/consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
-  - Evidencia: pendiente.
+  - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva VideoSummary dentro de VideoPage y consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
+  - Evidencia: verificacion final T4/RF-2 al final de este documento; Maven 61 tests y Jest 63 tests, build/lint satisfactorios.
 - [ ] T5 - Implementar búsqueda por etiquetas en backend (RF-3).
   - Depende de: T1, T4; D1 resuelta.
   - Hecho cuando: `tag` repetido filtra parcialmente sin distinguir mayúsculas según OR/AND acordado, se combina con texto, no duplica vídeos y maneja valores vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
   - Evidencia: pendiente.
-- [ ] T6 - Integrar búsqueda en frontend (RF-2/RF-3).
-  - Depende de: contrato de T4/T5 acordado; puede prepararse con mocks antes de su implementación.
-  - Hecho cuando: hook/cliente envía los filtros; controles accesibles permiten texto y varias etiquetas; limpiar restablece catálogo; carga/error/vacío y respuestas fuera de orden están cubiertos; desaparece el filtro local por título que impediría resultados solo de descripción. Pruebas sin backend real.
-  - Evidencia: pendiente.
-- [ ] T7 - Preparar sesión y frontera de seguridad (RF-4/RF-5/RF-6).
+- [x] T7 - Preparar sesión y frontera de seguridad (RF-4/RF-5/RF-6).
   - Depende de: T1 para contratos, topología y coordinación.
   - Hecho cuando: dependencias de seguridad gestionadas por Maven, filtros/contexto/sesión y errores API están configurados; cookie, fijación de sesión, CSRF y CORS/proxy están comprobados; existe inventario de rutas públicas/privadas y de cambios de identidad en DTOs.
-  - Evidencia: pendiente. `spring-security-crypto` actual no demuestra esta tarea.
-- [ ] T8 - Completar registro backend y autenticación automática (RF-4).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T8 - Completar registro backend y autenticación automática (RF-4).
   - Depende de: T7, T2.
   - Hecho cuando: registro válido persiste usuario y crea sesión; validación, email/cuenta duplicados también concurrentes, límites del encoder y ausencia de contraseña/hash en respuestas tienen pruebas; el resultado se valida con una petición posterior protegida.
-  - Evidencia: pendiente. La confirmación del usuario sobre login automático es requisito, no prueba ejecutada.
-- [ ] T9 - Completar login, logout y recuperación de identidad (RF-5).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T9 - Completar login, logout y recuperación de identidad (RF-5).
   - Depende de: T7, T2.
   - Hecho cuando: login establece autenticación válida para `/me`; credenciales erróneas no autentican; cerrar/expirar sesión revoca acceso; pruebas con filtros verifican contexto, CSRF y errores. La identidad no se acepta desde IDs enviados por el cliente.
-  - Evidencia: pendiente.
-- [ ] T10 - Proteger endpoints privados existentes (RF-5/RF-6/RF-7/RF-8).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T10 - Proteger endpoints privados existentes (RF-5/RF-6/RF-7/RF-8).
   - Depende de: T7, T9; coordinar cambios de contratos con T14/T15.
   - Hecho cuando: escrituras y lecturas privadas requieren identidad de servidor y propiedad cuando proceda; A no accede a historial/analíticas/datos privados ni modifica contenido de B; catálogo, detalle, medios y comentarios de lectura siguen públicos. Tests diferencian 401, permiso 403 y CSRF 403.
-  - Evidencia: pendiente; no basta con ocultar botones en React.
-- [ ] T11 - Añadir consulta de perfil propio backend (RF-6).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T11 - Añadir consulta de perfil propio backend (RF-6).
   - Depende de: T7, T9.
   - Hecho cuando: GET `/api/users/me` obtiene el usuario del principal mediante servicio, devuelve `UserResponse` sin secretos y rechaza sesiones ausentes/caducadas. No existe lectura privada por ID manipulable.
-  - Evidencia: pendiente.
-- [ ] T12 - Añadir cliente/contexto de autenticación y formularios (RF-4/RF-5).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T12 - Añadir cliente/contexto de autenticación y formularios (RF-4/RF-5).
   - Depende de: contratos de T8/T9/T11; puede desarrollarse con mocks una vez acordados.
   - Hecho cuando: `/register` y `/login` validan y presentan errores; registro deja conectado; cliente centraliza credenciales/CSRF; se restaura sesión al recargar y se limpia al salir/caducar; pruebas de éxito/error/carga no llaman al backend.
-  - Evidencia: pendiente.
-- [ ] T13 - Añadir perfil y protección de navegación frontend (RF-6).
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
+- [x] T13 - Añadir perfil y protección de navegación frontend (RF-6).
   - Depende de: T11/T12 o sus contratos mockeados.
   - Hecho cuando: `/profile` muestra datos propios, maneja carga/red/sesión caducada y no muestra datos de otro usuario; enlaces directos y guard de ruta están probados; la API sigue siendo la autoridad de acceso.
-  - Evidencia: pendiente.
+  - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
 - [ ] T14 - Completar CRUD de metadatos de vídeos propios en backend (RF-7).
   - Depende de: T7/T10, contrato acordado de T1; PostgreSQL de T2 para integrar.
   - Hecho cuando: POST/GET/PATCH existentes y DELETE nuevo cubren CRUD; propietario desde principal; transacciones y cascadas correctas; 400/401/403/404 probados; se rechazan rutas fuera del almacén y no se borran archivos físicos al eliminar metadatos.
@@ -101,24 +97,24 @@ T1 cierra coordinación/contratos. Después pueden prepararse persistencia (T2),
 
 ## Validación por requisito
 
-La tabla conserva el alcance de todo el sprint. La ejecución acotada PostgreSQL actualiza solo los resultados RF-1 que se han comprobado; el resto sigue pendiente. Las pruebas descritas como futuras no se consideran ejecutadas por existir pruebas de persistencia.
+La tabla conserva el alcance de todo el sprint. Los registros acotados actualizan RF-1 y RF-4/RF-5/RF-6 con sus pruebas locales; el resto sigue pendiente. Las pruebas descritas como futuras no se consideran ejecutadas por existir pruebas de persistencia.
 
 | RF / AC | Prueba o comprobación concreta prevista | Comando/directorio o tarea de evidencia | Resultado real |
 | --- | --- | --- | --- |
 | RF-1 / Database AC1 | Arranque PostgreSQL y migraciones/validación del esquema | `PostgreSqlPersistenceTest` en ambos comandos Maven del registro final | Satisfactorio local: conexión dev/prod y V1/V2 verificadas |
 | RF-1 / Database AC2 y DoD CRUD | Persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: ambos Maven verify; prueba de contexto dev -> prod | Persistencia y CRUD de repositorio satisfactorios; CRUD API/UI y reinicio de volumen siguen pendientes |
 | RF-1 / Database AC3 | Revisión de configuración por perfiles, secretos/rutas y dependencias entregables | Diff, `docker compose config --quiet` y contenido del jar | Satisfactorio para esta configuración local; credenciales por entorno y H2 ausente |
-| RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | No ejecutado |
-| RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | No ejecutado |
+| RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
+| RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
 | RF-3 / Tags AC1-AC3 | Varias etiquetas según D1, coincidencia exacta/parcial, normalización y texto combinado | Maven verify; Jest; T5/T6 | No ejecutado; D1 pendiente |
 | RF-3 / Tags AC4 | Etiqueta desconocida, vacíos, duplicados y estado sin resultados | Maven verify; Jest; T5/T6 | No ejecutado |
-| RF-4 / Register AC1 y aclaración | Alta válida en formulario y petición autenticada al perfil usando la misma sesión | Pruebas con filtros, Jest y E2E; T8/T12/T18 | No ejecutado |
-| RF-4 / Register AC2-AC3 | Validación, duplicados email/cuenta y colisión concurrente | `UserServiceTest`/`AuthControllerTest` ampliados, prueba PostgreSQL y Jest | No ejecutado |
-| RF-4 / Register AC4 | Hash almacenado, encoder válido y ausencia de contraseña/hash en DTOs/logs/UI | Prueba de servicio/integración y revisión; T8/T19 | No ejecutado |
-| RF-5 / Login AC1-AC3 | Login válido y petición posterior protegida; inválido no crea identidad | Pruebas nuevas con cadena de seguridad; Jest; T9/T12 | No ejecutado |
-| RF-5 / Login AC4 | APIs privadas sin sesión, CSRF, expiración/logout y usuario A frente a B | Pruebas con filtros y E2E; T7/T9/T10/T18 | No ejecutado |
-| RF-6 / Profile AC1-AC2 | `/me` y `/profile` devuelven/muestran los campos de la cuenta autenticada | Nuevas pruebas de backend/perfil y Jest; T11/T13 | No ejecutado |
-| RF-6 / Profile AC3-AC4 | Acceso directo sin sesión/caducado, manipulación de ID y datos privados de otra cuenta | MockMvc con filtros, Jest y E2E; T10/T11/T13/T18 | No ejecutado |
+| RF-4 / Register AC1 y aclaración | Alta válida en formulario y petición autenticada al perfil usando la misma sesión | Pruebas con filtros, Jest y E2E; T8/T12/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-4 / Register AC2-AC3 | Validación, duplicados email/cuenta y colisión concurrente | `UserServiceTest`/`AuthControllerTest` ampliados, prueba PostgreSQL y Jest | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-4 / Register AC4 | Hash almacenado, encoder válido y ausencia de contraseña/hash en DTOs/logs/UI | Prueba de servicio/integración y revisión; T8/T19 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-5 / Login AC1-AC3 | Login válido y petición posterior protegida; inválido no crea identidad | Pruebas nuevas con cadena de seguridad; Jest; T9/T12 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-5 / Login AC4 | APIs privadas sin sesión, CSRF, expiración/logout y usuario A frente a B | Pruebas con filtros y E2E; T7/T9/T10/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-6 / Profile AC1-AC2 | `/me` y `/profile` devuelven/muestran los campos de la cuenta autenticada | Nuevas pruebas de backend/perfil y Jest; T11/T13 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
+| RF-6 / Profile AC3-AC4 | Acceso directo sin sesión/caducado, manipulación de ID y datos privados de otra cuenta | MockMvc con filtros, Jest y E2E; T10/T11/T13/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
 | RF-7 / CRUD de vídeos | Alta/lectura/edición/borrado, propietario, integridad y archivo físico conservado | Maven verify/PostgreSQL/Jest/E2E; T14/T16/T18 | No ejecutado |
 | RF-8 / Etiquetas de vídeos propios | Compartir etiqueta entre dos vídeos, editar uno y comprobar el otro intacto; retirar asociación sin borrar Tag | Maven verify/PostgreSQL/Jest/E2E; T15/T16/T18 | No ejecutado |
 | DoD global / checks | Build, tests, lint y cobertura del resultado combinado | T17: comandos de área siguientes | No ejecutado |
@@ -179,3 +175,59 @@ La tabla conserva el alcance de todo el sprint. La ejecución acotada PostgreSQL
 - Resultado final HTTP: frontend `/` en 5174 devuelve 200; API `/api/videos` en 8080 devuelve 200 y 72 vídeos; CORS devuelve `http://localhost:5174`. `postgres_db` está healthy en 5432. Se conserva el catálogo y no se borra ni sustituye el volumen.
 - Límite: frontend y backend arrancan en paralelo y su disponibilidad no es inmediata; esperar al backend antes de abrir el catálogo. PostgreSQL permanece detached al detener los procesos de IntelliJ. No se verificó en esta tarea un arranque con contenedor/volumen nuevos, un fallo de Docker, E2E completo ni CI/staging.
 - T21 verificada localmente. Las demás tareas pendientes del sprint mantienen su estado; sin commit, push, PR ni despliegue creados por esta tarea.
+
+## Ejecución de autenticación y perfil (2026-10-28)
+
+Baseline 24b8dcf; rama feature/session-auth-profile. Autorizadas T7-T13 y verificación correspondiente de T17. Las casillas históricas no se marcan por la mera existencia de este plan.
+
+- [x] A1 - Cadena de seguridad, sesión, CSRF, contratos y permisos existentes (RF-4/5/6; T7-T11). Hecho cuando tests con filtros y PostgreSQL demuestren identidad, aislamiento entre cuentas, validación y errores.
+- [x] A2 - Cliente/contexto, formularios, perfil y acceso de cuenta arriba a la derecha (RF-4/5/6; T12-T13). Hecho cuando tests de UI mockeados cubran carga, éxito, validación, sesión ausente/caducada y errores recuperables.
+- [x] A3 - Verificación e información de entrega (T17 parcial). Hecho cuando Maven clean verify, build/Jest/lint frontend y smoke de producción pasen, con evidencias y límites registrados aquí y enlace desde el handoff.
+
+- Verificación final local, 2026-10-28 Europe/Madrid:
+  - `backend/`: `mvn -B -ntp -Pprod clean verify`, Java 21, **57 tests**, 0 fallos/errores/omisiones; BUILD SUCCESS y puertas JaCoCo satisfechas. Líneas 95.03%, instrucciones 94.21%, métodos 94.87%. Compila React y empaqueta el jar prod. La pasada previa `mvn clean verify` también pasó antes de ampliar la cuenta demo; no se atribuye esa pasada al código posterior.
+  - `frontend/`: `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (**12 suites, 62 tests, 1 snapshot**) y `npm run lint` satisfactorios. Cobertura statements 98.70%, funciones 98.41%, ramas 90.91%; sin cambios frontend posteriores a esos checks. Build prod repetido por Maven y Docker.
+  - `docker compose build app` satisfactorio. Despliegue aislado `protube-session-check`, PostgreSQL separado y puertos 18080/15432: `tooling/docker/smoke_test.py` y `tooling/docker/auth_smoke_test.py` satisfactorios contra la imagen final, con catálogo de 72 vídeos, rutas SPA directas y vídeo Range 206. Login demo y edición de su vídeo permitidos; otra cuenta recibe 403. También registro/login automático, rotación de sesión/CSRF, HttpOnly/SameSite, perfil propio, aislamiento de historial/analíticas, login inválido y logout verificados por HTTP.
+  - `VideoImportServiceTest`: conversión conserva ID/fecha/relaciones, creación con hash, reinicio sin rehash/duplicado, colisiones sin sobrescritura, configuración inválida, almacén ausente y triples incompletos. `SessionSecurityTest`, `UserServiceUnitTest`, `RegistrationConcurrencyTest` y tests de controladores cubren permisos/identidad, validación, duplicados concurrentes y error tras crear cuenta. Tests React usan API mockeada y cubren carga/error/reintento, formularios, perfil, revalidación y logout.
+- Fallos resueltos durante la verificación: stubs de búsqueda por email distinguían incompletamente la identidad antigua de la demo; se corrigieron los mocks, sin relajar Mockito ni cambiar el comportamiento para hacer pasar la prueba. El primer build frontend requirió repetición fuera del sandbox por acceso de esbuild; no se modificó código por esa restricción.
+- Límites: prueba visual interactiva no completada por una limitación del navegador; no se afirma E2E visual. CI remota, revisión del equipo, merge y staging no ejecutados. No se completan búsqueda ni RF-7/RF-8/editor; perfil solo consulta. npm sigue informando de vulnerabilidades preexistentes; sin actualización de dependencias frontend fuera de alcance.
+- La base y el volumen de aplicación no se han usado en estas pruebas. El entorno de prueba se detiene sin borrar volúmenes. El prompt 09 conserva estado pendiente de revisión; sin commit, push ni PR.
+
+T1/T3-T6/T14-T16/T18-T20 no se dan por completas con este alcance; T17 solo tiene verificación parcial del sprint. Staging y E2E global siguen pendientes. Siguiente paso: revisión local del usuario/equipo y commit por el usuario cuando lo decida.
+
+### Entrega local autorizada
+
+El usuario autoriza posteriormente el commit local («vale haz el commit yo hago el push»). Se conserva la evidencia anterior, tomada antes del commit. El siguiente paso de publicación corresponde al usuario; sin push, PR, merge ni cambios funcionales adicionales en esta acción.
+
+## Ejecucion de busqueda paginada (2026-10-30)
+
+Autorizadas T4/RF-2 y conexion frontend con paginacion. Rama fixing-search-on-frontend-to-backend; baseline d994fca. Se conserva la edicion previa del usuario (renombrado T4 y retirada T6). T5/RF-3 y D1 siguen pendientes.
+
+- [x] S1: consulta paginada SQL y contrato; tests MockMvc y PostgreSQL.
+- [x] S2: hook, debounce, cancelacion, controles de pagina/reintento y tests mockeados.
+- [x] S3: verificaciones de area y evidencia.
+
+Evidencia pendiente.
+
+### Evidencia final de T4/RF-2
+
+- Backend: Java 21, Maven de IntelliJ (sin wrapper local), `mvn -B -ntp clean verify` desde backend: BUILD SUCCESS, 61 tests, 0 fallos/errores/omisiones; puertas JaCoCo satisfechas. PostgreSQL Testcontainers aislado, sin base de aplicacion. `VideoServiceTest` demuestra titulo/descripcion, mayusculas/trim, ranking y paginas consecutivas sin duplicados, consulta vacia, fuera de rango, no resultados, %, _ y barra literales. `VideosControllerTest` demuestra defaults, DTO, page/size/q y 400 antes de servicio.
+- Frontend: `npm ci` con lockfile original, `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (12 suites, 63 tests, 1 snapshot) y `npm run lint`: satisfactorios. API mockeada; descripcion sin coincidencia en titulo, limpiar, carga/error/reintento, paginas y reset, debounce 300 ms, abort y respuestas/errores tardios, navegacion desde reproductor. Umbrales de cobertura existentes satisfechos.
+- Diagnosticos resueltos: Docker inicialmente apagado (arrancado); residuo antiguo application.properties en target/test-classes (eliminado mediante clean); Jest config TypeScript requeria cargador ausente/incompatible con extends multiple (config equivalente renombrada a jest.config.cjs). Sin dependencias nuevas ni cambios del lockfile. Se corrigieron un parentesis en un test nuevo y una consulta ambigua por role=status en el test de autenticacion, acotandola al menu de cuenta.
+- Contrato sincronizado con scripts smoke existentes, sin afirmar haberlos ejecutado contra un despliegue. Revisados consumidores del catalogo; ya no existe ruta de listado ilimitado. Solo la pagina se transforma a DTO; sin fetch join de colecciones con Pageable.
+- No ejecutado: E2E visual, staging, CI remota ni benchmark de un millon de filas. Ranking por subcadena y offset profundo pueden requerir indices/cursores tras medir. Sin migraciones, etiquetas ni nuevas funcionalidades de cuenta. El sprint completo permanece pendiente.
+
+## Ampliacion RF-2: total de resultados y controles condicionales
+
+Autorizacion posterior del usuario sobre 35f23da, misma rama fixing-search-on-frontend-to-backend. Mantener evidencias anteriores como historicas. Esta ampliacion reabre la aceptacion de T4/RF-2 hasta verificar los cambios de contrato.
+
+- [x] C1: VideoPage.totalElements y consulta COUNT con el filtro textual; tests PostgreSQL y contrato HTTP.
+- [x] C2: ocultar paginacion cuando totalElements <= size, conservar navegacion en la ultima pagina; tests de 0/1/24/25 resultados y cambio de filtro.
+- [x] C3: checks de backend/frontend y evidencia final.
+
+Verificado localmente el 2026-10-30 Europe/Madrid; sin commit ni push para esta ampliacion.
+
+- `backend/`: `mvn -B -ntp -Pprod clean verify` con Java 21: BUILD SUCCESS, 62 tests, 0 fallos/errores/omisiones, puertas JaCoCo satisfechas; npm ci/build:prod y jar ejecutable incluidos. PostgreSQL Testcontainers aislado. `countsFilteredResultsWithoutLoadingTheWholeCatalog` guarda 25 videos y verifica primera pagina de 24, ultima de 1 con total 25, filtro unico total 1, filtro de 24 con total 24 y filtro sin resultados total 0. Ranking/paginas de 2 y pagina fuera de rango conservan total correcto. MockMvc verifica totalElements en JSON, tambien para cero y total mayor que pagina.
+- `frontend/`: `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (12 suites, 68 tests, 1 snapshot), `npm run lint`: satisfactorios. Umbrales de cobertura existentes satisfechos. Tests mockeados de 0/1/24/25 coincidencias, ultima pagina con total 25, buscar/limpiar y controles ocultos/restaurados. Sin llamadas de tests frontend al backend real.
+- Contrato ampliado de forma aditiva: totalElements (long en Java), con COUNT y exactamente el mismo filtro del listado. Solo se cargan videos de la pagina; no se descarga el catalogo para contarlo. Spring puede inferir el total en paginas incompletas.
+- No se ejecutaron E2E visual, despliegue, CI remota ni benchmark de gran volumen. El COUNT puede aumentar el trabajo SQL; no afecta al limite de 24 videos transferidos por pagina. Sin migraciones/dependencias nuevas. Prompt 10 pendiente de revision del equipo.

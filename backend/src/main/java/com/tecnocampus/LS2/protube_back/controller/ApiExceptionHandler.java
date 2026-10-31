@@ -32,6 +32,17 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", exception.getMessage()));
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    ResponseEntity<Map<String, String>> forbidden() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied", "code", "FORBIDDEN"));
+    }
+
+    @ExceptionHandler(com.tecnocampus.LS2.protube_back.services.RegistrationSessionException.class)
+    ResponseEntity<Map<String, String>> registrationSession(
+            com.tecnocampus.LS2.protube_back.services.RegistrationSessionException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", exception.getMessage()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException exception) {
         return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));

@@ -3,7 +3,7 @@
 Estado: borrador especificado y ampliado con el CRUD acordado; decisión D1 pendiente antes de implementar el contrato afectado.
 Ticket o petición: historias, AC y DoD del sprint 2 aportados por el usuario el 2026-10-21.
 Fuentes: [REQUIREMENT.md](../../REQUIREMENT.md), [constitución](../../.agents/constitution.md) y [SDD](../../docs/SDD.md).
-Plan: [plan.md](plan.md). Ejecución y evidencia: [task.md](task.md). Coordinación: [handoff](../../docs/ai/tasks/sprint-2.md).
+Plan: [plan.md](plan.md). Ejecución y evidencia: [task.md](task.md). Coordinación de autenticación: [handoff](../../docs/ai/tasks/session-auth-profile.md).
 
 Se conservan la carpeta `sprint-2` y el nombre existente `task.md`, solicitados por el usuario. Este último es el único registro de tareas de esta spec; no se crea un segundo `tasks.md` con estado duplicado. Los RF y T son locales a esta carpeta.
 
@@ -50,6 +50,16 @@ Cuando una persona introduzca texto de una descripción en el buscador, el siste
 - Dada una consulta vacía o formada por espacios y sin etiquetas activas, cuando se busque o se limpie el control, entonces se mostrará el catálogo sin filtrar.
 - Las coincidencias por título ya disponibles se conservarán. Cuando existan varias coincidencias textuales, deberán ordenarse por relevancia con un desempate estable, manteniendo el objetivo de US-08.
 - Dado un fallo de consulta, cuando ocurra, entonces se distinguirá del catálogo vacío y se podrá reintentar. Una respuesta antigua no sustituirá los resultados de una consulta más reciente.
+
+Actualización autorizada 2026-10-30 (T4/RF-2 y conexión frontend):
+- Cuando se abra el catálogo, se busque o se limpie el campo, el sistema deberá devolver únicamente una página de vídeos desde la base de datos.
+- Cuando se avance o retroceda, el sistema deberá solicitar esa página; no precargar ni acumular el catálogo completo en el navegador.
+- Cuando cambie el texto, se deberá volver a la primera página, esperar 300 ms de inactividad y descartar respuestas anteriores.
+- Se conservarán coincidencias literales parciales por título O descripción, sin distinguir mayúsculas; prioridad título exacto, fragmento en título y descripción, desempate ID ascendente.
+- Si falla la petición, se mostrará un error y una acción de reintento. No se presentará como ausencia de resultados.
+- Esta ejecución no incluye RF-3/T5 (etiquetas), cuya decisión D1 sigue pendiente.
+
+Ampliación autorizada: el sistema deberá devolver el total de vídeos que coinciden con el filtro desde la base de datos, sin descargarlos todos. La interfaz solo mostrará Previous/Next y el indicador de página cuando ese total supere el tamaño de página (24). Con 0, 1 o exactamente 24 coincidencias no mostrará paginación. En la última página de un conjunto mayor conservará los controles para poder volver atrás.
 
 ### RF-3 - Búsqueda por etiquetas
 
@@ -227,3 +237,23 @@ El plan podrá completarse con propuestas explícitas; la combinación de etique
 4. PR integrada y staging verificado, con evidencia y sin dar por realizadas acciones que solo están planificadas.
 
 Veredicto actual: especificación preparada para revisión; funcionalidad no validada en esta sesión.
+
+## Ejecución autorizada: sesiones y perfil (2026-10-28)
+
+Petición: implementar sesiones, registro con login automático, login/logout, protección de endpoints y consulta del perfil propio con formularios. Aclaración de UI: acceso de cuenta visible y accesible en la esquina superior derecha; visitante ve Iniciar sesión/Registrarse, usuario conectado ve Mi perfil/Cerrar sesión. Mantener adaptación a móvil, navegación por teclado y errores claros.
+
+Alcance local: RF-4, RF-5, RF-6; tareas T7 a T13 y la verificación de T17 correspondiente. T10 protege todas las escrituras existentes, el historial y las analíticas propias. RF-7/RF-8 siguen pendientes en cuanto a CRUD adicional/editor; comprobar propiedad de las operaciones existentes sí forma parte de T10. No implementar búsqueda, edición de perfil, avatar, recuperación de contraseña, OAuth ni administración de cuentas. A2/A3/A4 se concretan como login por email, sesión de servidor y consulta de los campos UserResponse existentes.
+
+Contraseñas nuevas: entre 8 caracteres y 72 bytes UTF-8, sin recorte ni truncado. Una contraseña excesiva se rechaza con 400; login inválido usa error genérico 401. Cookie HttpOnly, SameSite=Lax; Secure configurable para HTTPS, desactivado por defecto en la demo HTTP local. Sesiones inactivas expiran a los 30 minutos; el navegador restaura el estado consultando /api/users/me y revalida al recuperar el foco.
+
+Las decisiones D1 (etiquetas) y D4 (staging) no bloquean esta implementación local. La coordinación de este alcance se registra en docs/ai/tasks/session-auth-profile.md; consulta sobre trabajo local solapado enviada al usuario, PR abiertas consultadas sin resultados. No se afirma una reserva entre clones ni aprobación del equipo. Se conserva la instrucción de no hacer commit/push/PR. La petición de retirar reglas de prompts sigue sin aclarar; no se ha eliminado ninguna skill o norma.
+
+### Cuenta interna de importación (revisión de autenticación)
+
+La cuenta sintética que VideoImportService usa como propietario técnico no es una cuenta interactiva. Su email y nombre de cuenta quedan reservados: el registro los rechaza y el login de esa identidad devuelve el mismo 401 genérico que unas credenciales inválidas, incluidas bases anteriores con contraseña conocida. Las nuevas cuentas internas reciben un secreto aleatorio generado en ejecución. No se modifica el propietario ni el hash de cuentas existentes, ni el catálogo o el volumen. Esta protección pertenece a RF-4/RF-5 y evita que el login nuevo dé acceso a la identidad interna de importación.
+
+### Cambio autorizado: cuenta demo propietaria del catálogo
+
+El usuario sustituye la decisión de cuenta interna no interactiva por una cuenta demo llamada admin, propietaria de los vídeos importados, para probar login y gestionar ese contenido. No tendrá permisos globales sobre cuentas o contenido ajenos. Identidad y contraseña se proporcionan por entorno; Compose aporta defaults de demostración compatibles con la política de contraseña. El login sigue usando email válido. Se reserva la identidad demo en el registro público.
+
+Al importar, convertir la antigua cuenta sintética conservando su ID y las relaciones de los vídeos; cambiar su identidad/hash únicamente en esa conversión autorizada. En reinicios reutilizar la cuenta demo sin rehash ni cambio de fecha/ID. Si la identidad configurada colisiona con otra cuenta, fallar de forma clara sin fusionar ni sobrescribir datos de esa otra cuenta. Sin nueva tabla, rol global, migración de esquema o permiso administrativo adicional. La contraseña se define en Compose/entorno, no en clases Java. Para importar por primera vez fuera de Compose se debe proporcionar ENV_PROTUBE_DEMO_ADMIN_PASSWORD; una cuenta demo ya creada puede reutilizarse sin esa variable.

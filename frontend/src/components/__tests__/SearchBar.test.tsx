@@ -7,7 +7,7 @@ describe('SearchBar', () => {
 
     const searchInput = screen.getByRole('searchbox', { name: /search videos by title/i });
     expect(searchInput).toBeInTheDocument();
-    expect(searchInput).toHaveAttribute('placeholder', 'Search videos by title...');
+    expect(searchInput).toHaveAttribute('placeholder', 'Search videos by title or description...');
     expect(searchInput).toHaveValue('');
   });
 
