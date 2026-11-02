@@ -129,6 +129,40 @@ Concurrencia sin 500: `TagRepository` gana un método `@Modifying @Query` nativo
 
 Fuera de alcance de T15, igual que ya dice `spec.md`: comprobación de propiedad del vídeo (T7/T10), importación de etiquetas desde JSON (D6, ver "Diseño T22" más abajo), y cualquier cambio de frontend.
 
+### Diseño T16a - Editor de etiquetas en el detalle del vídeo (RF-8, solo frontend)
+
+Implementa el subapartado "Criterios de interfaz para gestionar etiquetas (propuesta T16)" de
+RF-8 en `spec.md`. Reutiliza `PATCH /api/videos/{id}` ya existente (T14/T15, ya implementado en
+este repositorio): la interfaz envía siempre la lista completa de etiquetas deseada, sin endpoint
+separado de alta/baja. No hay cambios de backend en esta tarea.
+
+- Nuevo campo `tags: string[]` en el tipo `VideoDetail` de `frontend/src/useVideo.ts` (sin campo
+  de identificador de propietario: el backend no lo expone, solo `user`, el `accountName` del
+  propietario).
+- El ayudante CSRF `mutate()` sale de `authClient.ts` hacia un módulo nuevo y neutral
+  `frontend/src/apiClient.ts`, con un parámetro de método (`'post' | 'patch'`, por defecto
+  `'post'`) para soportar PATCH sin romper los llamadores existentes. `authClient.ts` importa esa
+  función en vez de definirla; sus pruebas existentes no cambian. Las operaciones de vídeo no
+  viven en `authClient`: un cliente nuevo `frontend/src/utils/videoClient.ts` importa `mutate` de
+  `apiClient.ts` y expone `videoClient.updateTags(videoId, tags)` usando `'patch'`, con su propio
+  mapeo de errores (no reutiliza el mapeo de `authClient`, específico de login/registro).
+- Nuevo módulo puro `frontend/src/utils/tagErrors.ts` que traduce el mapa de errores indexado del
+  backend (`{"tags[0]": mensaje, "tags": mensaje}`) a `{perTag: Record<number,string>, general?:
+  string}`.
+- Nuevo hook `frontend/src/useUpdateVideoTags.ts`, independiente del hook de lectura `useVideo`,
+  que expone `save(tags)`, `pending` y `errors` distinguiendo un 400 de validación (per-tag/
+  general) de un fallo de red.
+- Nuevo componente `frontend/src/components/VideoTagEditor.tsx`: siempre muestra la lista de
+  etiquetas (dato público); cuando `editable` es `true` añade el campo de alta, el contador y los
+  botones de retirada. La propiedad se determina en `VideoPlayerPage.tsx` comparando
+  `auth.user.accountName` con `value.user`, solo cuando `auth.status === 'authenticated'`; la
+  lista de etiquetas se muestra en modo lectura sin esperar a que se resuelva el estado de sesión.
+  `VideoPlayerPage` guarda el resultado de un guardado en un estado local (`tagOverride`), sin
+  añadir un setter a `useVideo`.
+
+Fuera de alcance de T16a: crear/borrar vídeos, editar título/descripción, comprobación de
+propiedad en el servidor (ya implementada), búsqueda por etiquetas (RF-3/D1).
+
 ### Diseño T22 - Importación de etiquetas en VideoImportService (D6)
 
 Implementa D6, aprobada por el equipo (2026-11-02): `VideoImportService` deja de crear vídeos con `tags = List.of()` fijo y pasa a importar `meta.tags` de cada JSON del almacén, reutilizando `TagNormalizer`/`resolveTags` sin modificarlos. No cambia el contrato de la API (T15/D5): un elemento inválido en `CreateVideoRequest`/`UpdateVideoRequest` sigue siendo 400; en importación, en cambio, las etiquetas inválidas se descartan y la importación del vídeo nunca falla por esa causa.

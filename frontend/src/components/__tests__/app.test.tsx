@@ -71,7 +71,10 @@ describe('App Component', () => {
   it('starts video playback only after the user clicks a video', async () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/1')
-        ? Promise.resolve({ status: 200, data: { ...sampleVideos[0], user: '', description: '', duration: 0 } })
+        ? Promise.resolve({
+            status: 200,
+            data: { ...sampleVideos[0], user: '', description: '', duration: 0, tags: [] },
+          })
         : Promise.resolve({
             status: 200,
             data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
@@ -317,7 +320,7 @@ describe('App Component', () => {
       url.endsWith('/videos/2')
         ? Promise.resolve({
             status: 200,
-            data: { ...sampleVideos[1], user: 'Author', description: 'Desc', duration: 10 },
+            data: { ...sampleVideos[1], user: 'Author', description: 'Desc', duration: 10, tags: [] },
           })
         : Promise.resolve({
             status: 200,
@@ -337,7 +340,10 @@ describe('App Component', () => {
   it('returns to the video list when searching from the player page', async () => {
     mockedAxios.get.mockImplementation((url: string) =>
       url.endsWith('/videos/3')
-        ? Promise.resolve({ status: 200, data: { ...sampleVideos[2], user: '', description: '', duration: 0 } })
+        ? Promise.resolve({
+            status: 200,
+            data: { ...sampleVideos[2], user: '', description: '', duration: 0, tags: [] },
+          })
         : Promise.resolve({
             status: 200,
             data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },

@@ -12,6 +12,7 @@ export type VideoDetail = {
   duration: number;
   thumbnailUrl: string;
   videoUrl: string;
+  tags: string[];
 };
 
 export function useVideo(id: string | undefined) {

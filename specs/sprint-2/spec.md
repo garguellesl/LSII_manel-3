@@ -151,6 +151,46 @@ Basado en `entities/Tag.java`, `V1__init_schema.sql` (`tags`/`video_tags`), `Cre
 - **Importación** (D6 aprobada; implementación y evidencia en T22): al importar etiquetas desde `meta.tags` de los JSON del almacén, las etiquetas inválidas según estas reglas se descartan con `log.warn` por etiqueta, indicando el fichero y el valor descartado, y la importación del vídeo nunca falla por esta causa; esto difiere del contrato de la API, donde un elemento inválido sí es 400. El máximo de 40 etiquetas distintas por vídeo se aplica igual que en la API; las que excedan el límite se descartan también con `log.warn`, sin fallar la importación. Un vídeo que ya existía en la base (de una importación anterior) y no tenía etiquetas las recibe en la siguiente importación; uno que ya tiene etiquetas asignadas, por importación o por su propietario, no se modifica. **Limitación conocida:** esa misma condición ("no tiene etiquetas") no distingue un vídeo que nunca las tuvo de uno al que su propietario se las retiró a propósito; si se retiran todas, el siguiente arranque que reimporte ese fichero las reasigna desde el JSON. Corregirlo exigiría una migración nueva para registrar si el backfill ya se completó para ese vídeo, fuera de alcance de esta decisión.
 - **Concurrencia**: el resultado nunca debe ser un 500. Dos peticiones que normalizan al mismo nombre nuevo deben terminar en éxito reutilizando la etiqueta ya existente, o en un 409 con un mensaje claro si la colisión no puede resolverse de forma transparente. Esta spec fija únicamente el resultado observable; el mecanismo concreto (reintento dentro de la transacción, captura de la violación `UNIQUE` de `tags.name`, u otro) se decide al implementar T15, no aquí.
 
+#### Criterios de interfaz para gestionar etiquetas (propuesta T16)
+
+Alcance: solo la gestión de etiquetas de un vídeo propio desde la interfaz (subtarea T16a).
+Crear/borrar vídeos, editar título/descripción, la comprobación de propiedad en el servidor
+(ya implementada en T7/T10) y la búsqueda por etiquetas (RF-3) quedan fuera de esta propuesta.
+
+- Añadir una etiqueta pulsando Enter o escribiendo una coma; el campo de texto se limpia solo si
+  el guardado tiene éxito.
+- Quitar una etiqueta mediante un botón accesible por teclado con `aria-label` descriptivo
+  (p. ej. "Remove tag rock").
+- El cliente deduplica como ayuda (comparación insensible a mayúsculas) antes de llamar al
+  backend: una etiqueta ya presente no genera una petición nueva. El backend sigue siendo la
+  autoridad: el envío siempre manda la lista completa deseada, y una respuesta 403 de un
+  propietario que deja de serlo nunca se oculta como si hubiese tenido éxito.
+- Los errores `errors["tags[i]"]`/`errors["tags"]` del backend se muestran junto al campo de
+  entrada que originó el envío (el texto introducido no se borra si el guardado falla, para que
+  el error quede junto a la etiqueta que lo causó); un error de red se distingue visualmente de un
+  error de validación.
+- Estado de guardado: mientras una petición está en curso, el campo y los botones de retirada se
+  deshabilitan y se muestra un indicador ("Saving…").
+- Contador visible de etiquetas activas sobre 40 (p. ej. "12/40"); como ayuda de cliente, se
+  bloquea el envío (sin llamar al backend) si se supera 40, mostrando un aviso local. No se
+  replica el límite de 80 caracteres en el cliente, porque el cliente no normaliza el texto como
+  el backend (recortar espacios exteriores, colapsar espacios internos) antes de medir su
+  longitud: medir el texto en bruto daría una cifra distinta de la que aplicará el servidor. El
+  backend sigue siendo la autoridad única para longitud y conjunto de caracteres permitidos; un
+  envío con una etiqueta demasiado larga simplemente recibe el 400 del servidor y se muestra junto
+  al campo como cualquier otro error de validación.
+- El editor (campo, botones de retirada, contador) solo se muestra a la persona propietaria
+  autenticada. Mientras el estado de autenticación aún se está comprobando, no se muestran los
+  controles de edición (para no mostrarlos brevemente a quien no es propietario); la lista de
+  etiquetas en sí es dato público del vídeo y puede mostrarse en modo solo lectura sin esperar esa
+  comprobación.
+- **Limitación conocida, documentada explícitamente:** la respuesta pública del vídeo
+  (`VideoDetail`) no incluye un identificador numérico del propietario, solo su `accountName`
+  (campo `user`). La interfaz determina "soy propietario" comparando `accountName` de la sesión
+  con ese campo; es una ayuda de interfaz, no una autorización: el servidor repite y decide la
+  comprobación real en cada `PATCH`, por lo que un falso positivo de esta comparación nunca
+  concede acceso de escritura real, solo mostraría controles que el servidor rechazaría con 403.
+
 ##### Tabla de casos de prueba (T15/T16)
 
 Los caracteres invisibles o ambiguos se citan únicamente en notación `\uXXXX`; nunca como glifo literal. Verificar con `grep` que la tabla no contiene el carácter real, solo su representación textual.

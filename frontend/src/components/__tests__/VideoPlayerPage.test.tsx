@@ -2,9 +2,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import { VideoPlayerPage } from '../VideoPlayerPage';
+import { AuthContext } from '../../auth/AuthContext';
+import type { AuthValue } from '../../auth/AuthContext';
+import { videoClient } from '../../utils/videoClient';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+jest.mock('../../utils/videoClient', () => ({
+  ...jest.requireActual('../../utils/videoClient'),
+  videoClient: { updateTags: jest.fn() },
+}));
+const mockedVideoClient = videoClient as jest.Mocked<typeof videoClient>;
 
 const videoDetail = {
   id: 7,
@@ -14,16 +23,40 @@ const videoDetail = {
   duration: 79,
   thumbnailUrl: '/media/7.webp',
   videoUrl: '/media/7.mp4',
+  tags: ['funk', 'pop'],
 };
 
-const renderPlayer = (path = '/videos/7') =>
+const buildAuth = (overrides: Partial<AuthValue> = {}): AuthValue => ({
+  status: 'anonymous',
+  user: null,
+  error: null,
+  refresh: jest.fn(),
+  signIn: jest.fn(),
+  signUp: jest.fn(),
+  signOut: jest.fn(),
+  ...overrides,
+});
+
+const owner = {
+  id: 1,
+  email: 'owner@example.test',
+  accountName: 'Mark Ronson',
+  firstName: 'Mark',
+  lastName: 'Ronson',
+  createdAt: '2026-01-01T00:00:00',
+};
+const otherUser = { ...owner, id: 2, accountName: 'Someone Else' };
+
+const renderPlayer = (path = '/videos/7', auth: AuthValue = buildAuth()) =>
   render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/" element={<p>Home page</p>} />
-        <Route path="/videos/:id" element={<VideoPlayerPage />} />
-      </Routes>
-    </MemoryRouter>
+    <AuthContext.Provider value={auth}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/" element={<p>Home page</p>} />
+          <Route path="/videos/:id" element={<VideoPlayerPage />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>
   );
 
 const httpError = (status: number) =>
@@ -94,5 +127,49 @@ describe('VideoPlayerPage', () => {
     fireEvent.click(await screen.findByRole('link', { name: /back to videos/i }));
 
     expect(screen.getByText('Home page')).toBeInTheDocument();
+  });
+
+  it('shows tags read-only for an anonymous visitor', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer();
+
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    expect(screen.getByText('funk')).toBeInTheDocument();
+    expect(screen.getByText('pop')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Add a tag')).not.toBeInTheDocument();
+  });
+
+  it('shows tags read-only for an authenticated user who is not the owner', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    expect(screen.getByText('funk')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Add a tag')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove tag funk')).not.toBeInTheDocument();
+  });
+
+  it('hides edit controls while the session is still being checked, but still shows the public tags', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer('/videos/7', buildAuth({ status: 'loading' }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    expect(screen.getByText('funk')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Add a tag')).not.toBeInTheDocument();
+  });
+
+  it('shows editable tag controls for the owner and reflects a saved change without refetching the video', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    mockedVideoClient.updateTags.mockResolvedValueOnce({ ...videoDetail, tags: ['funk', 'house', 'pop'] });
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    const input = screen.getByLabelText('Add a tag');
+    fireEvent.change(input, { target: { value: 'house' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(await screen.findByText('house')).toBeInTheDocument();
+    expect(mockedVideoClient.updateTags).toHaveBeenCalledWith(7, ['funk', 'pop', 'house']);
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
   });
 });
