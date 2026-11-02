@@ -285,6 +285,37 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(0, videoService.getVideos("missing", 0, 24).totalElements());
     }
 
+    @Test
+    void attachImportedTagsIfMissingAddsTagsWhenVideoHasNone() {
+        Long userId = registerUser("backfill-empty@example.com", "backfill-empty").id();
+        Long videoId = createVideo(userId, "backfill-empty.mp4").id();
+
+        videoService.attachImportedTagsIfMissing("backfill-empty.mp4", List.of("Live", "live "));
+
+        assertEquals(List.of("live"), videoService.getVideo(videoId).orElseThrow().tags());
+    }
+
+    @Test
+    void attachImportedTagsIfMissingLeavesExistingTagsUnchanged() {
+        Long userId = registerUser("backfill-existing@example.com", "backfill-existing").id();
+        Long videoId = createVideoWithTags(userId, "backfill-existing.mp4", List.of("kept")).id();
+
+        videoService.attachImportedTagsIfMissing("backfill-existing.mp4", List.of("new"));
+
+        assertEquals(List.of("kept"), videoService.getVideo(videoId).orElseThrow().tags());
+    }
+
+    @Test
+    void attachImportedTagsIfMissingIsANoOpForAnUnknownMediaPathOrEmptyTagList() {
+        Long userId = registerUser("backfill-noop@example.com", "backfill-noop").id();
+        Long videoId = createVideo(userId, "backfill-noop.mp4").id();
+
+        videoService.attachImportedTagsIfMissing("missing.mp4", List.of("ignored"));
+        videoService.attachImportedTagsIfMissing("backfill-noop.mp4", List.of());
+
+        assertEquals(List.of(), videoService.getVideo(videoId).orElseThrow().tags());
+    }
+
     private com.tecnocampus.LS2.protube_back.model.UserResponse registerUser(String email, String accountName) {
         return userService.register(new RegisterRequest(email, accountName, "First", "Last", "password123"));
     }

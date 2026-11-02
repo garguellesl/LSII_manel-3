@@ -14,6 +14,8 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
 
     boolean existsByMediaPath(String mediaPath);
 
+    Optional<Video> findByMediaPath(String mediaPath);
+
     // No collection fetch join: Pageable must limit rows in SQL, never in memory.
     @Query(value = """
             select video from Video video
