@@ -75,6 +75,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
 
   return (
     <div className="video-tags" aria-busy={pending}>
+      <h2 className="video-tags-heading">Tags</h2>
       {tags.length > 0 && (
         <ul className="video-tags-list">
           {tags.map((tag) => (
@@ -83,6 +84,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
               {editable && (
                 <button
                   type="button"
+                  className="video-tag-remove"
                   aria-label={`Remove tag ${tag}`}
                   disabled={pending}
                   onClick={() => void removeTag(tag)}
