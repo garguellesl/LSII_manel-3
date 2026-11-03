@@ -2,14 +2,17 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { MemoryRouter } from 'react-router-dom';
 import App from '../../App';
 import { AuthError, authClient } from '../../utils/authClient';
+import { userClient } from '../../utils/userClient';
 
 jest.mock('../../utils/authClient', () => ({
   ...jest.requireActual('../../utils/authClient'),
   authClient: { currentUser: jest.fn(), login: jest.fn(), register: jest.fn(), logout: jest.fn() },
 }));
+jest.mock('../../utils/userClient', () => ({ userClient: { analytics: jest.fn(), watchHistory: jest.fn() } }));
 jest.mock('../../useAllVideos', () => ({ useAllVideos: () => ({ loading: 'success', value: [], message: '' }) }));
 
 const client = authClient as jest.Mocked<typeof authClient>;
+const users = userClient as jest.Mocked<typeof userClient>;
 const user = {
   id: 4,
   email: 'user@example.test',
@@ -43,6 +46,8 @@ describe('Authentication navigation and pages', () => {
     client.login.mockResolvedValue(user);
     client.register.mockResolvedValue(user);
     client.logout.mockResolvedValue(undefined);
+    users.analytics.mockResolvedValue([]);
+    users.watchHistory.mockResolvedValue([]);
   });
 
   it('keeps the public catalog available while checking the session, then offers both account links', async () => {
@@ -214,5 +219,85 @@ describe('Authentication navigation and pages', () => {
     renderPage('/login');
     await waitFor(() => expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument());
     expect(screen.getByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+  });
+
+  it('toggles password visibility and shows when the password meets the minimum length', async () => {
+    renderPage('/register');
+    await screen.findByRole('heading', { name: 'Crea tu cuenta' });
+    const password = screen.getByLabelText('Contraseña');
+    expect(password).toHaveAttribute('type', 'password');
+    expect(password).toHaveAccessibleDescription(/Usa al menos 8 caracteres/);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Ocultar contraseña' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.change(password, { target: { value: 'short' } });
+    expect(screen.getByText(/Usa al menos 8 caracteres/)).not.toHaveClass('auth-hint--ok');
+    fireEvent.change(password, { target: { value: 'long enough' } });
+    expect(screen.getByText(/Usa al menos 8 caracteres/)).toHaveClass('auth-hint--ok');
+    fireEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    expect(password).toHaveAttribute('type', 'password');
+  });
+
+  it('keeps the return-to-profile intent when switching from login to register', async () => {
+    renderPage('/profile');
+    await screen.findByRole('heading', { name: 'Bienvenido de nuevo' });
+    fireEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Registrarse' }));
+    await screen.findByRole('heading', { name: 'Crea tu cuenta' });
+    client.currentUser.mockResolvedValue(user);
+    fillRegister();
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+  });
+
+  it('shows the channel totals, own videos and recent history on the profile', async () => {
+    client.currentUser.mockResolvedValue(user);
+    users.analytics.mockResolvedValue([
+      { videoId: 7, title: 'My first video', viewsCount: 1200, likesCount: 30, commentsCount: 4 },
+      { videoId: 8, title: 'My second video', viewsCount: 300, likesCount: 5, commentsCount: 1 },
+    ]);
+    users.watchHistory.mockResolvedValue(
+      Array.from({ length: 7 }, (_, index) => ({
+        id: index + 1,
+        videoId: 20 + index,
+        videoTitle: `Watched ${index + 1}`,
+        progressSeconds: 10,
+        watchedAt: '2026-11-01T12:00:00',
+      }))
+    );
+    renderPage('/profile');
+    await screen.findByRole('heading', { name: 'Mi perfil' });
+    expect(screen.getByText('First Last')).toBeInTheDocument();
+    expect(screen.getByText('@user')).toBeInTheDocument();
+    expect(screen.getByText('Miembro desde octubre de 2026')).toBeInTheDocument();
+    const stats = await screen.findByRole('heading', { name: 'Tu canal' });
+    const channel = within(stats.closest('section')!);
+    expect(channel.getByText('Vídeos').previousSibling).toHaveTextContent('2');
+    expect(channel.getByText('Visualizaciones').previousSibling).toHaveTextContent(/1\.?500/);
+    expect(channel.getByText('Me gusta').previousSibling).toHaveTextContent('35');
+    expect(channel.getByText('Comentarios').previousSibling).toHaveTextContent('5');
+    expect(channel.getByRole('link', { name: 'My first video' })).toHaveAttribute('href', '/videos/7');
+    const history = within(screen.getByRole('list', { name: 'Historial reciente' }));
+    expect(history.getAllByRole('link')).toHaveLength(5);
+    expect(history.getByRole('link', { name: 'Watched 1' })).toHaveAttribute('href', '/videos/20');
+    expect(users.analytics).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
+    expect(users.watchHistory).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
+  });
+
+  it('shows empty activity states for a new account', async () => {
+    client.currentUser.mockResolvedValue(user);
+    renderPage('/profile');
+    expect(await screen.findByText('Todavía no has publicado ningún vídeo.')).toBeInTheDocument();
+    expect(screen.getByText(/Aún no has visto ningún vídeo/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Explora el catálogo' })).toHaveAttribute('href', '/');
+  });
+
+  it('keeps the account details visible when the activity fails and lets the user retry it', async () => {
+    client.currentUser.mockResolvedValue(user);
+    users.analytics.mockRejectedValueOnce(new Error('Offline'));
+    renderPage('/profile');
+    expect(await screen.findByText('No se ha podido cargar tu actividad.')).toBeInTheDocument();
+    expect(screen.getByText(user.email)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar actividad' }));
+    expect(await screen.findByText('Todavía no has publicado ningún vídeo.')).toBeInTheDocument();
   });
 });

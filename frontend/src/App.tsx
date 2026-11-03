@@ -9,6 +9,7 @@ import { AuthProvider } from './components/AuthProvider';
 import { AccountMenu } from './components/AccountMenu';
 import { AuthPage } from './components/AuthPage';
 import { ProfilePage } from './components/ProfilePage';
+import { Pagination } from './components/Pagination';
 
 function App() {
   return (
@@ -33,6 +34,11 @@ function AppRoutes() {
     }
   };
 
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    document.querySelector('.App')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -46,7 +52,7 @@ function AppRoutes() {
         </Link>
         <SearchBar value={searchQuery} onChange={handleSearch} />
         <Routes>
-          <Route path="/" element={<ContentApp searchQuery={searchQuery} page={page} onPageChange={setPage} />} />
+          <Route path="/" element={<ContentApp searchQuery={searchQuery} page={page} onPageChange={changePage} />} />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
@@ -68,27 +74,30 @@ function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
   const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page);
   switch (loading) {
     case 'loading':
-      return <div>Loading...</div>;
+      return (
+        <div className="catalog-loading" aria-busy="true">
+          Loading...
+        </div>
+      );
     case 'error':
       return (
-        <div>
+        <div className="catalog-error">
           <h3>Error</h3> <p role="alert">{message}</p>
-          <button type="button" onClick={retry}>
+          <button type="button" className="catalog-retry" onClick={retry}>
             Retry
           </button>
         </div>
       );
     case 'success': {
       const pagination = totalElements > pageSize && (
-        <nav aria-label="Video pages">
-          <button type="button" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
-            Previous
-          </button>
-          <span role="status">Page {page + 1}</span>
-          <button type="button" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>
-            Next
-          </button>
-        </nav>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          hasNext={hasNext}
+          itemCount={value.length}
+          onPageChange={onPageChange}
+        />
       );
       if (value.length === 0) {
         return (
@@ -102,15 +111,17 @@ function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
       }
 
       return (
-        <>
-          <strong>Videos availables:</strong>
+        <section className="catalog" aria-label="Video catalog">
+          <h2 className="catalog-heading">
+            {searchQuery.trim() ? `Results for "${searchQuery.trim()}"` : 'Available videos'}
+          </h2>
           <ul className="video-grid">
             {value.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </ul>
           {pagination}
-        </>
+        </section>
       );
     }
   }
