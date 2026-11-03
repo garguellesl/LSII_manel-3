@@ -67,3 +67,62 @@ jobs:
           name: backend-coverage-report
           path: backend/target/site/jacoco/
           if-no-files-found: error
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      PROTUBE_HTTP_PORT: '18080'
+      ENV_PROTUBE_DB_PORT: '15432'
+      ENV_PROTUBE_DB_USER: protube_e2e
+      ENV_PROTUBE_DB_PASS: e2e_test_only
+      ENV_PROTUBE_DB: protube_e2e
+      ENV_PROTUBE_SESSION_SECURE: 'false'
+      ENV_PROTUBE_WEB_ORIGINS: http://localhost:18080
+      ENV_PROTUBE_DEMO_ADMIN_EMAIL: admin@protube.local
+      ENV_PROTUBE_DEMO_ADMIN_ACCOUNT: admin
+      ENV_PROTUBE_DEMO_ADMIN_PASSWORD: admin1234
+
+    steps:
+      # actions/checkout@v7, actions/setup-node@v7 and actions/upload-artifact@v7
+      # already run on the node24 Actions runtime (checkout and setup-node since
+      # v5.0.0, upload-artifact by default since v6.0.0); node-version below stays
+      # at 22 to match the rest of the project, that setting is independent of the
+      # runtime the actions themselves execute under.
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js for E2E
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Start isolated E2E deployment
+        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml up -d --wait --build
+
+      - name: Run E2E tests
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://localhost:18080
+        run: npx playwright test
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          if-no-files-found: warn
+
+      - name: Tear down isolated E2E deployment
+        if: always()
+        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml down -v

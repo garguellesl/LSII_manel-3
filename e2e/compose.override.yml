@@ -1,0 +1,14 @@
+# Override solo para el stack E2E aislado (T18/NFR-02). No sustituye ni
+# duplica compose.yaml raíz, solo evita que el contenedor `db` choque con una
+# instancia de desarrollo que ya esté corriendo: compose.yaml fija
+# `container_name: postgres_db` para el servicio `db`, y los nombres de
+# contenedor son globales a Docker (no se namespacean por proyecto como los
+# volúmenes), así que un `-p protube-e2e` por sí solo no basta si ya existe un
+# contenedor dev llamado `postgres_db`. Confirmado en esta sesión al intentar
+# levantar el stack E2E con un dev activo (`docker ps`: `postgres_db` ya en
+# uso). Uso:
+#   docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml \
+#     --env-file e2e/e2e.env up -d --wait
+services:
+  db:
+    container_name: protube_e2e_postgres_db
