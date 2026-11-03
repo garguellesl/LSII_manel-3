@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getEnv } from './Env';
+import { mutate } from '../apiClient';
 
 export type User = {
   id: number;
@@ -35,16 +36,6 @@ function responseError(error: unknown, fallback: string): AuthError {
         ? 'Ya existe una cuenta con ese email o nombre de usuario.'
         : response?.data?.error || fallback;
   return new AuthError(message, response?.data?.errors, response?.status);
-}
-
-async function mutate<T>(path: string, body: unknown): Promise<T> {
-  const base = getEnv().API_BASE_URL;
-  const csrf = await axios.get<{ token: string; headerName: string }>(`${base}/auth/csrf`, { withCredentials: true });
-  const response = await axios.post<T>(`${base}${path}`, body, {
-    withCredentials: true,
-    headers: { [csrf.data.headerName]: csrf.data.token },
-  });
-  return response.data;
 }
 
 export const authClient = {

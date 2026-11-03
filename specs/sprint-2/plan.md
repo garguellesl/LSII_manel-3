@@ -127,7 +127,57 @@ Implementa el subapartado "Criterios de validación de etiquetas (propuesta D5)"
 
 Concurrencia sin 500: `TagRepository` gana un método `@Modifying @Query` nativo `INSERT INTO tags (name) VALUES (:name) ON CONFLICT (name) DO NOTHING` (PostgreSQL es el único motor del proyecto desde T2; no hace falta compatibilidad H2). `resolveTags` pasa a buscar por `findByNameIgnoreCase`; si no existe, ejecuta el insert-si-no-existe (nunca lanza, nunca aborta la transacción) y vuelve a buscar. Dos transacciones que compiten por el mismo nombre nuevo terminan reutilizando la misma fila; ninguna ve una violación de unicidad ni un 500. No se añade manejo de `DataIntegrityViolationException` porque, con este diseño, nunca se produce esa excepción en el camino de creación de etiquetas.
 
-Fuera de alcance de T15, igual que ya dice `spec.md`: comprobación de propiedad del vídeo (T7/T10), importación de etiquetas desde JSON (D6, `VideoImportService` sigue pasando `List.of()`), y cualquier cambio de frontend.
+Fuera de alcance de T15, igual que ya dice `spec.md`: comprobación de propiedad del vídeo (T7/T10), importación de etiquetas desde JSON (D6, ver "Diseño T22" más abajo), y cualquier cambio de frontend.
+
+### Diseño T16a - Editor de etiquetas en el detalle del vídeo (RF-8, solo frontend)
+
+Implementa el subapartado "Criterios de interfaz para gestionar etiquetas (propuesta T16)" de
+RF-8 en `spec.md`. Reutiliza `PATCH /api/videos/{id}` ya existente (T14/T15, ya implementado en
+este repositorio): la interfaz envía siempre la lista completa de etiquetas deseada, sin endpoint
+separado de alta/baja. No hay cambios de backend en esta tarea.
+
+- Nuevo campo `tags: string[]` en el tipo `VideoDetail` de `frontend/src/useVideo.ts` (sin campo
+  de identificador de propietario: el backend no lo expone, solo `user`, el `accountName` del
+  propietario).
+- El ayudante CSRF `mutate()` sale de `authClient.ts` hacia un módulo nuevo y neutral
+  `frontend/src/apiClient.ts`, con un parámetro de método (`'post' | 'patch'`, por defecto
+  `'post'`) para soportar PATCH sin romper los llamadores existentes. `authClient.ts` importa esa
+  función en vez de definirla; sus pruebas existentes no cambian. Las operaciones de vídeo no
+  viven en `authClient`: un cliente nuevo `frontend/src/utils/videoClient.ts` importa `mutate` de
+  `apiClient.ts` y expone `videoClient.updateTags(videoId, tags)` usando `'patch'`, con su propio
+  mapeo de errores (no reutiliza el mapeo de `authClient`, específico de login/registro).
+- Nuevo módulo puro `frontend/src/utils/tagErrors.ts` que traduce el mapa de errores indexado del
+  backend (`{"tags[0]": mensaje, "tags": mensaje}`) a `{perTag: Record<number,string>, general?:
+  string}`.
+- Nuevo hook `frontend/src/useUpdateVideoTags.ts`, independiente del hook de lectura `useVideo`,
+  que expone `save(tags)`, `pending` y `errors` distinguiendo un 400 de validación (per-tag/
+  general) de un fallo de red.
+- Nuevo componente `frontend/src/components/VideoTagEditor.tsx`: siempre muestra la lista de
+  etiquetas (dato público); cuando `editable` es `true` añade el campo de alta, el contador y los
+  botones de retirada. La propiedad se determina en `VideoPlayerPage.tsx` comparando
+  `auth.user.accountName` con `value.user`, solo cuando `auth.status === 'authenticated'`; la
+  lista de etiquetas se muestra en modo lectura sin esperar a que se resuelva el estado de sesión.
+  `VideoPlayerPage` guarda el resultado de un guardado en un estado local (`tagOverride`), sin
+  añadir un setter a `useVideo`.
+
+Fuera de alcance de T16a: crear/borrar vídeos, editar título/descripción, comprobación de
+propiedad en el servidor (ya implementada), búsqueda por etiquetas (RF-3/D1).
+
+### Diseño T22 - Importación de etiquetas en VideoImportService (D6)
+
+Implementa D6, aprobada por el equipo (2026-11-02): `VideoImportService` deja de crear vídeos con `tags = List.of()` fijo y pasa a importar `meta.tags` de cada JSON del almacén, reutilizando `TagNormalizer`/`resolveTags` sin modificarlos. No cambia el contrato de la API (T15/D5): un elemento inválido en `CreateVideoRequest`/`UpdateVideoRequest` sigue siendo 400; en importación, en cambio, las etiquetas inválidas se descartan y la importación del vídeo nunca falla por esa causa.
+
+**Creación.** Nuevo método privado `resolveImportableTags(JsonNode metadata, String fileName)` en `VideoImportService`, que lee únicamente `meta.tags`: si no es un array, el vídeo se crea sin etiquetas (no es error). No hay fallback a un campo `tags` en la raíz del JSON: el único fichero del almacén con esa forma, `74_tmp.info.json`, no tiene un `.mp4` asociado (solo `74_tmp.f137.mp4.part`, una descarga incompleta, y `74_tmp.webp`), por lo que la comprobación de tripleta completa ya existente lo descarta antes de leer su contenido; un fallback para ese caso sería código muerto. Por cada elemento del array `meta.tags`: si no es un nodo textual, se descarta con `log.warn` (fichero + representación saneada del valor). Si es texto, se normaliza/valida con `TagNormalizer.normalizeAndValidate(List.of(raw))` (la lista de un solo elemento evita el comportamiento todo-o-nada del método: cada etiqueta se evalúa de forma aislada); si el resultado no es válido, se descarta con `log.warn` (fichero + valor saneado + mensaje de error ya producido por `TagNormalizer`). Un valor que normaliza igual que uno ya aceptado en el mismo fichero se ignora sin log (duplicado, no error). Si ya se han aceptado `TagNormalizer.MAX_DISTINCT_TAGS` (40) valores distintos y el nuevo no coincide con ninguno, se descarta con `log.warn` ("more than 40 distinct tags"). El método devuelve hasta 40 valores normalizados en orden de aparición, que se pasan como `tags` de `CreateVideoRequest`; `VideoService.createVideo` → `resolveTags` hace el resto (normalizar de nuevo es un no-op sobre valores ya normalizados, y resuelve/crea cada `Tag` vía `TagRepository`) sin ningún cambio en `VideoService`/`TagNormalizer` para este camino.
+
+**Backfill de vídeos ya importados.** Sin este paso, cualquier base/volumen ya poblado (dev, demo, Compose) se quedaría permanentemente sin etiquetas, porque `importMetadata` descarta hoy el fichero entero en cuanto `videoRepository.existsByMediaPath(mediaPath)` es verdadero, antes de leer el JSON, y esos vídeos nunca vuelven a pasar por `createVideo`. Se añade `Optional<Video> findByMediaPath(String mediaPath)` a `VideoRepository` (derivado, mismo patrón que `existsByMediaPath`) y un método nuevo `@Transactional VideoService.attachImportedTagsIfMissing(String mediaPath, List<String> rawTagNames)`: si `rawTagNames` está vacío, no hace nada; si no, busca el vídeo por `mediaPath` y, solo si `video.getTags().isEmpty()`, llama a `video.updateMetadata(null, null, resolveTags(rawTagNames))` (reutiliza el `resolveTags` privado ya existente, igual que `createVideo`/`updateVideo`; acceder a `getTags()` dentro de este método `@Transactional` es seguro porque la colección, aunque `@ManyToMany` con fetch por defecto `LAZY`, se carga dentro de la misma sesión de Hibernate). Si el vídeo ya tiene etiquetas (de una importación anterior o editadas por su propietario), no se toca. `VideoImportService.importMetadata` deja de descartar el fichero entero cuando `existsByMediaPath` es verdadero: en su lugar lee el JSON, calcula `resolveImportableTags`, y llama a `videoService.attachImportedTagsIfMissing(mediaPath, tags)` antes de volver. Los ficheros con tripleta incompleta (sin `.mp4`/`.webp` presentes) siguen descartándose sin leer el JSON, exactamente como hoy.
+
+**Saneado de log.** Las etiquetas crudas provienen de JSON scrapeado, no de datos controlados por el proyecto; escribirlas tal cual en el log permitiría inyección de log (por ejemplo, un salto de línea en el valor para falsificar una entrada de log posterior). Nuevo método privado `sanitizeForLog(String raw)` en `VideoImportService` que sustituye cada carácter de control (`Character.isISOControl`) por su escape `\uXXXX`; se aplica al valor crudo (o a la representación de un nodo no textual) en los tres `log.warn` de `resolveImportableTags`.
+
+Fuera de alcance de T22: el contrato de la API (T15/D5) no cambia; la comprobación de propiedad (T14) no aplica a la importación, que corre con la cuenta demo propietaria del catálogo; no se reescriben ni se completan las etiquetas de un vídeo que ya tiene alguna, aunque difieran de las del JSON en una importación posterior.
+
+**Limitación conocida.** El backfill usa "el vídeo no tiene etiquetas" como única condición para reasignarlas. Si el propietario retira todas las etiquetas de un vídeo importado (vía `UpdateVideoRequest.tags = []`), `video.getTags()` vuelve a estar vacío, y el siguiente arranque que reimporte ese fichero las reasigna desde el JSON, deshaciendo esa edición sin que el propietario lo pida. Distinguir "nunca tuvo etiquetas" de "las tuvo y las retiraron a propósito" exigiría una columna o marca adicional (por ejemplo, un `imported_at`/flag en `videos`) que registre si ya se completó el backfill para ese vídeo, y eso requiere una migración nueva — fuera de alcance de T22. Se documenta como limitación conocida, no se corrige aquí.
+
+Pruebas: ampliación de `VideoImportServiceTest` (creación con `meta.tags` válidas, mezcla válidas/inválidas con log saneado capturado por un `ListAppender` de Logback, más de 40 distintas, y el camino de backfill verificando `attachImportedTagsIfMissing` en vez de `verifyNoInteractions(videoService)`); nueva prueba de integración en `PostgreSqlPersistenceTest` con PostgreSQL real que arranca la aplicación dos veces sobre el mismo volumen y el mismo almacén con `meta.tags` presentes, y comprueba que la segunda importación no duplica `videos`, `tags` ni `video_tags`. Los casos de backfill en sí (vídeo sin etiquetas que las recibe, vídeo con etiquetas que no cambia, `mediaPath` desconocido o lista vacía sin efecto) se cubren con PostgreSQL real llamando directamente a `VideoService.attachImportedTagsIfMissing` en `VideoServiceTest`, no en `PostgreSqlPersistenceTest`.
 
 Pruebas: unitarias puras de `TagNormalizer` (sin Spring), ampliación de `VideoServiceTest` (contrato null/`[]`/lista inválida, sin cambios parciales), ampliación de `VideosControllerTest` (forma exacta del 400 `{"errors": {...}}`), y una prueba nueva de concurrencia con su propio contenedor PostgreSQL dedicado (primera prueba multihilo del repositorio), cubriendo cada fila de la tabla de casos T15/T16 de `spec.md`.
 

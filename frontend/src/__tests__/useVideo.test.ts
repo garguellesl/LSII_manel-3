@@ -13,6 +13,7 @@ const videoFor = (id: number) => ({
   duration: 0,
   thumbnailUrl: `/media/${id}.webp`,
   videoUrl: `/media/${id}.mp4`,
+  tags: [],
 });
 
 describe('useVideo', () => {

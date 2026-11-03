@@ -15,6 +15,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +89,69 @@ class PostgreSqlPersistenceTest {
                 assertTrue(users.findById(userId).isEmpty());
             }
         }
+    }
+
+    @Test
+    void reimportingAttachesTagsOnceWithoutDuplicatingVideosOrAssociations() throws Exception {
+        try (var database = new PostgreSQLContainer<>("postgres:16-alpine")
+                .withDatabaseName("protube_tag_import")
+                .withPassword(UUID.randomUUID().toString())) {
+            database.start();
+            Path storeDirectory = Files.createTempDirectory("protube-import-tags");
+            try {
+                Files.writeString(storeDirectory.resolve("imported.json"),
+                        "{\"title\":\"Imported\",\"duration\":1,\"meta\":{\"description\":\"d\",\"tags\":[\"Live\",\"live \"]}}");
+                Files.writeString(storeDirectory.resolve("imported.mp4"), "");
+                Files.writeString(storeDirectory.resolve("imported.webp"), "");
+
+                try (var application = startApplicationImportingFrom(database, storeDirectory)) {
+                    var videos = application.getBean(VideoService.class);
+                    var page = videos.getVideos("", 0, 24);
+                    assertEquals(1, page.content().size());
+                    Long videoId = page.content().get(0).id();
+                    assertEquals(List.of("live"), videos.getVideo(videoId).orElseThrow().tags());
+
+                    var jdbc = application.getBean(JdbcTemplate.class);
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from videos", Long.class));
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from tags", Long.class));
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from video_tags", Long.class));
+                }
+
+                // Reimporting from the same store onto the same database must not duplicate the video, the tag or the association.
+                try (var application = startApplicationImportingFrom(database, storeDirectory)) {
+                    var videos = application.getBean(VideoService.class);
+                    var page = videos.getVideos("", 0, 24);
+                    assertEquals(1, page.content().size());
+                    Long videoId = page.content().get(0).id();
+                    assertEquals(List.of("live"), videos.getVideo(videoId).orElseThrow().tags());
+
+                    var jdbc = application.getBean(JdbcTemplate.class);
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from videos", Long.class));
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from tags", Long.class));
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from video_tags", Long.class));
+                }
+            } finally {
+                try (var files = Files.walk(storeDirectory)) {
+                    files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+                }
+            }
+        }
+    }
+
+    private ConfigurableApplicationContext startApplicationImportingFrom(PostgreSQLContainer<?> database, Path storeDirectory) {
+        return new SpringApplicationBuilder(ProtubeBackApplication.class).run(
+                "--spring.profiles.active=dev",
+                "--ENV_PROTUBE_DB_HOST=" + database.getHost(),
+                "--ENV_PROTUBE_DB_PORT=" + database.getMappedPort(5432),
+                "--ENV_PROTUBE_DB=" + database.getDatabaseName(),
+                "--ENV_PROTUBE_DB_USER=" + database.getUsername(),
+                "--ENV_PROTUBE_DB_PASS=" + database.getPassword(),
+                "--pro_tube.store.dir=" + storeDirectory,
+                "--pro_tube.load_initial_data=true",
+                "--pro_tube.demo-admin.password=demo-password123",
+                "--server.port=0",
+                "--logging.level.org.springframework.web=INFO"
+        );
     }
 
     private ConfigurableApplicationContext startApplication(PostgreSQLContainer<?> database, String profile) {

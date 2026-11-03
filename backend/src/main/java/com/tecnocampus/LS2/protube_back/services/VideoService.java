@@ -252,6 +252,18 @@ public class VideoService {
         );
     }
 
+    @Transactional
+    public void attachImportedTagsIfMissing(String mediaPath, List<String> rawTagNames) {
+        if (rawTagNames.isEmpty()) {
+            return;
+        }
+        videoRepository.findByMediaPath(mediaPath).ifPresent(video -> {
+            if (video.getTags().isEmpty()) {
+                video.updateMetadata(null, null, resolveTags(rawTagNames));
+            }
+        });
+    }
+
     private Set<Tag> resolveTags(List<String> rawTagNames) {
         if (rawTagNames == null) {
             return new LinkedHashSet<>();

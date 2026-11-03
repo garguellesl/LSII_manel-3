@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 @Service
@@ -95,13 +97,17 @@ public class VideoImportService {
         String mediaPath = baseName + ".mp4";
         String thumbnailPath = baseName + ".webp";
         if (!Files.isRegularFile(storeDirectory.resolve(mediaPath))
-                || !Files.isRegularFile(storeDirectory.resolve(thumbnailPath))
-                || videoRepository.existsByMediaPath(mediaPath)) {
+                || !Files.isRegularFile(storeDirectory.resolve(thumbnailPath))) {
             return;
         }
 
         try {
             JsonNode metadata = objectMapper.readTree(metadataPath.toFile());
+            List<String> tags = resolveImportableTags(metadata, fileName);
+            if (videoRepository.existsByMediaPath(mediaPath)) {
+                videoService.attachImportedTagsIfMissing(mediaPath, tags);
+                return;
+            }
             String description = metadata.path("meta").path("description").asText("");
             videoService.createVideo(new CreateVideoRequest(
                     metadata.path("title").asText("Untitled video"),
@@ -110,10 +116,56 @@ public class VideoImportService {
                     thumbnailPath,
                     metadata.path("duration").asDouble(0),
                     owner.getId(),
-                    List.of()
+                    tags
             ));
         } catch (IOException exception) {
             throw new IllegalStateException("Unable to read video metadata: " + metadataPath, exception);
         }
+    }
+
+    private List<String> resolveImportableTags(JsonNode metadata, String fileName) {
+        JsonNode tagsNode = metadata.path("meta").path("tags");
+        if (!tagsNode.isArray()) {
+            return List.of();
+        }
+        LinkedHashSet<String> distinctTags = new LinkedHashSet<>();
+        for (JsonNode tagNode : tagsNode) {
+            if (!tagNode.isTextual()) {
+                LOG.warn("Discarding invalid tag {} from {}: tag must be a string",
+                        sanitizeForLog(tagNode.toString()), fileName);
+                continue;
+            }
+            String raw = tagNode.asText();
+            TagNormalizer.Result result = TagNormalizer.normalizeAndValidate(List.of(raw));
+            if (!result.isValid()) {
+                LOG.warn("Discarding invalid tag '{}' from {}: {}", sanitizeForLog(raw), fileName,
+                        result.fieldErrors().values().iterator().next());
+                continue;
+            }
+            String normalized = result.normalizedTags().get(0);
+            if (distinctTags.contains(normalized)) {
+                continue;
+            }
+            if (distinctTags.size() >= TagNormalizer.MAX_DISTINCT_TAGS) {
+                LOG.warn("Discarding tag '{}' from {}: more than {} distinct tags",
+                        sanitizeForLog(raw), fileName, TagNormalizer.MAX_DISTINCT_TAGS);
+                continue;
+            }
+            distinctTags.add(normalized);
+        }
+        return new ArrayList<>(distinctTags);
+    }
+
+    private static String sanitizeForLog(String raw) {
+        StringBuilder sanitized = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (Character.isISOControl(c)) {
+                sanitized.append(String.format("\\u%04x", (int) c));
+            } else {
+                sanitized.append(c);
+            }
+        }
+        return sanitized.toString();
     }
 }

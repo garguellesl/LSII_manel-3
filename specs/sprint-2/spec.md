@@ -141,15 +141,55 @@ Basado en `entities/Tag.java`, `V1__init_schema.sql` (`tags`/`video_tags`), `Cre
 - **Caracteres permitidos**: letras Unicode (`\p{L}`), marcas combinantes (`\p{M}`, relevante al no aplicar NFC), dígitos (`\p{Nd}`), el espacio interno, y los símbolos siguientes:
   - Derivados directamente del catálogo: apóstrofo recto `'`, guion `-`, punto `.`, paréntesis `(` `)`, almohadilla `#`, ampersand `&`, y el punto medio japonés `・` (separador habitual en nombres en katakana).
   - Mantenidos tras revisión explícita, aunque con una sola aparición cada uno en el catálogo: `!` (uso intencional observado, p. ej. `"Yeah!"`) y `/` (uso intencional observado en nombres de sello compuestos, p. ej. `"RBMG/Def"`).
-  - Rechazado pese a aparecer una vez: `;`. Su única aparición (`"4 non blondes what;s up"`) es, por el contexto, un apóstrofo mal codificado durante el scraping, no un separador intencional; una sola aparición ambigua no justifica incorporar permanentemente un símbolo al conjunto permitido. Como las etiquetas no se importan todavía (D6 pendiente), rechazarlo no invalida ningún registro ya persistido.
+  - Rechazado pese a aparecer una vez: `;`. Su única aparición (`"4 non blondes what;s up"`) es, por el contexto, un apóstrofo mal codificado durante el scraping, no un separador intencional; una sola aparición ambigua no justifica incorporar permanentemente un símbolo al conjunto permitido. Con D6 aprobada, esa etiqueta se descartará con `log.warn` al importar ese fichero concreto, sin invalidar el vídeo ni las demás etiquetas válidas del mismo JSON.
   - Añadidos por decisión explícita, no por evidencia del catálogo actual: `+` y `_`, para permitir etiquetas técnicas habituales no presentes hoy en los datos (p. ej. `"c++"`, `"node_js"`). Se documentan aparte porque, a diferencia del resto del conjunto, no están respaldados por el barrido de datos sino por una necesidad prevista.
   - Ningún otro símbolo aparece en el catálogo ni se añade por esta propuesta (sin comillas dobles, comas, dos puntos, interrogantes, corchetes, etc.); ampliar el conjunto más adelante exige nueva evidencia o una nueva decisión explícita, y actualizar esta spec.
   - Además, cada etiqueta debe contener al menos una letra o un dígito (rechaza etiquetas formadas solo por espacios o símbolos).
 - **Duplicados**: se fusionan sin error, dentro de la misma petición y frente a etiquetas globales existentes, por coincidencia insensible a mayúsculas (`TagRepository.findByNameIgnoreCase`); el catálogo ya contiene pares como `"Rick Roll"`/`"rick roll"` que deben colapsar a una sola asociación. La respuesta de un vídeo siempre lista sus etiquetas en orden alfabético, porque `video_tags` no tiene columna de posición y `tagNames()` ya ordena con `.sorted()`.
 - **Máximo por vídeo**: 40 etiquetas distintas tras normalizar. Es el máximo observado en el catálogo: `videos/68.json` aporta 41 etiquetas en bruto, pero `"Porta"`/`"PORTA"` colapsan en una sola tras normalizar a minúsculas, dejando 40 valores distintos. El límite cuenta **etiquetas distintas después de normalizar, no elementos en bruto de la lista enviada**: una petición cuya lista en bruto tiene más de 40 posiciones pero que normaliza a 40 valores distintos o menos (por duplicados exactos o por mayúsculas) sigue siendo válida. Superar 40 valores distintos es 400; la lista no se trunca en silencio.
 - **Errores 400 sin cambios parciales**: cualquier elemento inválido (longitud fuera de 1-80 tras normalizar, carácter fuera del conjunto permitido, elemento vacío/en blanco/`null`, o conjunto normalizado que supera las 40 etiquetas distintas) rechaza la petición completa sin crear ni modificar ninguna asociación, con el formato ya usado por `ApiExceptionHandler` (`{"errors": {"tags[i]": "mensaje"}}`); los mensajes se redactan en inglés, coherente con que el código futuro irá en inglés. Un elemento `null` o una cadena vacía/en blanco dentro de la lista es siempre error — a diferencia del comportamiento actual de `resolveTags`, que los descarta en silencio; este cambio de contrato debe reflejarse en el plan antes de implementarlo.
-- **Importación** (condicionada a D6): si D6 se resuelve e importa etiquetas desde los JSON del almacén, las etiquetas inválidas según estas reglas se descartan con `log.warn` por etiqueta y la importación del vídeo nunca falla por esta causa; esto difiere del contrato de la API, donde un elemento inválido sí es 400. Mientras D6 esté pendiente, `VideoImportService` sigue creando vídeos sin etiquetas (`List.of()` fijo).
+- **Importación** (D6 aprobada; implementación y evidencia en T22): al importar etiquetas desde `meta.tags` de los JSON del almacén, las etiquetas inválidas según estas reglas se descartan con `log.warn` por etiqueta, indicando el fichero y el valor descartado, y la importación del vídeo nunca falla por esta causa; esto difiere del contrato de la API, donde un elemento inválido sí es 400. El máximo de 40 etiquetas distintas por vídeo se aplica igual que en la API; las que excedan el límite se descartan también con `log.warn`, sin fallar la importación. Un vídeo que ya existía en la base (de una importación anterior) y no tenía etiquetas las recibe en la siguiente importación; uno que ya tiene etiquetas asignadas, por importación o por su propietario, no se modifica. **Limitación conocida:** esa misma condición ("no tiene etiquetas") no distingue un vídeo que nunca las tuvo de uno al que su propietario se las retiró a propósito; si se retiran todas, el siguiente arranque que reimporte ese fichero las reasigna desde el JSON. Corregirlo exigiría una migración nueva para registrar si el backfill ya se completó para ese vídeo, fuera de alcance de esta decisión.
 - **Concurrencia**: el resultado nunca debe ser un 500. Dos peticiones que normalizan al mismo nombre nuevo deben terminar en éxito reutilizando la etiqueta ya existente, o en un 409 con un mensaje claro si la colisión no puede resolverse de forma transparente. Esta spec fija únicamente el resultado observable; el mecanismo concreto (reintento dentro de la transacción, captura de la violación `UNIQUE` de `tags.name`, u otro) se decide al implementar T15, no aquí.
+
+#### Criterios de interfaz para gestionar etiquetas (propuesta T16)
+
+Alcance: solo la gestión de etiquetas de un vídeo propio desde la interfaz (subtarea T16a).
+Crear/borrar vídeos, editar título/descripción, la comprobación de propiedad en el servidor
+(ya implementada en T7/T10) y la búsqueda por etiquetas (RF-3) quedan fuera de esta propuesta.
+
+- Añadir una etiqueta pulsando Enter o escribiendo una coma; el campo de texto se limpia solo si
+  el guardado tiene éxito.
+- Quitar una etiqueta mediante un botón accesible por teclado con `aria-label` descriptivo
+  (p. ej. "Remove tag rock").
+- El cliente deduplica como ayuda (comparación insensible a mayúsculas) antes de llamar al
+  backend: una etiqueta ya presente no genera una petición nueva. El backend sigue siendo la
+  autoridad: el envío siempre manda la lista completa deseada, y una respuesta 403 de un
+  propietario que deja de serlo nunca se oculta como si hubiese tenido éxito.
+- Los errores `errors["tags[i]"]`/`errors["tags"]` del backend se muestran junto al campo de
+  entrada que originó el envío (el texto introducido no se borra si el guardado falla, para que
+  el error quede junto a la etiqueta que lo causó); un error de red se distingue visualmente de un
+  error de validación.
+- Estado de guardado: mientras una petición está en curso, el campo y los botones de retirada se
+  deshabilitan y se muestra un indicador ("Saving…").
+- Contador visible de etiquetas activas sobre 40 (p. ej. "12/40"); como ayuda de cliente, se
+  bloquea el envío (sin llamar al backend) si se supera 40, mostrando un aviso local. No se
+  replica el límite de 80 caracteres en el cliente, porque el cliente no normaliza el texto como
+  el backend (recortar espacios exteriores, colapsar espacios internos) antes de medir su
+  longitud: medir el texto en bruto daría una cifra distinta de la que aplicará el servidor. El
+  backend sigue siendo la autoridad única para longitud y conjunto de caracteres permitidos; un
+  envío con una etiqueta demasiado larga simplemente recibe el 400 del servidor y se muestra junto
+  al campo como cualquier otro error de validación.
+- El editor (campo, botones de retirada, contador) solo se muestra a la persona propietaria
+  autenticada. Mientras el estado de autenticación aún se está comprobando, no se muestran los
+  controles de edición (para no mostrarlos brevemente a quien no es propietario); la lista de
+  etiquetas en sí es dato público del vídeo y puede mostrarse en modo solo lectura sin esperar esa
+  comprobación.
+- **Limitación conocida, documentada explícitamente:** la respuesta pública del vídeo
+  (`VideoDetail`) no incluye un identificador numérico del propietario, solo su `accountName`
+  (campo `user`). La interfaz determina "soy propietario" comparando `accountName` de la sesión
+  con ese campo; es una ayuda de interfaz, no una autorización: el servidor repite y decide la
+  comprobación real en cada `PATCH`, por lo que un falso positivo de esta comparación nunca
+  concede acceso de escritura real, solo mostraría controles que el servidor rechazaría con 403.
 
 ##### Tabla de casos de prueba (T15/T16)
 
@@ -225,7 +265,7 @@ Los endpoints privados existentes deben inventariarse al definir la seguridad (R
 | D3 | Pendiente: responsable, revisor, issue y solapamientos de trabajo | No se reclama una reserva remota; confirmar antes de implementar |
 | D4 | Pendiente: entorno de staging, procedimiento y responsable de despliegue | Mantener pendiente el DoD de entrega hasta disponer de evidencia |
 | D5 | Propuesta: criterios de validación y normalización de etiquetas (longitud 1-80, conjunto de caracteres derivado de los datos más las extensiones explícitas `+`/`_`, decisión de mantener `!`/`/` y rechazar `;`, normalización Cf/comilla curva/espacios/minúsculas con `Locale.ROOT`, máximo 40 etiquetas distintas por vídeo, duplicados fusionados, errores 400 sin cambios parciales, concurrencia sin 500 sin prescribir mecanismo); detalle en el subapartado de RF-8 | RF-8 |
-| D6 | Pendiente: importar las etiquetas de los JSON del almacén; hoy `VideoImportService` pasa `List.of()` y no lee ningún campo de etiquetas del JSON importado | RF-3 |
+| D6 | **Aprobada** (equipo, 2026-11-02): importar `meta.tags` de los JSON del almacén reutilizando `TagNormalizer`/`resolveTags`, incluido un backfill para vídeos ya importados sin etiquetas; etiquetas inválidas descartadas con `log.warn` de fichero y valor (saneado) sin fallar la importación; máximo 40 etiquetas distintas por vídeo; vídeos con etiquetas ya asignadas no se modifican. Implementación y evidencia en `task.md` (T22) | RF-3 |
 
 El plan podrá completarse con propuestas explícitas; la combinación de etiquetas de búsqueda afectada por D1 no está lista para implementación definitiva. D2 se ha incorporado a RF-1/RF-7/RF-8; no se modifica `REQUIREMENT.md` para ocultar diferencias.
 
