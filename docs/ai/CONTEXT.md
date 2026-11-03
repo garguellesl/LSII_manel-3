@@ -21,8 +21,8 @@ Backend Java paths below are relative to `backend/src/main/java/com/tecnocampus/
 | Persistence | `entities/`, `repositories/`, `backend/src/main/resources/db/migration/` | Users, videos, tags, comments, video likes and history. V1 creates schema; V2 expands video descriptions to TEXT. |
 | Startup/media | `AppStartupRunner.java`, `services/VideoImportService.java`, `configuration/MvcConfig.java` | Imports complete JSON/MP4/WebP triples if enabled; serves files under `/media/**`. Import creates/reuses a configured demo owner; a legacy synthetic owner is converted while retaining ID/video associations. Identity collisions fail without overwriting accounts. |
 | Frontend routes | `frontend/src/App.tsx`, `frontend/src/main.tsx` | `/` catalog, `/videos/:id` player, `/register`, `/login`, protected `/profile`, fallback not-found page. Account menu is top-right. Search requests paginated title/description matches from the backend (24 per page). |
-| Frontend API/media | `frontend/src/useAllVideos.ts`, `frontend/src/useVideo.ts`, `frontend/src/utils/Env.ts`, `frontend/src/utils/media.ts` | Paginated catalog hook and Axios detail hook; `utils/authClient.ts`/`components/AuthProvider.tsx`; explicit loading/anonymous/authenticated/error states. Relative API/media URLs use the Vite dev proxy and the same production origin. |
-| UI | `frontend/src/components/`, `frontend/src/App.css` | Search bar, previous/next page controls, retry, linked video cards and player. `VideoGrid` and `TestLink*` are examples, not the catalog's primary data path. |
+| Frontend API/media | `frontend/src/useAllVideos.ts`, `frontend/src/useVideo.ts`, `frontend/src/utils/Env.ts`, `frontend/src/utils/media.ts`, `frontend/src/utils/userClient.ts`, `frontend/src/useProfileActivity.ts` | Paginated catalog hook and Axios detail hook; profile activity reads own `/users/{id}/analytics` and `/watch-history`; `utils/authClient.ts`/`components/AuthProvider.tsx`; explicit loading/anonymous/authenticated/error states. Relative API/media URLs use the Vite dev proxy and the same production origin. |
+| UI | `frontend/src/components/`, `frontend/src/App.css` | Search bar, numbered Google-style pagination (`Pagination`, `utils/pagination.ts`: first/last page, window of 5, gaps, previous/next, result range), retry, linked video cards and player. Login/register split card with password visibility toggle; profile with avatar initials, account details, channel totals and recent history (2026-11-03, `feature/user-pages-pagination-ui`). `VideoGrid` and `TestLink*` are examples, not the catalog's primary data path. |
 | Verification | `backend/src/test/`, `frontend/src/**/__tests__/`, `frontend/jest.config.cjs`, `backend/pom.xml` | Spring integration tests use isolated PostgreSQL Testcontainers; restart test checks dev/prod against one database. Controller mocks and Jest/Testing Library mocks remain. See task evidence for executed checks. |
 | CI/build | `.github/workflows/main.yml`, `backend/pom.xml`, `frontend/package.json` | Frontend build/tests/lint and backend verification. Maven prod build bundles frontend assets into the jar. |
 | Local development startup | `.run/Protube [DEV - ALL].run.xml`, `.run/database [DEV].run.xml`, backend/npm run configurations | Compound launches frontend on 5174 and backend on 8080. Backend first runs the npm `db:up` task, which waits for PostgreSQL health through Compose. Docker Desktop and local connection/media settings are required. |
@@ -43,7 +43,7 @@ These are implemented routes at the baseline, not a guarantee of authorization o
 | `/api/comments/{id}` | PATCH, DELETE | Not wired. |
 | `/api/videos/{id}/likes` | POST, DELETE | Not wired. |
 | `/api/videos/{id}/watch-history` | POST | Not wired. |
-| `/api/users/{id}/watch-history`, `/api/users/{id}/analytics` | GET | Not wired. |
+| `/api/users/{id}/watch-history`, `/api/users/{id}/analytics` | GET | Own profile page (read-only summary). |
 
 ## Configuration and known gaps
 
