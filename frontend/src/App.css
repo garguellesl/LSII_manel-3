@@ -335,6 +335,113 @@
   color: #d1d5db;
 }
 
+/* Catalog and pagination */
+
+.catalog {
+  width: 100%;
+}
+
+.catalog-heading {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0.5rem auto 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.catalog-loading,
+.catalog-error {
+  margin: 2rem auto;
+  font-size: 1rem;
+  color: #d1d5db;
+}
+
+.pagination-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #3a4352;
+  font-size: 1rem;
+}
+
+.pagination-summary {
+  margin: 0;
+  color: #8c95a5;
+  font-size: 0.9rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pagination-page,
+.pagination-step {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid #485366;
+  border-radius: 999px;
+  background: #1e2126;
+  color: #f5f7fa;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.pagination-page:hover,
+.pagination-step:hover:not(:disabled) {
+  border-color: #61dafb;
+  color: #61dafb;
+}
+
+.pagination-page:focus-visible,
+.pagination-step:focus-visible {
+  outline: 3px solid #61dafb;
+  outline-offset: 2px;
+}
+
+.pagination-page--current,
+.pagination-page--current:hover {
+  border-color: #61dafb;
+  background: #61dafb;
+  color: #14202a;
+  font-weight: 700;
+  cursor: default;
+}
+
+.pagination-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-gap {
+  padding: 0 0.25rem;
+  color: #8c95a5;
+}
+
 .video-tags {
   margin-top: 1rem;
 }
