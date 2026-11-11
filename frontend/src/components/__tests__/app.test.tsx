@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 import App from '../../App';
@@ -71,16 +71,16 @@ describe('App Component', () => {
     renderApp();
     await screen.findByText(sampleVideos[0].title);
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2');
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
       target: { value: 'music' },
     });
-    await screen.findByText('Page 1');
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2');
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
     fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
-    await screen.findByText('Page 1');
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
     await waitFor(() =>
       expect(mockedAxios.get).toHaveBeenLastCalledWith(
         'other/videos',
@@ -257,7 +257,9 @@ describe('App Component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText(sampleVideos[1].title);
     expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
-    expect(screen.getByText('Page 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Showing 25–25 of 25 videos')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(mockedAxios.get).toHaveBeenLastCalledWith(
       'other/videos',
@@ -312,6 +314,59 @@ describe('App Component', () => {
       }
     }
   );
+
+  it('shows numbered pages with gaps and jumps directly to a selected page', async () => {
+    const pageOf = (page: number) => ({
+      data: {
+        content: [{ ...sampleVideos[0], id: page + 1, title: `Video on page ${page + 1}` }],
+        page,
+        size: 24,
+        hasNext: page < 9,
+        totalElements: 240,
+      },
+    });
+    mockedAxios.get.mockResolvedValueOnce(pageOf(0));
+    renderApp();
+    await screen.findByText('Video on page 1');
+    const pages = within(screen.getByRole('navigation', { name: 'Video pages' }));
+    expect(pages.getAllByRole('button', { name: /^Page \d+$/ }).map((button) => button.textContent)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '10',
+    ]);
+    expect(pages.getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('Showing 1–1 of 240 videos')).toBeInTheDocument();
+
+    mockedAxios.get.mockResolvedValueOnce(pageOf(9));
+    fireEvent.click(pages.getByRole('button', { name: 'Page 10' }));
+    await screen.findByText('Video on page 10');
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({ params: { q: '', page: 9, size: 24 } })
+    );
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(screen.getByText('Page 10 of 10')).toBeInTheDocument();
+
+    mockedAxios.get.mockResolvedValueOnce(pageOf(5));
+    fireEvent.click(screen.getByRole('button', { name: 'Page 6' }));
+    await screen.findByText('Video on page 6');
+    const middle = within(screen.getByRole('navigation', { name: 'Video pages' }));
+    expect(middle.getAllByRole('button', { name: /^Page \d+$/ }).map((button) => button.textContent)).toEqual([
+      '1',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '10',
+    ]);
+    const callsBefore = mockedAxios.get.mock.calls.length;
+    fireEvent.click(middle.getByRole('button', { name: 'Page 6' }));
+    expect(mockedAxios.get).toHaveBeenCalledTimes(callsBefore);
+  });
 
   it('hides pagination after filtering to one match and restores it when cleared', async () => {
     mockedAxios.get.mockResolvedValueOnce({

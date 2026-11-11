@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { UserAvatar } from './UserAvatar';
 
 export function AccountMenu() {
   const auth = useAuth();
@@ -33,10 +34,8 @@ export function AccountMenu() {
       {auth.status === 'authenticated' && auth.user && (
         <>
           <Link className="account-link account-profile" to="/profile" aria-label="Mi perfil">
-            <span className="account-avatar" aria-hidden="true">
-              {auth.user.accountName.slice(0, 1).toUpperCase()}
-            </span>
-            <span>{auth.user.accountName}</span>
+            <UserAvatar name={auth.user.accountName} />
+            <span className="account-name">{auth.user.accountName}</span>
           </Link>
           <button className="account-link" type="button" onClick={() => void logout()}>
             Cerrar sesión

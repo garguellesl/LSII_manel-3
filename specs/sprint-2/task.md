@@ -104,10 +104,10 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T3 a T16; se permite ejecutar checks enfocados durante su desarrollo.
   - Hecho cuando: Maven verify, build/tests/lint frontend y checks de integración aplicables pasan sobre el resultado combinado; cobertura cumple puertas actuales; regresiones de catálogo, reproducción y búsqueda por título están comprobadas. Registrar resultados reales y fallos, sin rebajar umbrales ni repetir pruebas sin cambios relevantes.
   - Evidencia: pendiente.
-- [ ] T18 - Preparar y ejecutar E2E del sprint (RF-1 a RF-8; NFR-02).
+- [x] T18 - Preparar y ejecutar E2E del sprint (RF-1 a RF-8; NFR-02).
   - Depende de: contratos acordados; ejecución final tras T17 y entorno disponible.
   - Hecho cuando: herramienta/script reales documentados y pruebas ejecutadas cubren registro automático, login/logout/perfil, acceso privado, búsqueda y gestión de vídeos/etiquetas; datos aislados en base de pruebas persistente y sin secretos en repositorio. No equivale a cubrir todo el MVP.
-  - Evidencia: pendiente; no se ha encontrado una suite E2E existente que acredite estos recorridos.
+  - Evidencia: suite Playwright real ejecutada 3 veces consecutivas contra un despliegue Docker Compose aislado (`protube-e2e`), **9/9 tests pasando en cada ejecución**, sin red flakiness observada. Detalle completo al final de este documento. Job de CI añadido a `.github/workflows/main.yml`; no ejecutado en remoto en esta sesión (sin push). T17 (regresión combinada) y el resto de RF-7 (CRUD completo de vídeos vía interfaz) siguen pendientes; esta ejecución no los sustituye.
 - [ ] T19 - Actualizar documentación y preparar entrega revisable (todos los RF; DoD global).
   - Depende de: T17/T18 para cierre; documentación de configuración puede prepararse antes.
   - Hecho cuando: arranque/perfiles/PostgreSQL, contratos y comandos reales están documentados; `AGENTS.md` se revisa por si cambian hechos; prompts/decisiones tienen estado real de revisión; la PR está acotada y lista para CI/revisión, sin generados, secretos o rutas locales.
@@ -277,6 +277,49 @@ D6 aprobada por el equipo el 2026-11-02 (ver `spec.md`). Rama `associate-tags-to
 - Verificacion real, 2026-11-02 Europe/Madrid, Java 21 (Temurin 21.0.11), Maven 3 bundled de IntelliJ (ruta local, sin wrapper), Docker Desktop iniciado para esta ejecucion: `mvn -B -ntp clean verify` desde `backend/` → **BUILD SUCCESS, 98 tests, 0 fallos/errores/omisiones**; `All coverage checks have been met` (JaCoCo: lineas 95.88%, instrucciones 95.41%, ramas 81.58%, metodos 95.22%, calculado desde `target/site/jacoco/jacoco.csv`). Incluye `VideoImportServiceTest` (13 tests), `VideoServiceTest` (20 tests) y `PostgreSqlPersistenceTest` (2 tests) con PostgreSQL real vía Testcontainers.
 - No ejecutado: `mvn -Pprod clean verify`, frontend (sin cambios en esta tarea), E2E, CI remota, despliegue. No se ha tocado la casilla de T15: queda abierta a propósito, porque la comprobación de propiedad depende de T7/T10. D1/T5 (busqueda por etiquetas) sigue sin resolver y no se ve afectada por T22 mas alla de que ahora hay datos de etiquetas reales que buscar.
 - T22 completa localmente con evidencia real. Sin commit, push ni PR.
+
+## Ejecución de la suite E2E (T18/NFR-02, 2026-11-03)
+
+Rama `implemennt-E2E-tests`. Alcance: implementar y ejecutar la suite E2E con Playwright para los 6 recorridos mínimos acordados (ver tabla de trazabilidad en `spec.md`), sin cambiar funcionalidad de la aplicación ni instrumentar cobertura de código. Sin commit.
+
+- **Código nuevo:** `e2e/` (proyecto npm independiente, no integrado en `frontend/`): `package.json`/`package-lock.json`/`tsconfig.json`/`playwright.config.ts`, `e2e.env` (valores de prueba no secretos, uso local), `compose.override.yml` (ver hallazgo más abajo), `README.md`, `fixtures/users.ts` (identidades únicas por test), `fixtures/api.ts` (registro/login/creación de vídeo propio vía API, mismo contrato CSRF que `frontend/src/apiClient.ts`), y 6 specs en `tests/`: `auth.spec.ts`, `catalog-playback.spec.ts`, `search.spec.ts`, `tag-editor-owner.spec.ts`, `tag-visibility.spec.ts`, `profile-guard.spec.ts`. Job `e2e` nuevo en `.github/workflows/main.yml`, en paralelo a `build-and-test`, sin modificar ese job existente.
+- **Entorno real usado:** Docker Desktop local, `docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env up -d --wait --build`, puertos `18080`/`15432` (distintos de los `8080`/`5432` de desarrollo). Confirmado con `docker ps`/`docker volume ls` antes y después: el volumen `protube-e2e_postgres_data` es distinto del volumen de desarrollo, y el derribo final (`... down -v`) solo eliminó contenedores/red/volumen del proyecto `protube-e2e`; el stack de desarrollo (`postgres_db`, `lsii_manel-3-app-1`) siguió corriendo sin interrupción durante toda la sesión.
+- **Hallazgos reales durante la implementación, documentados también en `spec.md`/`plan.md`/`e2e/README.md`, no corregidos (fuera de alcance de T18):**
+  1. `compose.yaml` fija `container_name: postgres_db` en el servicio `db`; ese nombre es global a Docker (no se namespacea por proyecto como los volúmenes), así que levantar el stack E2E con un stack de desarrollo ya corriendo falla por conflicto de nombre. Resuelto con `e2e/compose.override.yml`, que solo renombra ese contenedor a `protube_e2e_postgres_db` para la ejecución E2E; no se ha tocado `compose.yaml`.
+  2. La primera ejecución sin `--build` reutilizó una imagen `protube:local` en caché, anterior al árbol de trabajo actual (catálogo mostraba el texto "Videos availables:", que no existe en ningún archivo fuente actual) — 8 de 9 tests fallaron contra esa versión antigua antes de detectarlo. `--build` en el `up` lo corrige; se añadió también al paso de CI.
+  3. `frontend/src/utils/media.ts#toMediaUrl` llama a `.startsWith` sobre su argumento sin comprobar `null`; un vídeo con `thumbnailUrl: null` deja la página en blanco (excepción de React sin capturar, sin error boundary). Descubierto al crear vídeos de prueba con `thumbnailPath: null`. Es un fallo real de la aplicación; el fixture `createOwnVideo` lo evita mandando siempre una `thumbnailPath` sintética no nula, sin modificar el componente.
+  4. **Carrera de navegaciones al cerrar sesión** — ver sección dedicada "Known bug" justo debajo de esta lista, con causa exacta, referencias de código y por qué no bloquea el DoD de T18.
+
+### Known bug: carrera de navegaciones al cerrar sesión (descubierto en T18, sin corregir — pendiente para el equipo)
+
+**Síntoma:** tras pulsar "Cerrar sesión" estando en `/profile`, la ruta pública en la que aterriza el navegador no es determinista: a veces `/`, a veces `/login`.
+
+**Causa exacta, con referencias de código:**
+- `frontend/src/components/AccountMenu.tsx`, manejador de logout: `await auth.signOut(); navigate('/');` — al resolverse `signOut()`, navega (push) a `/`.
+- `frontend/src/components/AuthProvider.tsx`, `signOut()`: pone `setState(anonymous)` **después** de que `authClient.logout()` resuelva, pero **antes** de que la propia promesa de `signOut()` se resuelva.
+- `frontend/src/components/ProfilePage.tsx`: `if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: '/profile' }} />;` — mientras `ProfilePage` sigue montado (seguimos en `/profile` en el momento del clic), este guard reacciona al mismo cambio de estado y dispara una navegación (`replace`) a `/login` con `state.from: '/profile'`.
+
+Dos navegaciones compiten por el mismo cambio de estado, disparadas por dos caminos de código distintos: la de `ProfilePage` se dispara durante el render/commit de React al procesar el `setState(anonymous)` que ocurre *dentro* de `signOut()`; la de `AccountMenu` se dispara al reanudarse el `await auth.signOut()` en el microtask siguiente, una vez esa función termina. El orden entre ambas no está garantizado por el código — depende de cómo React 18 intercala el flush del `setState` con la cola de microtareas de la promesa, y varía de una ejecución a otra.
+
+**Qué ve la persona usuaria en cada caso:**
+- Si gana `AccountMenu` (navega a `/`): aterriza en el catálogo.
+- Si gana `ProfilePage` (navega a `/login`): aterriza en el formulario de login, con `location.state.from = '/profile'` en esa entrada de historial. Ninguno de los dos casos expone datos privados por sí solo, pero ese `state.from` colgando de una navegación que el usuario no inició puede producir un salto de ruta sorprendente más tarde: si esa misma entrada de `/login` se recarga (por ejemplo, el navegador reutiliza la entrada en vez de crear una nueva), el siguiente login con éxito devuelve a `/profile` en lugar de a `/`, sin que nada en la sesión actual lo justifique desde el punto de vista de la persona usuaria. Así se descubrió: provocaba fallos no deterministas en `e2e/tests/auth.spec.ts` durante esta tarea.
+
+**Por qué no se corrige en T18:** esta tarea solo implementa y ejecuta la suite E2E; no autoriza cambiar funcionalidad de la aplicación. Corregirlo es una decisión de diseño del equipo (candidatas: no llamar `navigate('/')` en `AccountMenu` cuando `ProfilePage` ya va a redirigir; o centralizar la navegación post-logout en un único sitio en vez de en dos componentes independientes reaccionando al mismo cambio de estado).
+
+**Por qué no bloquea el DoD de T18:** ambas rutas de aterrizaje son públicas. Lo que exige la spec — sesión revocada en el servidor (RF-5) y página privada rechazada tras logout (RF-6) — se comprueba en `auth.spec.ts` de forma explícita e independiente de esta carrera: `GET /api/users/me` devuelve 401 tras logout, y una visita directa a `/profile` tras logout redirige a `/login`.
+
+**Repro mínima:** iniciar sesión, ir a `/profile`, pulsar "Cerrar sesión"; repetir varias veces (o ejecutar `auth.spec.ts` repetidamente) y observar que la URL final alterna entre `/` y `/login`.
+
+- **Resultado de la ejecución, 2026-11-03 Europe/Madrid, Playwright 1.64.1, Chromium descargado por `playwright install`:** 3 ejecuciones consecutivas completas de `npx playwright test` (3 workers) contra el stack aislado, **9/9 tests pasando en las tres**, sin reintentos (`retries: 0` en local), sin flakiness observada:
+  - `auth.spec.ts` — registro con sesión automática → perfil → logout → login (RF-4/RF-5/RF-6). Tras el logout, comprueba explícitamente las garantías que exige la spec en vez de aceptar la ruta donde aterrice la carrera del bug conocido: `GET /api/users/me` devuelve 401 (sesión revocada en servidor), y una visita directa a `/profile` redirige a `/login` (página privada rechazada); el login posterior cierra el recorrido volviendo a `/profile`.
+  - `catalog-playback.spec.ts` — catálogo y reproducción de un vídeo del almacén importado.
+  - `search.spec.ts` (3 tests) — búsqueda por fragmento de título, por fragmento de descripción, limpiar restaura el catálogo (RF-2).
+  - `tag-editor-owner.spec.ts` — propietario añade etiqueta, la quita, y ve el error de validación de una etiqueta de 81 caracteres (RF-8).
+  - `tag-visibility.spec.ts` (2 tests) — no propietario y anónimo ven las etiquetas en modo lectura sin editor (RF-8).
+  - `profile-guard.spec.ts` — `/profile` sin sesión redirige a `/login` y vuelve a `/profile` tras iniciar sesión (RF-6).
+- **No ejecutado:** el job de CI no se ha disparado en remoto (sin push); `mvn clean verify`/Jest/lint no se repitieron en esta tarea por no haber cambios de backend/frontend; T17 (regresión combinada del sprint) sigue pendiente; RF-7 (CRUD completo de metadatos de vídeo vía interfaz) sigue sin editor en el frontend, así que esta suite no lo cubre más allá de la creación por API usada como fixture.
+- T18 completa localmente con evidencia real de ejecución repetida contra un entorno aislado. Sin commit, push ni PR.
 
 ## Selector de etiquetas (2026-11-11)
 

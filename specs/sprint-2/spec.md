@@ -232,6 +232,50 @@ Cuando un desarrollador ejecute la configuración conjunta de desarrollo, el sis
 - Backend y frontend permanecerán como procesos de desarrollo gestionables desde IntelliJ; detenerlos no borrará la base.
 - Alcance autorizado por el usuario: «Desde IntelliJ con una configuración conjunta de desarrollo (frontend en 5174 y backend en 8080)». Docker Desktop debe estar activo; no se añade despliegue completo en contenedores ni se cambian APIs.
 
+### NFR-02 - Suite E2E del sprint (T18)
+
+Cuando se ejecute la suite E2E contra un entorno aislado, el sistema deberá demostrar los recorridos mínimos acordados de este sprint sin afectar a datos de desarrollo ni afirmar cobertura del MVP completo.
+
+**Herramienta: Playwright (`@playwright/test`, TypeScript), frente a Cypress.** Justificación para este proyecto concreto, no genérica: la suite corre contra un despliegue Docker Compose completo (imagen `app` + PostgreSQL), no un servidor de desarrollo — Playwright se limita a apuntar a una URL base ya levantada externamente, sin asumir que posee el ciclo de vida del proceso, igual que ya hacen `tooling/docker/smoke_test.py` y `auth_smoke_test.py`. Los recorridos de propietario/no propietario/anónimo sobre el mismo vídeo necesitan varias identidades simultáneas en un mismo test: `browser.newContext()` da almacenamiento de cookies independiente por contexto de forma trivial, mientras que Cypress es de una sola pestaña/origen por test. `APIRequestContext` permite preparar datos (registrar usuarios, crear un vídeo propio) compartiendo cookies con el contexto de navegador cuando conviene. Los selectores de accesibilidad (`getByRole`/`getByLabel`) son de primera clase en Playwright y coinciden con la convención ya usada en los tests Jest/RTL de este repo; en Cypress exige un paquete adicional. La auto-espera de Playwright (`expect(locator).toBeVisible()`, `waitForURL()`) cubre las esperas necesarias sin sleeps fijos.
+
+**Recorridos mínimos y trazabilidad recorrido → RF → test:**
+
+| # | Recorrido | RF | Archivo (`e2e/tests/`) |
+| --- | --- | --- | --- |
+| 1 | Registro con sesión automática → perfil → logout → login | RF-4, RF-5, RF-6 | `auth.spec.ts` |
+| 2 | Catálogo y reproducción de un vídeo | — (verifica de forma indirecta el catálogo persistido de RF-1) | `catalog-playback.spec.ts` |
+| 3 | Búsqueda por título y por descripción | RF-2 | `search.spec.ts` |
+| 4 | Editor de etiquetas como propietario (añadir, quitar, error de validación) | RF-8 | `tag-editor-owner.spec.ts` |
+| 5 | No propietario y anónimo ven etiquetas sin editor | RF-8 | `tag-visibility.spec.ts` |
+| 6 | Acceso a `/profile` sin sesión rechazado | RF-6 | `profile-guard.spec.ts` |
+
+**Definición de "más del 50% de cobertura E2E":** se documentan dos métricas; la vinculante para el DoD es la primera.
+
+- *Métrica principal (vinculante, >50%):* porcentaje de RF de este sprint (RF-1 a RF-8) cubiertos por la suite E2E. Cubre directamente RF-2, RF-4, RF-5, RF-6 y RF-8 → **5/8 = 62.5%**. RF-1 (persistencia) se verifica en otros niveles (integración backend), no E2E; RF-3 (búsqueda por etiquetas) depende de D1, sin decidir; RF-7 (CRUD completo de metadatos vía interfaz) no tiene editor en el frontend todavía (T16 pendiente; solo T16a de etiquetas está implementado).
+- *Métrica secundaria (informativa, no vinculante):* porcentaje de recorridos de este lote frente a la lista completa de recorridos del MVP (US-01 a US-11 de `REQUIREMENT.md`), para no afirmar cobertura contra el propio lote (6/6 sería circular):
+
+  | US (MVP) | Cubierto por este lote E2E |
+  | --- | --- |
+  | US-01 Registro | Sí |
+  | US-02 Login | Sí |
+  | US-03 Ver/editar perfil | Parcial (solo ver; editar no implementado) |
+  | US-04 Listar catálogo | Sí |
+  | US-05 Reproducir + detalle (con comentarios) | Parcial (reproducción/detalle sí; comentarios no conectados a la interfaz) |
+  | US-06 Subir vídeo | No (sin editor de alta en la interfaz) |
+  | US-07 Editar metadatos de vídeo | Parcial (solo etiquetas; título/descripción sin editor en la interfaz) |
+  | US-08 Buscar vídeos | Sí (título/descripción; etiquetas fuera por D1) |
+  | US-09 Comentar | No (sin conectar a la interfaz) |
+  | US-10 Responder/dar like a comentarios | No (sin conectar a la interfaz) |
+  | US-11 Ver analíticas propias | No (no se afirma en este lote) |
+
+  Completos: 4/11 (36%); completos+parciales: 7/11 (64%). Resultado deliberadamente bajo y honesto: documenta que esta suite no cubre el MVP completo, coherente con el resto de esta spec. No es el criterio de aceptación de T18/NFR-02 — ese criterio es la métrica principal por RF.
+
+**Entorno:** se ejecuta contra el `compose.yaml` raíz existente, sin crearlo de nuevo, levantado con nombre de proyecto propio (`docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml ... up -d --wait --build`) y variables de entorno de prueba no secretas. Compose namespacea volúmenes nombrados por proyecto automáticamente, así que `-p protube-e2e` ya aísla el volumen de PostgreSQL del de desarrollo; el derribo (`down -v`) solo se ejecuta con ese `-p` explícito, nunca como `docker compose down -v` desnudo. `--build` es obligatorio: comprobado en esta sesión que, sin él, Compose reutiliza una imagen `protube:local` en caché de una build anterior en vez de reconstruir desde el código actual, y la suite acaba probando una versión antigua de la interfaz sin ningún aviso. `e2e/compose.override.yml` solo renombra el contenedor `db` (`compose.yaml` fija `container_name: postgres_db`, que es global a Docker y no se namespacea por proyecto como los volúmenes); sin ese override, levantar el stack E2E con un stack de desarrollo ya corriendo falla por conflicto de nombre — comprobado en esta sesión. Cada test registra sus propios usuarios y, cuando necesita ser propietario de un vídeo, lo crea vía `POST /api/videos` con una `mediaPath` y una `thumbnailPath` sintéticas únicas — sin depender de datos ni archivos de otro test ni de la cuenta demo. **Riesgos documentados:** (1) la `mediaPath`/`thumbnailPath` sintéticas dependen de que `VideoService.createVideo` siga sin comprobar la existencia del archivo en disco (a diferencia de `VideoImportService`); si ese contrato cambia, los fixtures deberán apuntar a un archivo real del almacén. (2) `thumbnailPath` nunca se manda `null`: se comprobó en esta sesión que `frontend/src/utils/media.ts#toMediaUrl` llama a `.startsWith` sobre su argumento sin comprobar `null`, y un vídeo con `thumbnailUrl: null` deja la página en blanco sin error visible; es un fallo real de la aplicación, no corregido aquí porque T18 no autoriza cambiar funcionalidad, solo evitado desde el fixture. El catálogo de ejemplo (`videos/`, 222 archivos) ya está versionado en el repositorio, así que los recorridos de catálogo/búsqueda no necesitan ningún fixture nuevo.
+
+**Selectores:** `getByRole`/`getByLabel`, igual que la convención ya usada en los tests Jest/RTL de este repo; sin sleeps fijos (auto-espera de Playwright). Única excepción documentada: el error por etiqueta inválida en `VideoTagEditor.tsx` no tiene `role`/`aria-label`, así que ese caso se identifica por el texto exacto del mensaje del backend en vez de por un rol, sin modificar el componente (fuera de alcance).
+
+Fuera de alcance de esta ejecución: cambiar funcionalidad de la aplicación; instrumentar cobertura de código dentro del E2E; commit/push.
+
 ## Requisitos no funcionales y Definition of Done
 
 - Mantener Controller -> Service -> Repository, DTOs públicos y acceso a datos del frontend a través de hooks/clientes.
