@@ -104,7 +104,7 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Start isolated E2E deployment
         run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml up -d --wait --build
