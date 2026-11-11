@@ -17,12 +17,15 @@ export type VideoPage = {
   totalElements: number;
 };
 const VIDEOS_URL = `${getEnv().API_BASE_URL}/videos`;
+const NO_TAGS: string[] = [];
 
-export function useAllVideos(query: string, page: number) {
+export function useAllVideos(query: string, page: number, tags: string[] = NO_TAGS) {
   const q = query.trim();
+  const tagKey = JSON.stringify([...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))].sort());
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{
     q: string;
+    tagKey: string;
     page: number;
     attempt: number;
     loading: LoadingState;
@@ -33,6 +36,7 @@ export function useAllVideos(query: string, page: number) {
     message: string;
   }>({
     q: '',
+    tagKey: '[]',
     page: 0,
     attempt: 0,
     loading: 'loading',
@@ -44,18 +48,21 @@ export function useAllVideos(query: string, page: number) {
   });
 
   useEffect(() => {
+    const filters: string[] = JSON.parse(tagKey);
     const controller = new AbortController();
     let active = true;
     const timer = window.setTimeout(
       async () => {
         try {
           const response = await axios.get<VideoPage>(VIDEOS_URL, {
-            params: { q, page, size: 24 },
+            params: { q, page, size: 24, ...(filters.length > 0 ? { tag: filters } : {}) },
+            paramsSerializer: { indexes: null },
             signal: controller.signal,
           });
           if (active)
             setResult({
               q,
+              tagKey,
               page,
               attempt,
               loading: 'success',
@@ -69,6 +76,7 @@ export function useAllVideos(query: string, page: number) {
           if (active)
             setResult({
               q,
+              tagKey,
               page,
               attempt,
               loading: 'error',
@@ -80,16 +88,16 @@ export function useAllVideos(query: string, page: number) {
             });
         }
       },
-      q ? 300 : 0
+      q || filters.length > 0 ? 300 : 0
     );
     return () => {
       active = false;
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [q, page, attempt]);
+  }, [q, tagKey, page, attempt]);
 
-  const current = result.q === q && result.page === page && result.attempt === attempt;
+  const current = result.q === q && result.tagKey === tagKey && result.page === page && result.attempt === attempt;
   return {
     loading: current ? result.loading : ('loading' as LoadingState),
     value: current ? result.value : [],

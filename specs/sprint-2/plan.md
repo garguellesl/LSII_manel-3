@@ -1,7 +1,27 @@
+## Ajuste aprobado del selector (2026-11-11)
+
+Sustituye el control y la coincidencia parcial descritos el 2026-11-03. GET `/api/videos/tags`: público, 200 con array de nombres string, vacío si no hay asociaciones. VideosController delega en VideoService y TagRepository consulta nombres distintos mediante Video.tags, ordenados; no expone entidades ni descarga vídeos. GET `/api/videos` conserva parámetros/DTO, pero tag exige igualdad sin mayúsculas. Sin migraciones ni dependencias.
+
+Frontend: hook useAvailableTags carga al abrir, cancela al cerrar y permite reintentar; TagSearch muestra un panel con buscador local, casillas, contador y limpiar. App agrupa SearchBar y Tags; Escape devuelve foco al botón, clic fuera cierra. Estados carga/vacío/error explícitos. Pruebas mockean API; integración PostgreSQL comprueba catálogo asociado, igualdad exacta, AND y ranking/paginación. Verificación: frontend build/Jest con cobertura/lint y backend clean verify.
+
 # Plan - Sprint 2
 
 Spec: [spec.md](spec.md). Tareas: [task.md](task.md).
-Estado: borrador técnico; D1 de la spec sigue pendiente; el CRUD de vídeos y etiquetas propias está incorporado.
+Estado: D1 resuelta; ejecución local RF-3/RF-8 autorizada el 2026-11-03. Se conserva la planificación histórica como referencia.
+
+## Ejecución autorizada RF-3/RF-8 (2026-11-03)
+
+Sustituye las propuestas anteriores de combinación de etiquetas y la limitación histórica del backfill. Baseline ce8889a; coordinación en docs/ai/tasks/tags-search-and-fixes.md. Sin administración global, CRUD adicional de vídeos, despliegue ni publicación.
+
+- GET `/api/videos?q=&tag=rock&tag=pop&page=0&size=24`: público, VideoPage sin cambios. `tag` repetido es OR literal parcial insensible a mayúsculas. Texto y etiquetas se combinan con AND. Servicio: trim/minúsculas/deduplicación, ignora blancos; máximo 40 filtros distintos y 80 caracteres por filtro, 400 al exceder. Se conserva el contrato sin etiquetas.
+- Fragmento de repositorio JPA con Criteria/EntityManager: EXISTS correlacionado por filtro, OR para incluir vídeos y suma de CASE/EXISTS para contar cada filtro una vez. Orden descendente de esa suma, después ranking textual e ID. Predicados compartidos para filas y COUNT; LIMIT/OFFSET en SQL sin fetch join de colecciones, filtrado ni ordenación en memoria. Parámetros ligados, incluidos `%`/`_` literales.
+- TagSearch accesible: Enter/coma/botón, retirada individual y limpieza, ayuda sobre prioridad por coincidencias. App conserva filtros al navegar y vuelve a página 0 al cambiarlos. useAllVideos serializa `tag` repetidos, debounce 300 ms y descarta respuestas anteriores. Vacío filtrado se distingue de catálogo vacío.
+- Estado de etiquetas guardadas en un componente de detalle con key por vídeo. Desmontarlo aísla callbacks tardíos; no basta resetear un estado compartido en un efecto.
+- Flyway V3 `videos.tags_initialized BOOLEAN NOT NULL DEFAULT FALSE`: TRUE para vídeos antiguos con asociaciones; FALSE en antiguos vacíos para permitir backfill. Constructor de Video y edición explícita de tags marcan TRUE, incluso `[]`; `null` no modifica la marca. Backfill solo para vacíos no inicializados y marca TRUE incluso sin etiquetas en JSON. V1/V2 no cambian. No se puede reconstruir una retirada intencional anterior a V3.
+- Pruebas PostgreSQL: OR/ranking por filtros distintos, texto/literales, vacíos/desconocidos, total/páginas, migración/backfill/reinicio tras vaciar. MockMvc: contrato/límites y T15 (propietario, ajeno, anónimo, CSRF, 404, conservación global). Jest mockeado: filtros/paginación/carreras y guardado tardío. Checks: Maven clean verify; frontend build/Jest con cobertura/lint.
+- T15 se verifica independientemente de T14 (CRUD adicional de vídeos); solo se cierra con evidencia de RF-8 y checks. El sprint no se declara terminado.
+
+## Planificación histórica
 Alcance autorizado actual: T4/RF-2 con conexion frontend y paginacion, autorizado el 2026-10-30; resto del sprint segun sus registros historicos.
 Baseline de la planificación inicial: `main`, `71c144d`, inspección de fuentes el 2026-10-21; describe el punto de partida. La ejecución PostgreSQL posterior usa `feature/DBpostreSQL`/`ca778b2` y se documenta en su sección y en `task.md`. Las rutas nuevas citadas como propuestas todavía no existen.
 

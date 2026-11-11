@@ -5,6 +5,9 @@ import App from '../../App';
 import { authClient } from '../../utils/authClient';
 
 jest.mock('axios');
+jest.mock('../../useAvailableTags', () => ({
+  useAvailableTags: () => ({ loading: false, error: false, tags: ['rock', 'pop', 'reguetton'], reload: jest.fn() }),
+}));
 jest.mock('../../utils/authClient', () => ({ authClient: { currentUser: jest.fn() } }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
@@ -37,6 +40,117 @@ const renderApp = (path = '/') =>
   );
 
 describe('App Component', () => {
+  it('keeps the text filter when selecting tags and displays no matches for ABBA', async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+    });
+    renderApp();
+    await screen.findByText(sampleVideos[0].title);
+    mockedAxios.get.mockResolvedValue({
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: 'ABBA' },
+    });
+    await screen.findByText('No videos found matching "ABBA".');
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'reguetton' }));
+    await screen.findByText('No videos found matching the selected filters.');
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({ params: { q: 'ABBA', page: 0, size: 24, tag: ['reguetton'] } })
+    );
+    expect(screen.queryByRole('link', { name: /^Watch / })).not.toBeInTheDocument();
+  });
+
+  it('combines repeated tag filters with text, preserves server order, resets pages and clears filters', async () => {
+    const page = (content = sampleVideos, totalElements = 25) => ({
+      data: { content, page: 0, size: 24, hasNext: true, totalElements },
+    });
+    mockedAxios.get.mockResolvedValue(page());
+    renderApp();
+    await screen.findByText(sampleVideos[0].title);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: 'music' },
+    });
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenLastCalledWith(
+        'other/videos',
+        expect.objectContaining({ params: { q: 'music', page: 0, size: 24, tag: ['rock'] } })
+      )
+    );
+    mockedAxios.get.mockResolvedValue(page([sampleVideos[2], sampleVideos[0]], 2));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'pop' }));
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenLastCalledWith(
+        'other/videos',
+        expect.objectContaining({
+          params: { q: 'music', page: 0, size: 24, tag: ['pop', 'rock'] },
+          paramsSerializer: { indexes: null },
+        })
+      )
+    );
+    await waitFor(() => expect(screen.getAllByRole('link', { name: /^Watch / })).toHaveLength(2));
+    expect(screen.getAllByRole('link', { name: /^Watch / })[0]).toHaveTextContent(sampleVideos[2].title);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenLastCalledWith(
+        'other/videos',
+        expect.objectContaining({ params: { q: 'music', page: 0, size: 24, tag: ['pop'] } })
+      )
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Clear tag filters' }));
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenLastCalledWith(
+        'other/videos',
+        expect.objectContaining({ params: { q: 'music', page: 0, size: 24 } })
+      )
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenLastCalledWith(
+        'other/videos',
+        expect.objectContaining({ params: { q: '', page: 0, size: 24 } })
+      )
+    );
+  });
+
+  it('ignores a late response after tag filters change and shows an empty filtered result', async () => {
+    let resolveOld!: (value: unknown) => void;
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
+    });
+    renderApp();
+    await screen.findByText(sampleVideos[0].title);
+    mockedAxios.get.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOld = resolve;
+      })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
+    await waitFor(() => expect(mockedAxios.get).toHaveBeenCalledTimes(2));
+    const signal = mockedAxios.get.mock.calls[1][1]?.signal;
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'pop' }));
+    expect(signal?.aborted).toBe(true);
+    await screen.findByText('No videos found matching the selected filters.');
+    await act(async () =>
+      resolveOld({ data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 } })
+    );
+    expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     (authClient.currentUser as jest.Mock).mockResolvedValue(null);
@@ -99,7 +213,9 @@ describe('App Component', () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
     });
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: ' description fragment ' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: ' description fragment ' },
+    });
     expect(await screen.findByText(sampleVideos[1].title)).toBeInTheDocument();
     expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
     expect(mockedAxios.get).toHaveBeenLastCalledWith(
@@ -113,14 +229,16 @@ describe('App Component', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /clear search/i }));
     expect(await screen.findByText(sampleVideos[0].title)).toBeInTheDocument();
-    expect(screen.getByRole('searchbox')).toHaveValue('');
+    expect(screen.getByRole('searchbox', { name: 'Search videos by title or description' })).toHaveValue('');
   });
 
   it('shows an empty search result without treating it as an error', async () => {
     mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
     renderApp();
     await screen.findByText('No videos are available.');
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'missing' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: 'missing' },
+    });
     expect(await screen.findByText('No videos found matching "missing".')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -160,7 +278,9 @@ describe('App Component', () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
     });
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'new query' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: 'new query' },
+    });
     await screen.findByText('No videos found matching "new query".');
     expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
     expect(mockedAxios.get).toHaveBeenLastCalledWith(
@@ -257,7 +377,9 @@ describe('App Component', () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: { content: [sampleVideos[1]], page: 0, size: 24, hasNext: false, totalElements: 1 },
     });
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'description' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+      target: { value: 'description' },
+    });
     await screen.findByText(sampleVideos[1].title);
     expect(screen.queryByRole('navigation', { name: 'Video pages' })).not.toBeInTheDocument();
     mockedAxios.get.mockResolvedValueOnce({
@@ -292,8 +414,12 @@ describe('App Component', () => {
         jest.advanceTimersByTime(0);
       });
       const oldSignal = mockedAxios.get.mock.calls[0][1]?.signal;
-      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'j' } });
-      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'java' } });
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+        target: { value: 'j' },
+      });
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+        target: { value: 'java' },
+      });
       await act(async () => {
         jest.advanceTimersByTime(299);
       });
@@ -316,14 +442,18 @@ describe('App Component', () => {
           rejectOld = reject;
         })
       );
-      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'old' } });
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+        target: { value: 'old' },
+      });
       await act(async () => {
         jest.advanceTimersByTime(300);
       });
       mockedAxios.get.mockResolvedValueOnce({
         data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
       });
-      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'latest' } });
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos by title or description' }), {
+        target: { value: 'latest' },
+      });
       await act(async () => {
         jest.advanceTimersByTime(300);
       });

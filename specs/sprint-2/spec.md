@@ -1,6 +1,6 @@
 # Sprint 2 - Persistencia, búsqueda y cuentas de usuario
 
-Estado: borrador especificado y ampliado con el CRUD acordado; decisión D1 pendiente antes de implementar el contrato afectado.
+Estado: ejecución local RF-3/RF-8 autorizada el 2026-11-03; D1 resuelta. El resto del sprint conserva sus pendientes.
 Ticket o petición: historias, AC y DoD del sprint 2 aportados por el usuario el 2026-10-21.
 Fuentes: [REQUIREMENT.md](../../REQUIREMENT.md), [constitución](../../.agents/constitution.md) y [SDD](../../docs/SDD.md).
 Plan: [plan.md](plan.md). Ejecución y evidencia: [task.md](task.md). Coordinación de autenticación: [handoff](../../docs/ai/tasks/session-auth-profile.md).
@@ -63,14 +63,15 @@ Ampliación autorizada: el sistema deberá devolver el total de vídeos que coin
 
 ### RF-3 - Búsqueda por etiquetas
 
-Cuando una persona seleccione o introduzca una o varias etiquetas, el sistema deberá mostrar los vídeos relacionados con los valores buscados sin distinguir mayúsculas y minúsculas.
+Cuando una persona seleccione una o varias etiquetas, el sistema deberá mostrar los vídeos relacionados con los valores seleccionados sin distinguir mayúsculas y minúsculas.
 
-- La interfaz permitirá introducir varias etiquetas y retirarlas (Tags AC1).
-- Las coincidencias serán parciales sobre el nombre de cada etiqueta; una coincidencia exacta también será válida (Tags AC2-AC3).
+- La interfaz permitirá seleccionar y retirar varias etiquetas mediante un botón Tags junto al buscador principal (Tags AC1).
+- Las etiquetas seleccionadas coincidirán por nombre exacto sin distinguir mayúsculas (decisión del usuario, 2026-11-11, sustituye la coincidencia parcial anterior).
 - Etiquetas desconocidas y combinaciones sin coincidencias producirán una lista vacía y su mensaje correspondiente (Tags AC4).
 - Se ignorarán espacios exteriores, valores vacíos y etiquetas repetidas; un vídeo aparecerá una sola vez aunque tenga varias etiquetas coincidentes.
 - Al limpiar todos los filtros se recuperará el catálogo. Con texto y etiquetas activos deberán cumplirse ambos filtros.
-- **D1, pendiente:** decidir si varias etiquetas se combinan con OR o con AND. El borrador del plan usa OR como propuesta, no como decisión aprobada. La implementación de esa combinación depende de resolver D1.
+- **D1, confirmada por el usuario (2026-11-03):** OR, con orden descendente por número de filtros distintos coincidentes (los que cumplen todos primero). Cada filtro cuenta una vez aunque coincida con varias etiquetas del vídeo. Desempates: relevancia textual existente e ID ascendente. Un filtro desconocido junto a otro conocido no excluye las coincidencias del conocido.
+- Filtrado, ranking y recuento se ejecutan en PostgreSQL antes de paginar. Cambiar etiquetas vuelve a la primera página y descarta respuestas obsoletas. Máximo 40 filtros distintos y 80 caracteres por filtro tras recortar espacios; blancos y repetidos se ignoran; límites excedidos producen 400.
 
 ### RF-4 - Registro e inicio de sesión automático
 
@@ -191,6 +192,9 @@ Crear/borrar vídeos, editar título/descripción, la comprobación de propiedad
   comprobación real en cada `PATCH`, por lo que un falso positivo de esta comparación nunca
   concede acceso de escritura real, solo mostraría controles que el servidor rechazaría con 403.
 
+- Al cambiar de vídeo durante un guardado, una respuesta tardía no modificará etiquetas, borradores ni errores de otro vídeo, tampoco al volver al anterior.
+- Actualización autorizada 2026-11-03 de RF-8/D6: una elección explícita de etiquetas, incluida `[]`, se conservará frente a reimportaciones. El backfill de vídeos antiguos vacíos se ejecuta una sola vez; una importación vacía también se considera procesada. Esto sustituye la limitación histórica descrita arriba. No se puede inferir retrospectivamente si un vacío anterior a la nueva migración era intencional.
+
 ##### Tabla de casos de prueba (T15/T16)
 
 Los caracteres invisibles o ambiguos se citan únicamente en notación `\uXXXX`; nunca como glifo literal. Verificar con `grep` que la tabla no contiene el carácter real, solo su representación textual.
@@ -304,14 +308,14 @@ Los endpoints privados existentes deben inventariarse al definir la seguridad (R
 | A2 | Propuesta: login por email; `username` se corresponde con `accountName` | Reutilizar el contrato existente; si se exige login por nombre de cuenta, actualizar plan y pruebas antes de codificarlo |
 | A3 | Propuesta técnica: sesión de servidor con cookie para esta aplicación web | Detalles en el plan; no describirla como infraestructura ya instalada |
 | A4 | Propuesta: mismos campos obligatorios del registro y perfil que existen actualmente | La edición y nuevos campos de US-03 quedan fuera de esta historia de consulta |
-| D1 | [NECESITA ACLARACIÓN] OR o AND entre varias etiquetas; pregunta enviada al usuario | Bloquea cerrar el contrato de combinación de etiquetas, no redactar los documentos |
+| D1 | Confirmada por el usuario el 2026-11-03: OR, priorizar número de filtros distintos coincidentes y desempatar por texto/ID | RF-3/T5 autorizada para implementación local |
 | D2 | Aclarado: CRUD con API/interfaz para vídeos; etiquetas gestionadas solo en vídeos propios (respuesta del usuario sobre cuentas y posterior selección de alcance de etiquetas) | RF-7/RF-8; cuentas limitadas al alcance de las historias, sin dar por aprobada una función adicional de borrado |
 | D3 | Pendiente: responsable, revisor, issue y solapamientos de trabajo | No se reclama una reserva remota; confirmar antes de implementar |
 | D4 | Pendiente: entorno de staging, procedimiento y responsable de despliegue | Mantener pendiente el DoD de entrega hasta disponer de evidencia |
 | D5 | Propuesta: criterios de validación y normalización de etiquetas (longitud 1-80, conjunto de caracteres derivado de los datos más las extensiones explícitas `+`/`_`, decisión de mantener `!`/`/` y rechazar `;`, normalización Cf/comilla curva/espacios/minúsculas con `Locale.ROOT`, máximo 40 etiquetas distintas por vídeo, duplicados fusionados, errores 400 sin cambios parciales, concurrencia sin 500 sin prescribir mecanismo); detalle en el subapartado de RF-8 | RF-8 |
 | D6 | **Aprobada** (equipo, 2026-11-02): importar `meta.tags` de los JSON del almacén reutilizando `TagNormalizer`/`resolveTags`, incluido un backfill para vídeos ya importados sin etiquetas; etiquetas inválidas descartadas con `log.warn` de fichero y valor (saneado) sin fallar la importación; máximo 40 etiquetas distintas por vídeo; vídeos con etiquetas ya asignadas no se modifican. Implementación y evidencia en `task.md` (T22) | RF-3 |
 
-El plan podrá completarse con propuestas explícitas; la combinación de etiquetas de búsqueda afectada por D1 no está lista para implementación definitiva. D2 se ha incorporado a RF-1/RF-7/RF-8; no se modifica `REQUIREMENT.md` para ocultar diferencias.
+D1 queda resuelta por la autorización del usuario del 2026-11-03. D2 se ha incorporado a RF-1/RF-7/RF-8; no se modifica `REQUIREMENT.md` para ocultar diferencias.
 
 ## Criterios de finalización
 
@@ -341,3 +345,7 @@ La cuenta sintética que VideoImportService usa como propietario técnico no es 
 El usuario sustituye la decisión de cuenta interna no interactiva por una cuenta demo llamada admin, propietaria de los vídeos importados, para probar login y gestionar ese contenido. No tendrá permisos globales sobre cuentas o contenido ajenos. Identidad y contraseña se proporcionan por entorno; Compose aporta defaults de demostración compatibles con la política de contraseña. El login sigue usando email válido. Se reserva la identidad demo en el registro público.
 
 Al importar, convertir la antigua cuenta sintética conservando su ID y las relaciones de los vídeos; cambiar su identidad/hash únicamente en esa conversión autorizada. En reinicios reutilizar la cuenta demo sin rehash ni cambio de fecha/ID. Si la identidad configurada colisiona con otra cuenta, fallar de forma clara sin fusionar ni sobrescribir datos de esa otra cuenta. Sin nueva tabla, rol global, migración de esquema o permiso administrativo adicional. La contraseña se define en Compose/entorno, no en clases Java. Para importar por primera vez fuera de Compose se debe proporcionar ENV_PROTUBE_DEMO_ADMIN_PASSWORD; una cuenta demo ya creada puede reutilizarse sin esa variable.
+
+### RF-3: selector aprobado (2026-11-11)
+
+Cuando se abra Tags, el sistema deberá mostrar todas las etiquetas asociadas a algún vídeo, sin duplicados y ordenadas alfabéticamente, independientemente de la búsqueda de vídeos. Un buscador interno filtrará solo esas opciones. Cada casilla actualizará los resultados sin cerrar el panel. Escape o pulsar fuera lo cerrará; se conservarán las selecciones. Se mostrará el número seleccionado y una acción de limpiar. Con texto activo, retirar tags conservará el filtro textual. ABBA + reguetton sin coincidencia textual deberá devolver cero vídeos. Se mantienen OR, ranking por número de etiquetas, desempate textual/ID, paginación y límite de 40 selecciones.

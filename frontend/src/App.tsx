@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SearchBar } from './components/SearchBar';
+import { TagSearch } from './components/TagSearch';
 import { VideoCard } from './components/VideoCard';
 import { VideoPlayerPage } from './components/VideoPlayerPage';
 import { useAllVideos } from './useAllVideos';
@@ -21,6 +22,7 @@ function App() {
 
 function AppRoutes() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,9 +52,22 @@ function AppRoutes() {
             alt="logo"
           />
         </Link>
-        <SearchBar value={searchQuery} onChange={handleSearch} />
+        <div className="catalog-search">
+          <SearchBar value={searchQuery} onChange={handleSearch} />
+          <TagSearch
+            tags={tags}
+            onChange={(next) => {
+              setTags(next);
+              setPage(0);
+              if (!isHome) navigate('/');
+            }}
+          />
+        </div>
         <Routes>
-          <Route path="/" element={<ContentApp searchQuery={searchQuery} page={page} onPageChange={changePage} />} />
+          <Route
+            path="/"
+            element={<ContentApp searchQuery={searchQuery} tags={tags} page={page} onPageChange={changePage} />}
+          />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
@@ -66,12 +81,13 @@ function AppRoutes() {
 
 interface ContentAppProps {
   searchQuery: string;
+  tags: string[];
   page: number;
   onPageChange: (page: number) => void;
 }
 
-function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
-  const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page);
+function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) {
+  const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page, tags);
   switch (loading) {
     case 'loading':
       return (
@@ -103,7 +119,11 @@ function ContentApp({ searchQuery, page, onPageChange }: ContentAppProps) {
         return (
           <>
             <p className="empty-search-message" role="status">
-              {searchQuery.trim() ? `No videos found matching "${searchQuery}".` : 'No videos are available.'}
+              {tags.length > 0
+                ? 'No videos found matching the selected filters.'
+                : searchQuery.trim()
+                  ? `No videos found matching "${searchQuery}".`
+                  : 'No videos are available.'}
             </p>
             {pagination}
           </>

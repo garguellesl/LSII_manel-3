@@ -61,10 +61,27 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoPage getVideos(String query, int page, int size) {
+        return getVideos(query, List.of(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public VideoPage getVideos(String query, List<String> tags, int page, int size) {
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-        var result = videoRepository.search(normalized, PageRequest.of(page, size));
+        var filters = tags.stream().filter(Objects::nonNull).map(String::trim)
+                .map(tag -> tag.toLowerCase(Locale.ROOT)).filter(tag -> !tag.isEmpty()).distinct().toList();
+        if (filters.size() > 40 || filters.stream().anyMatch(tag -> tag.length() > 80)) {
+            throw new IllegalArgumentException("Expected at most 40 distinct tag filters, each at most 80 characters");
+        }
+        var pageable = PageRequest.of(page, size);
+        var result = filters.isEmpty() ? videoRepository.search(normalized, pageable)
+                : videoRepository.searchByTags(normalized, filters, pageable);
         return new VideoPage(result.getContent().stream().map(this::toSummary).toList(),
                 page, size, result.hasNext(), result.getTotalElements());
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getAvailableTags() {
+        return tagRepository.findAssociatedNames();
     }
 
     @Transactional(readOnly = true)
@@ -254,11 +271,8 @@ public class VideoService {
 
     @Transactional
     public void attachImportedTagsIfMissing(String mediaPath, List<String> rawTagNames) {
-        if (rawTagNames.isEmpty()) {
-            return;
-        }
         videoRepository.findByMediaPath(mediaPath).ifPresent(video -> {
-            if (video.getTags().isEmpty()) {
+            if (!video.hasInitializedTags() && video.getTags().isEmpty()) {
                 video.updateMetadata(null, null, resolveTags(rawTagNames));
             }
         });

@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import { VideoPlayerPage } from '../VideoPlayerPage';
 import { AuthContext } from '../../auth/AuthContext';
@@ -63,6 +63,46 @@ const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status } });
 
 describe('VideoPlayerPage', () => {
+  it('keeps a late save isolated after switching videos, including when returning to the original video', async () => {
+    let finishSave!: (value: typeof videoDetail) => void;
+    mockedVideoClient.updateTags.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      })
+    );
+    const second = { ...videoDetail, id: 8, title: 'Second video', tags: ['jazz'] };
+    mockedAxios.get.mockImplementation((url: string) =>
+      Promise.resolve({ data: url.endsWith('/8') ? second : videoDetail })
+    );
+    render(
+      <AuthContext.Provider value={buildAuth({ status: 'authenticated', user: owner })}>
+        <MemoryRouter initialEntries={['/videos/7']}>
+          <Link to="/videos/7">First video</Link>
+          <Link to="/videos/8">Second video link</Link>
+          <Routes>
+            <Route path="/videos/:id" element={<VideoPlayerPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+    await screen.findByRole('heading', { name: 'Uptown Funk' });
+    fireEvent.change(screen.getByLabelText('Add a tag'), { target: { value: 'house' } });
+    fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' });
+    await waitFor(() => expect(mockedVideoClient.updateTags).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('link', { name: 'Second video link' }));
+    await screen.findByRole('heading', { name: 'Second video' });
+    await act(async () => finishSave({ ...videoDetail, tags: ['funk', 'house', 'pop'] }));
+    expect(screen.getByText('jazz')).toBeInTheDocument();
+    expect(screen.queryByText('house')).not.toBeInTheDocument();
+    mockedVideoClient.updateTags.mockResolvedValueOnce({ ...second, tags: [] });
+    fireEvent.click(screen.getByLabelText('Remove tag jazz'));
+    await waitFor(() => expect(mockedVideoClient.updateTags).toHaveBeenLastCalledWith(8, []));
+    fireEvent.click(screen.getByRole('link', { name: 'First video' }));
+    await screen.findByRole('heading', { name: 'Uptown Funk' });
+    expect(screen.getByText('funk')).toBeInTheDocument();
+    expect(screen.queryByText('house')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
