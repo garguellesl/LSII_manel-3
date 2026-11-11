@@ -33,13 +33,98 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
     private final ObjectMapper mapper;
     private final UserService users;
     private final VideoService videos;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @Autowired
-    SessionSecurityTest(MockMvc mvc, ObjectMapper mapper, UserService users, VideoService videos) {
+    SessionSecurityTest(MockMvc mvc, ObjectMapper mapper, UserService users, VideoService videos,
+                        org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.mvc = mvc;
         this.mapper = mapper;
         this.users = users;
         this.videos = videos;
+        this.jdbc = jdbc;
+    }
+
+    @Test
+    void tagAssociationsCanBeCreatedReplacedAndRemovedWithoutDeletingSharedValues() throws Exception {
+        UserResponse owner = account();
+        Long first = video(owner);
+        Long second = video(owner);
+        Token token = csrf(login(owner));
+        for (Long id : List.of(first, second)) {
+            mvc.perform(patch("/api/videos/" + id).session(token.session()).header(token.header(), token.value())
+                            .contentType("application/json").content("{\"tags\":[\"Rock\",\" rock \"]}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.tags.length()").value(1))
+                    .andExpect(jsonPath("$.tags[0]").value("rock"));
+        }
+        mvc.perform(patch("/api/videos/" + first).session(token.session()).header(token.header(), token.value())
+                        .contentType("application/json").content("{\"tags\":[\"pop\"]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.tags[0]").value("pop"));
+        mvc.perform(get("/api/videos/" + second)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags[0]").value("rock"));
+        mvc.perform(get("/api/videos").param("tag", "rock", "pop"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(2));
+        for (Long id : List.of(first, second)) {
+            mvc.perform(patch("/api/videos/" + id).session(token.session()).header(token.header(), token.value())
+                            .contentType("application/json").content("{\"tags\":[]}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.tags.length()").value(0));
+        }
+        assertEquals(1L, jdbc.queryForObject("select count(*) from tags where name = 'rock'", Long.class));
+        assertEquals(1L, jdbc.queryForObject("select count(*) from tags where name = 'pop'", Long.class));
+    }
+
+    @Test
+    void tagWritesRequireOwnerSessionAndCsrfAndRejectInvalidOrMissingVideos() throws Exception {
+        UserResponse owner = account();
+        Long id = video(owner);
+        Token guest = csrf(null);
+        mvc.perform(patch("/api/videos/" + id).session(guest.session()).header(guest.header(), guest.value())
+                        .contentType("application/json").content("{\"tags\":[\"rock\"]}"))
+                .andExpect(status().isUnauthorized());
+        Token other = csrf(login(account()));
+        mvc.perform(patch("/api/videos/" + id).session(other.session()).header(other.header(), other.value())
+                        .contentType("application/json").content("{\"tags\":[\"rock\"]}"))
+                .andExpect(status().isForbidden());
+        Token token = csrf(login(owner));
+        mvc.perform(patch("/api/videos/" + id).session(token.session())
+                        .contentType("application/json").content("{\"tags\":[\"rock\"]}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+        mvc.perform(patch("/api/videos/" + id).session(token.session()).header(token.header(), token.value())
+                        .contentType("application/json").content("{\"tags\":[\"should-not-exist\",\"\"]}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors['tags[1]']").exists());
+        assertEquals(0L, jdbc.queryForObject("select count(*) from tags where name = 'should-not-exist'", Long.class));
+        mvc.perform(patch("/api/videos/9223372036854775807").session(token.session()).header(token.header(), token.value())
+                        .contentType("application/json").content("{\"tags\":[]}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/videos/" + id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags.length()").value(0));
+    }
+
+    @Test
+    void availableTagsCanBeReadWithoutAuthentication() throws Exception {
+        mvc.perform(get("/api/videos/tags"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        var owner = account();
+        videos.createVideo(new CreateVideoRequest("Music", "", "public-tags.mp4", null, 0,
+                owner.id(), List.of("reguetton")));
+        mvc.perform(get("/api/videos/tags"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0]").value("reguetton"));
+        mvc.perform(get("/api/videos").param("q", "ABBA").param("tag", "reguetton"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void tagSearchLimitsApplyAfterIgnoringCaseDuplicatesAndBlanks() throws Exception {
+        var tags = java.util.stream.IntStream.range(0, 40).mapToObj(i -> "tag" + i).toList();
+        var duplicates = new java.util.ArrayList<>(tags);
+        duplicates.addAll(List.of("TAG0", " ", ""));
+        mvc.perform(get("/api/videos").param("tag", duplicates.toArray(String[]::new)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        duplicates.add("one-too-many");
+        mvc.perform(get("/api/videos").param("tag", duplicates.toArray(String[]::new)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").exists());
+        mvc.perform(get("/api/videos").param("tag", "x".repeat(81)))
+                .andExpect(status().isBadRequest());
     }
 
     record Token(MockHttpSession session, String header, String value) {}

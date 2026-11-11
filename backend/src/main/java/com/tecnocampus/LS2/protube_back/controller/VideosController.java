@@ -39,12 +39,18 @@ public class VideosController {
     @GetMapping("")
     public ResponseEntity<VideoPage> getVideos(
             @RequestParam(defaultValue = "") String q,
+            @RequestParam(required = false) List<String> tag,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "24") int size) {
         if (page < 0 || size < 1 || size > 100 || q.length() > 500) {
             throw new IllegalArgumentException("Expected page >= 0, size between 1 and 100, and q at most 500 characters");
         }
-        return ResponseEntity.ok(videoService.getVideos(q, page, size));
+        return ResponseEntity.ok(videoService.getVideos(q, tag == null ? List.of() : tag, page, size));
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getAvailableTags() {
+        return ResponseEntity.ok(videoService.getAvailableTags());
     }
 
     @GetMapping("/{id}")

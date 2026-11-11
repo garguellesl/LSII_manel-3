@@ -27,6 +27,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PostgreSqlPersistenceTest {
 
     @Test
+    void upgradingV2MarksExistingTagsButLeavesLegacyEmptyVideosEligibleForBackfill() {
+        try (var database = new PostgreSQLContainer<>("postgres:16-alpine")
+                .withPassword(UUID.randomUUID().toString())) {
+            database.start();
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(),
+                    database.getPassword()).target("2").load().migrate();
+            var jdbc = new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
+                    database.getJdbcUrl(), database.getUsername(), database.getPassword()));
+            jdbc.update("INSERT INTO app_users (id,email,account_name,first_name,last_name,password_hash) VALUES (1,'migration@example.test','migration','First','Last','test')");
+            jdbc.update("INSERT INTO videos (id,title,description,media_path,owner_user_id) VALUES (1,'Tagged','','tagged.mp4',1),(2,'Empty','','empty.mp4',1)");
+            jdbc.update("INSERT INTO tags (id,name) VALUES (1,'rock')");
+            jdbc.update("INSERT INTO video_tags (video_id,tag_id) VALUES (1,1)");
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(),
+                    database.getPassword()).load().migrate();
+            assertEquals(List.of(true, false), jdbc.queryForList(
+                    "SELECT tags_initialized FROM videos ORDER BY id", Boolean.class));
+            assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM video_tags", Long.class));
+        }
+    }
+
+    @Test
     void preservesCoreDataBetweenDevAndProdRestartsAndSupportsRepositoryCrud() {
         try (var database = new PostgreSQLContainer<>("postgres:16-alpine")
                 .withDatabaseName("protube_restart")
@@ -51,7 +72,7 @@ class PostgreSqlPersistenceTest {
                 videos.recordWatch(videoId, new WatchHistoryRequest(userId, 5));
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(
@@ -130,6 +151,24 @@ class PostgreSqlPersistenceTest {
                     assertEquals(1L, jdbc.queryForObject("select count(*) from tags", Long.class));
                     assertEquals(1L, jdbc.queryForObject("select count(*) from video_tags", Long.class));
                 }
+                // An owner's explicit empty selection survives the next application restart/import.
+                try (var application = startApplicationImportingFrom(database, storeDirectory)) {
+                    var videos = application.getBean(VideoService.class);
+                    Long videoId = videos.getVideos("", 0, 24).content().get(0).id();
+                    var owner = application.getBean(JdbcTemplate.class).queryForObject(
+                            "select owner_user_id from videos where id = ?", Long.class, videoId);
+                    videos.updateVideo(videoId, new UpdateVideoRequest(null, null, List.of()), owner);
+                }
+                try (var application = startApplicationImportingFrom(database, storeDirectory)) {
+                    var videos = application.getBean(VideoService.class);
+                    Long videoId = videos.getVideos("", 0, 24).content().get(0).id();
+                    assertEquals(List.of(), videos.getVideo(videoId).orElseThrow().tags());
+                    var jdbc = application.getBean(JdbcTemplate.class);
+                    assertEquals(0L, jdbc.queryForObject("select count(*) from video_tags", Long.class));
+                    assertEquals(1L, jdbc.queryForObject("select count(*) from tags", Long.class));
+                    assertTrue(jdbc.queryForObject("select tags_initialized from videos where id = ?", Boolean.class, videoId));
+                }
+
             } finally {
                 try (var files = Files.walk(storeDirectory)) {
                     files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());

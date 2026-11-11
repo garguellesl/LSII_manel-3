@@ -10,6 +10,7 @@ import com.tecnocampus.LS2.protube_back.support.PostgreSqlIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 
@@ -25,6 +26,82 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     VideoService videoService;
+
+    @Autowired
+    JdbcTemplate jdbc;
+
+    @Test
+    void availableTagsAreDistinctSortedAndOnlyAssociatedWithVideos() {
+        assertEquals(List.of(), videoService.getAvailableTags());
+        Long owner = registerUser("available@example.com", "available").id();
+        var first = createVideoWithTags(owner, "available-one.mp4", List.of("zebra", "rock", "abba"));
+        createVideoWithTags(owner, "available-two.mp4", List.of("rock"));
+        assertEquals(List.of("abba", "rock", "zebra"), videoService.getAvailableTags());
+        videoService.updateVideo(first.id(), new UpdateVideoRequest(null, null, List.of()), owner);
+        assertEquals(List.of("rock"), videoService.getAvailableTags());
+    }
+
+    @Test
+    void tagSearchUsesOrAndRanksDistinctFiltersBeforeTextAndStableId() {
+        Long owner = registerUser("tag-search@example.com", "tag-search").id();
+        var manyRockTags = videoService.createVideo(new CreateVideoRequest("Match", "", "rock-only.mp4", null, 0,
+                owner, List.of("rock", "rock music", "rock concert")));
+        var two = videoService.createVideo(new CreateVideoRequest("Match", "", "two.mp4", null, 0,
+                owner, List.of("rock", "pop")));
+        var three = videoService.createVideo(new CreateVideoRequest("Other", "Match", "three.mp4", null, 0,
+                owner, List.of("rock", "pop", "live")));
+        var tie = videoService.createVideo(new CreateVideoRequest("Match", "", "tie.mp4", null, 0,
+                owner, List.of("pop", "rock")));
+        createVideoWithTags(owner, "unrelated.mp4", List.of("jazz"));
+        var first = videoService.getVideos("match", List.of(" ROCK ", "pop", "live", "rock", " "), 0, 2);
+        assertEquals(List.of(three.id(), two.id()), first.content().stream().map(v -> v.id()).toList());
+        assertEquals(4, first.totalElements());
+        assertTrue(first.hasNext());
+        var last = videoService.getVideos("match", List.of("rock", "pop", "live"), 1, 2);
+        assertEquals(List.of(tie.id(), manyRockTags.id()), last.content().stream().map(v -> v.id()).toList());
+        assertEquals(4, last.totalElements());
+        assertTrue(!last.hasNext());
+        assertEquals(4, videoService.getVideos("match", List.of("rock", "pop", "live"), 5, 2).totalElements());
+    }
+
+    @Test
+    void tagSearchCombinesTextAndExactTagsAndHandlesUnknownEmptyAndLiteralFilters() {
+        Long owner = registerUser("tag-filters@example.com", "tag-filters").id();
+        var literal = videoService.createVideo(new CreateVideoRequest("First", "needle", "literal-tag.mp4", null, 0,
+                owner, List.of("node_js", "rock music")));
+        createVideoWithTags(owner, "other-tag.mp4", List.of("nodeXjs", "rock"));
+        assertEquals(List.of(literal.id()), videoService.getVideos("NEEDLE", List.of("RoCk MuSiC"), 0, 24)
+                .content().stream().map(v -> v.id()).toList());
+        assertEquals(List.of(literal.id()), videoService.getVideos("", List.of("node_js"), 0, 24)
+                .content().stream().map(v -> v.id()).toList());
+        assertEquals(0, videoService.getVideos("ABBA", List.of("rock"), 0, 24).totalElements());
+        assertEquals(0, videoService.getVideos("needle", List.of("rock"), 0, 24).totalElements());
+        assertEquals(0, videoService.getVideos("", List.of("roc"), 0, 24).totalElements());
+        assertEquals(0, videoService.getVideos("", List.of("%"), 0, 24).totalElements());
+        assertEquals(0, videoService.getVideos("", List.of("unknown"), 0, 24).totalElements());
+        assertEquals(1, videoService.getVideos("", List.of("unknown", "rock"), 0, 24).totalElements());
+        assertEquals(2, videoService.getVideos("", List.of("", " "), 0, 24).totalElements());
+        assertThrows(IllegalArgumentException.class,
+                () -> videoService.getVideos("", List.of("a".repeat(81)), 0, 24));
+        assertThrows(IllegalArgumentException.class, () -> videoService.getVideos("",
+                java.util.stream.IntStream.range(0, 41).mapToObj(i -> "tag" + i).toList(), 0, 24));
+    }
+
+    @Test
+    void tagSearchPaginatesTwentyFiveMatchesWithoutDuplicateVideos() {
+        Long owner = registerUser("tag-pages@example.com", "tag-pages").id();
+        for (int i = 0; i < 25; i++) {
+            createVideoWithTags(owner, "tag-page-" + i + ".mp4", List.of("rock", "rock live"));
+        }
+        var first = videoService.getVideos("", List.of("rock"), 0, 24);
+        var last = videoService.getVideos("", List.of("rock"), 1, 24);
+        assertEquals(24, first.content().size());
+        assertEquals(25, first.totalElements());
+        assertTrue(first.hasNext());
+        assertEquals(1, last.content().size());
+        assertEquals(25, last.totalElements());
+        assertTrue(!last.hasNext());
+    }
 
     @Test
     void createsAndReturnsVideoMetadataFromDatabase() {
@@ -288,11 +365,14 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     @Test
     void attachImportedTagsIfMissingAddsTagsWhenVideoHasNone() {
         Long userId = registerUser("backfill-empty@example.com", "backfill-empty").id();
-        Long videoId = createVideo(userId, "backfill-empty.mp4").id();
+        Long videoId = createLegacyVideo(userId, "backfill-empty.mp4");
 
         videoService.attachImportedTagsIfMissing("backfill-empty.mp4", List.of("Live", "live "));
 
         assertEquals(List.of("live"), videoService.getVideo(videoId).orElseThrow().tags());
+        videoService.updateVideo(videoId, new UpdateVideoRequest(null, null, List.of()), userId);
+        videoService.attachImportedTagsIfMissing("backfill-empty.mp4", List.of("live"));
+        assertEquals(List.of(), videoService.getVideo(videoId).orElseThrow().tags());
     }
 
     @Test
@@ -318,6 +398,25 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
 
     private com.tecnocampus.LS2.protube_back.model.UserResponse registerUser(String email, String accountName) {
         return userService.register(new RegisterRequest(email, accountName, "First", "Last", "password123"));
+    }
+
+    private Long createLegacyVideo(Long owner, String mediaPath) {
+        return jdbc.queryForObject("""
+                INSERT INTO videos (title, description, media_path, owner_user_id)
+                VALUES ('Legacy', '', ?, ?) RETURNING id
+                """, Long.class, mediaPath, owner);
+    }
+
+    @Test
+    void explicitlyEmptyTagsAndEmptyBackfillAreNotFilledOnLaterImports() {
+        Long owner = registerUser("empty-import@example.com", "empty-import").id();
+        var created = createVideo(owner, "explicit-empty.mp4");
+        videoService.attachImportedTagsIfMissing("explicit-empty.mp4", List.of("unwanted"));
+        assertEquals(List.of(), videoService.getVideo(created.id()).orElseThrow().tags());
+        Long legacy = createLegacyVideo(owner, "empty-legacy.mp4");
+        videoService.attachImportedTagsIfMissing("empty-legacy.mp4", List.of());
+        videoService.attachImportedTagsIfMissing("empty-legacy.mp4", List.of("unwanted"));
+        assertEquals(List.of(), videoService.getVideo(legacy).orElseThrow().tags());
     }
 
     private com.tecnocampus.LS2.protube_back.model.VideoDetail createVideo(Long userId, String mediaPath) {

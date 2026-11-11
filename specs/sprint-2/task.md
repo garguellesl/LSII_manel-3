@@ -1,6 +1,30 @@
 # Tareas - Sprint 2
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md).
+
+## Ejecución de etiquetas OR y correcciones (2026-11-03)
+
+Autorización: corregir guardados tardíos y persistencia del vaciado, verificar/cerrar T15 y completar búsqueda OR con prioridad por número de filtros coincidentes. Baseline ce8889a; rama feature/tags-search-and-fixes. Registro: docs/ai/tasks/tags-search-and-fixes.md.
+
+- [x] E1 - RF-8: aislar guardados de cada vídeo y probar respuesta tardía tras cambiar de ruta.
+- [x] E2 - RF-1/RF-8: V3, inicialización de etiquetas y reinicio/reimportación tras vaciado explícito.
+- [x] E3 - RF-3/T5: OR con ranking por filtros distintos, COUNT/paginación y contrato/límites HTTP.
+- [x] E4 - RF-3: interfaz, filtros repetidos, limpieza, paginación y descarte de respuestas antiguas.
+- [x] E5 - T15: verificar altas, consultas, sustitución/retirada, permisos y conservación global; cerrar solo con evidencia.
+- [x] E6 - Checks de área y handoff con resultados reales.
+
+Verificado el 2026-11-03, Europe/Madrid, sobre ce8889a más estos cambios locales:
+
+- Backend: `mvn -B -ntp clean verify` con Java 21 y `DOCKER_HOST` tomado del endpoint del contexto activo de Docker Desktop: BUILD SUCCESS, **107 tests**, 0 fallos/errores/omisiones; puertas JaCoCo satisfechas y jar generado. El endpoint se pasó solo al proceso; no hay cambios de configuración de Docker ni del repositorio para la máquina. Ejecución enfocada anterior de 56 tests con `-Djacoco.skip=true` utilizada solo para diagnóstico; la ejecución final sí aplica cobertura y la suite completa.
+- Frontend: `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (**17 suites, 99 tests, 1 snapshot**) y `npm run lint`: correctos; umbrales de cobertura satisfechos. Avisos previos de npm-cache/ts-jest/punycode no impiden los checks.
+- E1: `VideoPlayerPage.test.tsx` guarda en A, navega a B, recibe respuesta de A y edita B sin arrastrar etiquetas; volver a A usa el detalle recién consultado. Estado de etiquetas en componente con key por vídeo.
+- E2: `PostgreSqlPersistenceTest.upgradingV2MarksExistingTagsButLeavesLegacyEmptyVideosEligibleForBackfill` migra V2 con datos a V3 y conserva asociaciones; `reimportingAttachesTagsOnceWithoutDuplicatingVideosOrAssociations` comprueba reimportación idempotente y después vaciado del propietario/reinicio con etiquetas vacías y registro global conservado. `VideoServiceTest` verifica backfill de un legado y preservación de listas explícitas/importaciones vacías.
+- E3: `VideoServiceTest.tagSearchUsesOrAndRanksDistinctFiltersBeforeTextAndStableId`, `tagSearchCombinesTextAndPartialTagsAndHandlesUnknownEmptyAndLiteralFilters`, `tagSearchPaginatesTwentyFiveMatchesWithoutDuplicateVideos`: ranking 3/2/1 filtros, una sola puntuación por filtro, texto AND etiquetas, mayúsculas/blancos/repetidos, `%`/`_` literales, desconocidos/vacío, COUNT y páginas de 24+1/sin resultados/fuera de rango. `VideosControllerTest` comprueba `tag` repetido y error 400; `SessionSecurityTest.tagSearchLimitsApplyAfterIgnoringCaseDuplicatesAndBlanks` valida 40 distintos, blancos/repetidos permitidos y límites excedidos vía HTTP real.
+- E4: `TagSearch.test.tsx` alta/coma/formulario/botón, retirada/limpieza, duplicados y límites. `app.test.tsx` conserva orden del servidor, combina filtros/texto, vuelve de página 2 a 1 al cambiar etiquetas, limpia filtros y descarta respuesta antigua con signal abortada.
+- E5/T15: `SessionSecurityTest.tagAssociationsCanBeCreatedReplacedAndRemovedWithoutDeletingSharedValues` verifica normalización/reutilización, sustitución independiente, consulta pública y retirada sin borrar valores globales. `tagWritesRequireOwnerSessionAndCsrfAndRejectInvalidOrMissingVideos` comprueba 401/403 de usuario/CSRF, 400 sin creación parcial, 404 y detalle intacto. Se conservan `TagNormalizerTest`, `VideoServiceTest` y concurrencia real `TagConcurrencyTest`: una sola fila compartida. T15 completa localmente, independiente del DELETE/CRUD adicional de T14.
+- Sin prueba visual de navegador, benchmark masivo, Maven prod, CI remota, staging, commit, push o PR. El sprint completo permanece pendiente. Un vacío previo a V3 no puede distinguirse retrospectivamente de un vídeo legado nunca inicializado.
+
+## Registros anteriores
 Alcance actual autorizado: RF-4/RF-5/RF-6, T7-T13 y verificación local correspondiente de T17, en `feature/session-auth-profile` desde `24b8dcf`. Se conservan abajo los registros históricos de PostgreSQL y arranque.
 Estado: autenticación/perfil y cuenta demo verificados localmente; sprint completo y entrega remota pendientes.
 Evidencia histórica: la preparación documental sobre `main`/`71c144d` solo inspeccionó pruebas. Los nuevos resultados se registran aparte, sin sustituir esa evidencia.
@@ -25,10 +49,10 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T1 para coordinación; T2 para comprobación de integración.
   - Hecho cuando: GET `/api/videos?q=...` busca título/descripcion mediante repositorio parametrizado, conserva VideoSummary dentro de VideoPage y consulta sin filtros y produce ranking/desempate acordados; tests cubren fragmentos, mayúsculas, vacío, caracteres especiales y no resultados.
   - Evidencia: verificacion final T4/RF-2 al final de este documento; Maven 61 tests y Jest 63 tests, build/lint satisfactorios.
-- [ ] T5 - Implementar búsqueda por etiquetas en backend (RF-3).
+- [x] T5 - Implementar búsqueda por etiquetas en backend (RF-3).
   - Depende de: T1, T4; D1 resuelta.
-  - Hecho cuando: `tag` repetido filtra parcialmente sin distinguir mayúsculas según OR/AND acordado, se combina con texto, no duplica vídeos y maneja valores vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
-  - Evidencia: pendiente.
+  - Hecho cuando: `tag` repetido filtra parcialmente sin distinguir mayúsculas con OR y prioridad por número de filtros distintos coincidentes, se combina con texto, no duplica vídeos y maneja vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
+  - Evidencia: E3/E4 de la ejecución de etiquetas OR del 2026-11-03 arriba; Maven 107 tests y Jest 99 tests/build/lint correctos. Completa localmente, sin declarar integración remota.
 - [x] T7 - Preparar sesión y frontera de seguridad (RF-4/RF-5/RF-6).
   - Depende de: T1 para contratos, topología y coordinación.
   - Hecho cuando: dependencias de seguridad gestionadas por Maven, filtros/contexto/sesión y errores API están configurados; cookie, fijación de sesión, CSRF y CORS/proxy están comprobados; existe inventario de rutas públicas/privadas y de cambios de identidad en DTOs.
@@ -61,10 +85,10 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T7/T10, contrato acordado de T1; PostgreSQL de T2 para integrar.
   - Hecho cuando: POST/GET/PATCH existentes y DELETE nuevo cubren CRUD; propietario desde principal; transacciones y cascadas correctas; 400/401/403/404 probados; se rechazan rutas fuera del almacén y no se borran archivos físicos al eliminar metadatos.
   - Evidencia: pendiente.
-- [ ] T15 - Verificar gestión de etiquetas propias en backend (RF-8).
-  - Depende de: T14 y coordinación de los métodos compartidos con T5.
+- [x] T15 - Verificar gestión de etiquetas propias en backend (RF-8).
+  - Depende de: contrato RF-8, persistencia T2 y propiedad T7/T10; coordinada con T5. Su comprobación no requiere el CRUD adicional/DELETE de T14.
   - Hecho cuando: alta/consulta/sustitución/retirada de etiquetas opera sobre asociaciones del vídeo propio; reutiliza valores normalizados y evita duplicados; dos vídeos compartiendo etiqueta permanecen independientes al editar uno; no se renombra/borra el registro global ni se permiten escrituras ajenas.
-  - Evidencia: pendiente.
+  - Evidencia: E2/E5 de la ejecución del 2026-11-03 arriba; HTTP con PostgreSQL real y suite Maven completa de 107 tests/JaCoCo correcta. Alta/consulta/sustitución/retirada, independencia, permisos, vaciado/reinicio y registros globales conservados comprobados. Completa localmente; sin declarar merge de estos cambios.
 - [ ] T16 - Añadir editor y eliminación de vídeos en frontend (RF-7/RF-8).
   - Depende de: contratos T14/T15 y T12; preparación con mocks permitida tras acuerdo.
   - Hecho cuando: el propietario crea/edita metadatos, gestiona etiquetas dentro de su vídeo y confirma eliminación; validación y errores visibles; listas/detalle/búsquedas se actualizan; no aparecen gestión global de etiquetas ni subida de archivos; pruebas de permisos/éxito/error con API mockeada.
@@ -253,3 +277,25 @@ D6 aprobada por el equipo el 2026-11-02 (ver `spec.md`). Rama `associate-tags-to
 - Verificacion real, 2026-11-02 Europe/Madrid, Java 21 (Temurin 21.0.11), Maven 3 bundled de IntelliJ (ruta local, sin wrapper), Docker Desktop iniciado para esta ejecucion: `mvn -B -ntp clean verify` desde `backend/` → **BUILD SUCCESS, 98 tests, 0 fallos/errores/omisiones**; `All coverage checks have been met` (JaCoCo: lineas 95.88%, instrucciones 95.41%, ramas 81.58%, metodos 95.22%, calculado desde `target/site/jacoco/jacoco.csv`). Incluye `VideoImportServiceTest` (13 tests), `VideoServiceTest` (20 tests) y `PostgreSqlPersistenceTest` (2 tests) con PostgreSQL real vía Testcontainers.
 - No ejecutado: `mvn -Pprod clean verify`, frontend (sin cambios en esta tarea), E2E, CI remota, despliegue. No se ha tocado la casilla de T15: queda abierta a propósito, porque la comprobación de propiedad depende de T7/T10. D1/T5 (busqueda por etiquetas) sigue sin resolver y no se ve afectada por T22 mas alla de que ahora hay datos de etiquetas reales que buscar.
 - T22 completa localmente con evidencia real. Sin commit, push ni PR.
+
+## Selector de etiquetas (2026-11-11)
+
+- [x] S1 (RF-3): catálogo público de nombres asociados y filtros exactos; pruebas de contrato y PostgreSQL.
+- [x] S2 (RF-3): panel accesible junto al texto, búsqueda interna, selección múltiple y estados; pruebas frontend.
+- [x] S3 (RF-3): build, Jest con cobertura, lint y clean verify; registrar resultados reales y actualizar handoff/contexto.
+
+Evidencia local (2026-11-11, Europe/Madrid):
+
+| Criterio RF-3 | Evidencia | Resultado |
+| --- | --- | --- |
+| Nombres asociados, distintos, ordenados; sin tags huérfanas; vacío | VideoServiceTest.availableTagsAreDistinctSortedAndOnlyAssociatedWithVideos, VideosControllerTest.availableTagsReturnsNamesAndEmptyCatalog | Correcto con PostgreSQL aislado |
+| API pública; ABBA + reguetton sin coincidencia textual | SessionSecurityTest.availableTagsCanBeReadWithoutAuthentication; caso ABBA en app.test.tsx | Correcto |
+| Igualdad exacta, mayúsculas, AND, OR, ranking y paginación | Casos tagSearch de VideoServiceTest; app.test.tsx | Correcto |
+| Panel, orden alfabético, filtro local, marcar/desmarcar, limpiar, máximo 40 | TagSearch.test.tsx | Correcto |
+| Escape/foco, clic fuera, carga/error/reintento/vacío/cancelación y respuestas tardías | TagSearch.test.tsx y app.test.tsx | Correcto |
+
+- Frontend: `npm.cmd run build` y `npm.cmd run lint`: exit 0. `npm.cmd run test -- --coverage --watchAll=false --ci --runInBand`: exit 0; 103 tests, 17 suites y 1 snapshot; umbrales de cobertura cumplidos.
+- Backend: Maven disponible localmente, Java 21 y `mvn -B -ntp clean verify`: BUILD SUCCESS; 110 tests, 0 fallos/errores/omitidos; JaCoCo correcto. Docker Desktop arrancado para Testcontainers PostgreSQL; DOCKER_HOST configurado solo en el proceso. Log generado en backend/target/tag-selector-verify.log, sin seguimiento Git.
+- La primera ejecución frontend limitada a dos suites pasó 26 tests, pero terminó con exit 1 por el umbral global de cobertura; la suite completa posterior lo satisface. Maven dentro del sandbox falló al acceder al repositorio local; la ejecución autorizada fuera del sandbox completó la verificación.
+- No ejecutado: prueba visual en navegador, E2E de la aplicación desplegada, CI remota o despliegue. No hay nuevas dependencias ni migraciones para el selector; V3 y los cambios anteriores se conservan.
+- Trazabilidad: prompts/12-tag-selector.md, pendiente de revisión del equipo. La autorización local del usuario no acredita aprobación del equipo ni merge.

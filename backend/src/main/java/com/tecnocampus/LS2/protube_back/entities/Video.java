@@ -54,6 +54,9 @@ public class Video {
     )
     private Set<Tag> tags = new LinkedHashSet<>();
 
+    @Column(name = "tags_initialized", nullable = false)
+    private boolean tagsInitialized = true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -118,6 +121,10 @@ public class Video {
         return tags;
     }
 
+    public boolean hasInitializedTags() {
+        return tagsInitialized;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -135,6 +142,7 @@ public class Video {
         }
         if (tags != null) {
             this.tags = new LinkedHashSet<>(tags);
+            this.tagsInitialized = true;
         }
     }
 }

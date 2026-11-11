@@ -45,8 +45,19 @@ class VideosControllerTest {
     }
 
     @Test
+    void availableTagsReturnsNamesAndEmptyCatalog() throws Exception {
+        when(videoService.getAvailableTags()).thenReturn(List.of("abba", "rock"), List.of());
+        mockMvc.perform(get("/api/videos/tags"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value("abba"))
+                .andExpect(jsonPath("$[1]").value("rock"));
+        mockMvc.perform(get("/api/videos/tags"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void getVideosReturnsVideoSummaries() throws Exception {
-        when(videoService.getVideos("", 0, 24)).thenReturn(new VideoPage(List.of(
+        when(videoService.getVideos("", List.of(), 0, 24)).thenReturn(new VideoPage(List.of(
                 new VideoSummary(1L, "video 1", "/media/1.webp", "/media/1.mp4", List.of(), 0, 0, 0),
                 new VideoSummary(2L, "video 2", "/media/2.webp", "/media/2.mp4", List.of(), 1, 2, 3)
         ), 0, 24, false, 2));
@@ -62,7 +73,7 @@ class VideosControllerTest {
 
     @Test
     void getVideosReturnsEmptyListWhenNoVideos() throws Exception {
-        when(videoService.getVideos("", 0, 24)).thenReturn(new VideoPage(List.of(), 0, 24, false, 0));
+        when(videoService.getVideos("", List.of(), 0, 24)).thenReturn(new VideoPage(List.of(), 0, 24, false, 0));
 
         mockMvc.perform(get("/api/videos"))
                 .andExpect(status().isOk())
@@ -72,7 +83,7 @@ class VideosControllerTest {
 
     @Test
     void forwardsSearchAndPagination() throws Exception {
-        when(videoService.getVideos("Java", 2, 10)).thenReturn(new VideoPage(List.of(), 2, 10, true, 40));
+        when(videoService.getVideos("Java", List.of(), 2, 10)).thenReturn(new VideoPage(List.of(), 2, 10, true, 40));
         mockMvc.perform(get("/api/videos").param("q", "Java").param("page", "2").param("size", "10"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.size").value(10)).andExpect(jsonPath("$.hasNext").value(true))
@@ -89,6 +100,18 @@ class VideosControllerTest {
         }
         mockMvc.perform(get("/api/videos").param("q", "x".repeat(501))).andExpect(status().isBadRequest());
         verifyNoInteractions(videoService);
+    }
+
+    @Test
+    void forwardsRepeatedTagFiltersAndReturnsServiceValidationAs400() throws Exception {
+        when(videoService.getVideos("music", List.of("rock", "pop"), 0, 24))
+                .thenReturn(new VideoPage(List.of(), 0, 24, false, 0));
+        mockMvc.perform(get("/api/videos").param("q", "music").param("tag", "rock", "pop"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        when(videoService.getVideos("", List.of("x".repeat(81)), 0, 24))
+                .thenThrow(new IllegalArgumentException("Expected at most 40 distinct tag filters, each at most 80 characters"));
+        mockMvc.perform(get("/api/videos").param("tag", "x".repeat(81)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").exists());
     }
 
     @Test
