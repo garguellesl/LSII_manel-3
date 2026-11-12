@@ -315,7 +315,11 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isNoContent());
         mvc.perform(post("/api/videos/" + id + "/likes").session(token.session()).header(token.header(), token.value())
                         .contentType("application/json").content("{\"userId\":" + other.id() + "}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(actor.id()));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.liked").value(true))
+                .andExpect(jsonPath("$.userId").doesNotExist());
+        mvc.perform(post("/api/videos/" + id + "/dislikes").session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.disliked").value(true))
+                .andExpect(jsonPath("$.likesCount").value(0)).andExpect(jsonPath("$.dislikesCount").value(1));
         mvc.perform(delete("/api/videos/" + id + "/likes").param("userId", other.id().toString())
                         .session(token.session()).header(token.header(), token.value()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.liked").value(false));

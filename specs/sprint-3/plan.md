@@ -55,6 +55,17 @@ Todos los archivos nuevos citados a continuación son propuestas, no implementac
 | RF-7 | `VideoService`, repositorios y datos de reproducción nuevos, `UsersController`; player, panel/cliente de analíticas | Eventos idempotentes y agregación de vídeos subidos propios |
 | RF-8 | `VideoImportService`, entidades, Flyway nuevo, almacenamiento, configuración/Compose y documentación | Procedencia, conservación del formato externo y persistencia |
 | RF-9 | `SecurityConfig`, `SessionSecurityTest`, controladores/servicios y clientes de sesión | Identidad del servidor, propiedad y CSRF en todos los contratos |
+| RF-10 | `VideoLike`, `VideoLikeRepository`, `VideoService`, `VideosController`, DTOs; VideoCard/VideoPlayerPage y cliente/hook | Like/dislike exclusivo persistente, conteos públicos y estado propio privado |
+
+## Diseño RF-10: reacciones a vídeos
+
+- Origen: ampliación solicitada y aprobada por el usuario el 2026-11-12; no existe US de reacciones a vídeos en REQUIREMENT.md. Se mantiene en esta especificación Sprint 3, sin crear otra carpeta SDD.
+- V5 añade `reaction_type` a `video_likes`, valor permitido LIKE/DISLIKE y DEFAULT LIKE para preservar votos existentes. La unicidad actual `(video_id,user_id)` garantiza una reacción por cuenta/vídeo.
+- POST/DELETE `/videos/{id}/likes` y `/videos/{id}/dislikes`: POST establece/cambia la reacción de forma idempotente; DELETE retira solo esa reacción. Mutaciones exigen sesión + CSRF y derivan el usuario del principal.
+- GET `/videos/{id}/reaction` autenticado devuelve solo el estado propio. `VideoDetail`/`VideoSummary` añaden `dislikesCount`; los contadores públicos no incluyen identidades. DTO de mutación devuelve videoId, reaction, likesCount, dislikesCount y no userId.
+- Repositorio usa upsert PostgreSQL contra la clave única para serializar cambios concurrentes. Servicio obtiene conteos por tipo; controladores no acceden a entidades/repositorios.
+- UI: contadores en VideoCard y player; botones accesibles en player, visitor ve conteos y acceso a iniciar sesión. La UI conserva estado servidor confirmado y permite reintentar errores.
+- Pruebas: migración preserva likes existentes; servicio/controller/security cubren toggle, cambio, concurrencia, recurso inexistente, CSRF y DTO sin identidad; Jest con API simulada; E2E con visitante, dos cuentas, refresco y móvil.
 
 Mantener Controller → Service → Repository y DTOs. Extraer almacenamiento/operaciones de conversación cuando ayude a probarlas sin convertir `VideoService` en una capa adicional de acceso desde controladores a repositorios. No introducir refactor general del monorepo.
 

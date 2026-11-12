@@ -213,6 +213,6 @@ describe('VideoPlayerPage', () => {
 
     expect(await screen.findByText('house')).toBeInTheDocument();
     expect(mockedVideoClient.updateTags).toHaveBeenCalledWith(7, ['funk', 'pop', 'house']);
-    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    expect(mockedAxios.get).toHaveBeenCalledTimes(2);
   });
 });

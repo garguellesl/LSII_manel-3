@@ -13,6 +13,9 @@ export function VideoCard({ video }: VideoCardProps) {
         <img src={toMediaUrl(video.thumbnailUrl)} alt="" className="video-card-thumbnail" />
         <h2 className="video-card-title">{video.title}</h2>
       </Link>
+      <p aria-label="Video reactions">
+        👍 {video.likesCount ?? 0} · 👎 {video.dislikesCount ?? 0}
+      </p>
     </li>
   );
 }

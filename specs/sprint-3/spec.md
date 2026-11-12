@@ -129,6 +129,17 @@ Cuando se importen o gestionen vídeos y datos del sprint, el sistema deberá co
 
 Mientras exista una sesión autenticada, el sistema deberá derivar la identidad de esa sesión y verificar los permisos en el servidor para cada operación privada.
 
+### RF-10 - Reacciones a vídeos
+
+Cuando una persona visite un vídeo, el sistema deberá mostrar los contadores públicos de likes y dislikes y permitir a cada usuario autenticado mantener como máximo una reacción propia por vídeo.
+
+- Visitantes podrán ver ambos contadores; solo usuarios autenticados podrán reaccionar.
+- Una cuenta tendrá una reacción por vídeo: LIKE, DISLIKE o ninguna. Cambiar la reacción sustituirá la anterior; repetir la reacción activa la retirará.
+- Las reacciones y ambos contadores persistirán tras recargar y reiniciar la aplicación. Los likes históricos existentes se conservarán como LIKE.
+- Los contadores serán públicos en catálogo y reproductor. Ningún endpoint público ni respuesta de mutación expondrá quién reaccionó ni identificadores de votantes; la cuenta autenticada solo podrá consultar su propio estado.
+- Repeticiones y concurrencia no crearán reacciones duplicadas ni contadores negativos. Las mutaciones requerirán sesión y CSRF.
+- Controles y contadores seguirán siendo accesibles con teclado y en móvil.
+
 - Alterar IDs de usuario, autor o propietario en una petición no concederá permisos sobre vídeos, perfiles, comentarios ni analíticas de otra cuenta.
 - Las mutaciones de sesión conservarán la protección CSRF vigente. Lecturas públicas de catálogo, detalle, medios, comentarios, etiquetas y categorías seguirán disponibles sin login.
 - Caducidad de sesión y falta de permisos mostrarán errores claros sin guardar cambios parciales. El registro de reproducción público no expondrá información privada ni abrirá el resto de escrituras.
@@ -148,7 +159,7 @@ Archivos de 0 bytes, extensiones engañosas, límites exactos/superados, almacé
 
 ## Fuera de alcance
 
-Transcodificación, subida reanudable, streaming adaptativo, sustitución/borrado del archivo de vídeo por el usuario, edición de credenciales, páginas públicas nuevas de perfil, moderación/admin, notificaciones, CRUD global de taxonomías, nuevas funciones de like a vídeos, cambios del historial personal y analíticas avanzadas. Se preservan los comportamientos existentes que no contradigan los nuevos AC.
+Transcodificación, subida reanudable, streaming adaptativo, sustitución/borrado del archivo de vídeo por el usuario, edición de credenciales, páginas públicas nuevas de perfil, moderación/admin, notificaciones, CRUD global de taxonomías, cambios del historial personal y analíticas avanzadas. RF-10 amplía el alcance acordado el 2026-11-12; se preservan los comportamientos existentes que no contradigan los AC.
 
 ## Supuestos y dudas
 

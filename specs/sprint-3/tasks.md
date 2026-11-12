@@ -1,7 +1,7 @@
 # Tareas - Sprint 3
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md)
-Alcance autorizado: implementación local de RF-4 (AC1–AC10), con las tareas T3, T15–T17 y validación E2E acotada. El resto del sprint continúa propuesto.
+Alcance autorizado: implementación local de RF-4 (AC1–AC10) y RF-10 (reacciones de vídeo), incluidas API, UI y pruebas. El resto del sprint continúa propuesto.
 
 Actualización 2026-11-12: autorizado el plan acotado de RF-4; ejecución de T3,
 T15-T17 y escenarios pertinentes de T24, sin declarar completas tareas globales
@@ -116,6 +116,22 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T25.
   - Hecho cuando: AC tengan evidencia, CI y revisión del equipo sean satisfactorias, prompt revisado según política y PR fusionada a main mediante squash sin credenciales/medios/generados. Coordinar liberación explícita de ownership, sin push directo a main.
   - Evidencia: pendiente. No implica autorización para publicar/fusionar desde esta petición.
+- [x] T27 - Persistir tipo de reacción en likes de vídeo (RF-10, RF-8)
+  - Depende de: V4 de comentarios en la rama base.
+  - Hecho cuando: migración V5 conserva votos existentes como LIKE, limita valores y mantiene unicidad por usuario/vídeo; integración PostgreSQL y concurrencia pasan.
+  - Evidencia: V5 preserva likes como LIKE; PostgreSQL Testcontainers ejecutó migración hasta V5 y persistencia/reinicio pasó en `mvn -Pprod clean verify`.
+- [x] T28 - API autenticada de like/dislike y lectura del estado propio (RF-10, RF-9)
+  - Depende de: T27.
+  - Hecho cuando: rutas idempotentes permiten cambiar/retirar reacción, devuelven ambos contadores sin identidad, protegen CSRF/sesión y exponen solo el estado del principal.
+  - Evidencia: `VideoServiceTest`, `VideosControllerTest`, `SessionSecurityTest`; privacidad comprobada sin `userId`; 42 tests backend enfocados pasan.
+- [x] T29 - Contadores públicos y controles de reacción en UI (RF-10)
+  - Depende de: T28.
+  - Hecho cuando: tarjetas/player muestran contadores, player permite cambiar/retirar, visitante lee e inicia sesión; teclado, móvil y errores se prueban con API simulada.
+  - Evidencia: Jest y build/lint frontend; componente y tarjeta presentan estado y contadores.
+- [x] T30 - E2E y regresión de reacciones (RF-10)
+  - Depende de: T27-T29.
+  - Hecho cuando: dos cuentas y visitante verifican privacidad, persistencia, exclusividad, conteos y CSRF; checks completos se registran aquí.
+  - Evidencia: `npm test -- --workers=2` en E2E: 15/15 pasan, incluida reacción, refresco, privacidad y regresiones.
 
 ## Validación por requisito
 
@@ -142,6 +158,13 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 - Playwright: los 14 E2E (9 existentes y 5 de comentarios) pasaron en la ejecución completa anterior. Se intentó repetir tras el ajuste visual final, pero Docker Desktop ya no estaba activo y `localhost:18080` rechazó conexiones; el reintento no constituye una validación fallida del comportamiento.
 - `git diff --check` y compilación TypeScript específica de E2E completadas. Los resultados y artefactos temporales de Playwright no se versionan.
 - Alcance: T3/T15/T16/T17 completadas. T24 permanece abierta por depender de las demás historias del sprint; no inferir que RF-1 a RF-9 estén completas.
+
+## Ejecución RF-10 (2026-11-12)
+
+- Backend `mvn -Pprod clean verify`: 128 tests, cero fallos; JaCoCo cumplido. Incluye PostgreSQL real y Flyway V5. Tras añadir la prueba de alternancia, `VideoServiceTest` y `VideosControllerTest`: 42 tests, cero fallos (`-Djacoco.skip=true`).
+- Frontend: 145 tests en 23 suites; build y lint correctos. Una prueba nueva comprueba los contadores públicos en las tarjetas.
+- Playwright: E2E nuevo de reacciones pasó (cambio like→dislike, refresco, estado propio, contador público y ausencia de userId). Una regresión de comentarios fue intermitente en la primera ejecución y pasó al repetirla; repetición final de la suite completa: 15/15.
+- RF-10 y T27-T30 completados con evidencia local; el resto del sprint permanece pendiente.
 
 ## Cierre
 

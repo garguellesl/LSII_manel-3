@@ -291,6 +291,22 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void videoReactionSwitchesPersistsAndCanBeRemovedWithoutExposingVoters() {
+        Long userId = registerUser("reactions@example.com", "reactions").id();
+        Long videoId = createVideo(userId, "reactions.mp4").id();
+        assertEquals(true, videoService.likeVideo(videoId, userId).liked());
+        var dislike = videoService.dislikeVideo(videoId, userId);
+        assertEquals(false, dislike.liked());
+        assertEquals(true, dislike.disliked());
+        assertEquals(0, dislike.likesCount());
+        assertEquals(1, dislike.dislikesCount());
+        assertEquals(true, videoService.getReaction(videoId, userId).disliked());
+        var cleared = videoService.undislikeVideo(videoId, userId);
+        assertEquals(false, cleared.disliked());
+        assertEquals(0, cleared.dislikesCount());
+    }
+
+    @Test
     void returnsEmptyVideoListWhenNoVideosExist() {
         assertEquals(List.of(), videoService.getVideos("", 0, 24).content());
     }

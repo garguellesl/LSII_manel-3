@@ -13,6 +13,8 @@ export type VideoDetail = {
   thumbnailUrl: string;
   videoUrl: string;
   tags: string[];
+  likesCount?: number;
+  dislikesCount?: number;
 };
 
 export function useVideo(id: string | undefined) {

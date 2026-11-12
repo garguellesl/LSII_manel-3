@@ -89,6 +89,19 @@ public class VideosController {
         return ResponseEntity.ok(videoService.unlikeVideo(id, Long.valueOf(principal.getName())));
     }
 
+    @GetMapping("/{id}/reaction")
+    public ResponseEntity<LikeResponse> getReaction(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(videoService.getReaction(id, Long.valueOf(principal.getName())));
+    }
+    @PostMapping("/{id}/dislikes")
+    public ResponseEntity<LikeResponse> dislikeVideo(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(videoService.dislikeVideo(id, Long.valueOf(principal.getName())));
+    }
+    @DeleteMapping("/{id}/dislikes")
+    public ResponseEntity<LikeResponse> undislikeVideo(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(videoService.undislikeVideo(id, Long.valueOf(principal.getName())));
+    }
+
     @PostMapping("/{id}/watch-history")
     public ResponseEntity<WatchHistoryResponse> recordWatch(
             @PathVariable Long id,
