@@ -5,6 +5,7 @@ import type { VideoDetail } from '../useVideo';
 import { toMediaUrl } from '../utils/media';
 import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
+import { CommentSection } from './CommentSection';
 
 export function VideoPlayerPage() {
   const { id } = useParams();
@@ -54,6 +55,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
       {value.user && <p className="video-player-user">{value.user}</p>}
       {value.description && <p className="video-player-description">{value.description}</p>}
       <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
+      <CommentSection videoId={value.id} />
     </article>
   );
 }

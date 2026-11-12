@@ -1,7 +1,25 @@
 # Plan - Sprint 3
 
 Spec: [spec.md](spec.md). Tareas: [tasks.md](tasks.md).
-Estado: listo como propuesta técnica para implementación posterior; sin código ejecutado ni contratos nuevos publicados.
+Estado: RF-4 implementado localmente en `feature/sprint3-comments-replies-likes`; otras historias del sprint siguen pendientes.
+
+## Ejecución acotada RF-4 (2026-11-12)
+
+Plan aprobado por el usuario para comentarios, respuestas y likes; baseline `9ff56a4`.
+Se ejecutan T3/T15-T17 y las verificaciones de RF-4 de T24, con RF-8/RF-9 aplicables.
+V1-V3 ya existen; la siguiente migración local es V4, `comment_discussions`.
+La consulta remota no devuelve PR/issues abiertas; no acredita ausencia de trabajo sin publicar.
+
+- Extraer `CommentService` y mantener las rutas y campos de respuesta existentes. Creación recibe `{text,parentId?}`; cualquier `userId` legado se ignora: actor siempre del principal.
+- DTO público aditivo: `parentId`, `deleted`, `updatedAt`, `author: {id,displayName,avatarUrl}`, `likesCount`, `likedByMe`, `canEdit`. Hasta RF-3, `displayName=accountName` y `avatarUrl=null`; reutilizar avatar con inicial. Este soporte público sustituye la dependencia de T15 en la implementación completa de T13, que sigue pendiente.
+- V4 añade padre, fecha de borrado, FK compuesta padre/vídeo e índice de orden; `comment_likes` con unicidad comentario/usuario. Preservar comentarios previos como raíces. Padre inmutable, únicamente asignable a un comentario existente.
+- GET devuelve lista plana ordenada por `(createdAt,id)`; recuperar autores y agregados de likes por lotes. Visitante: `likedByMe=false`, `canEdit=false`.
+- Compatibilidad de fechas comprobada en E2E: MVC serializa `LocalDateTime` como arrays. Se conserva ese formato HTTP y el cliente normaliza arrays/ISO a cadenas antes de ordenar/renderizar, conservando precisión de nanosegundos.
+- Transacciones con bloqueo pesimista sobre el comentario para editar/borrar/like/unlike; responder bloquea el padre. Todas comprueban estado activo tras obtener el bloqueo. UNIQUE refuerza la integridad; acciones de like/unlike idempotentes.
+- Borrado limpia texto almacenado y devuelve `Comment deleted`, sin eliminar respuestas. Autor puede repetir DELETE (204). Comentario eliminado rechaza editar/responder/like/unlike (409). Likes anteriores se conservan, pero no se muestran ni se pueden mutar tras borrado; respuesta pública eliminada muestra contador 0 y `likedByMe=false`. Los contadores de comentarios de vídeo excluyen eliminados.
+- Errores: texto/padre inválido o padre de otro vídeo 400; vídeo/comentario objetivo inexistente 404; padre eliminado 409; propiedad 403; autenticación 401 con CSRF válido, CSRF inválido 403. Validación de 1–2000 caracteres y rechazo de texto compuesto solo por espacios, incluidos espacios Unicode.
+- Frontend: cliente/hook dedicado, `mutate` amplía DELETE; actualización confirmada por servidor, errores preservan borradores. Cancelar/ignorar lecturas y escrituras obsoletas al cambiar vídeo o identidad. Árbol con recorrido iterativo, sangría visual limitada y ramas plegables; sin límite funcional de profundidad. Texto mediante React, sin HTML.
+- Tests: servicios/controladores, cadena de seguridad, PostgreSQL real (migración/reinicio/concurrencia), componentes/hook/cliente con mocks, Playwright con visitante/dos cuentas y móvil/teclado. Ejecutar checks de área y E2E aislado; registrar resultados reales en tasks.md.
 
 ## Contexto técnico comprobado
 

@@ -7,6 +7,9 @@ import type { AuthValue } from '../../auth/AuthContext';
 import { videoClient } from '../../utils/videoClient';
 
 jest.mock('axios');
+jest.mock('../CommentSection', () => ({
+  CommentSection: ({ videoId }: { videoId: number }) => <section aria-label={`Discussion for video ${videoId}`} />,
+}));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 jest.mock('../../utils/videoClient', () => ({

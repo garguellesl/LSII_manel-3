@@ -1,0 +1,126 @@
+.comment-section {
+  margin-block-start: 2rem;
+  text-align: start;
+  min-width: 0;
+  width: 100%;
+}
+
+.comment-section h2 {
+  font-size: 1.4rem;
+}
+.comment-list {
+  margin-block-start: 1.5rem;
+}
+.comment-item {
+  min-width: 0;
+  padding: 1rem 0.5rem;
+  border-top: 1px solid #64748b66;
+  scroll-margin-top: 1rem;
+}
+.comment-header,
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.comment-header strong,
+.comment-header time,
+.comment-text {
+  overflow-wrap: anywhere;
+}
+.comment-header time,
+.comment-parent {
+  font-size: 0.8rem;
+}
+.comment-header time,
+.comment-form small {
+  color: #b8c2d1;
+}
+.comment-section a {
+  color: #61dafb;
+}
+.comment-parent {
+  display: inline-block;
+  margin-block: 0.5rem;
+}
+.comment-text {
+  white-space: pre-wrap;
+  margin-block: 0.75rem;
+}
+.comment-deleted {
+  font-style: italic;
+}
+.comment-form {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1rem;
+  min-width: 0;
+}
+.comment-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid #64748b;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+.comment-section button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #64748b;
+  border-radius: 0.6rem;
+  background: #1e2126;
+  color: #f1f5f9;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.comment-section button:hover:not(:disabled) {
+  border-color: #61dafb;
+  background: #293744;
+}
+.comment-form button[type='submit'] {
+  border-color: #61dafb;
+  background: #61dafb;
+  color: #111827;
+}
+.comment-section button[aria-pressed='true'] {
+  border-color: #61dafb;
+  color: #61dafb;
+}
+.comment-section button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.comment-section :focus-visible {
+  outline: 2px solid #61dafb;
+  outline-offset: 3px;
+}
+.comment-section [role='alert'] {
+  overflow-wrap: anywhere;
+}
+.comment-confirm {
+  padding-block: 0.75rem;
+}
+.comment-confirm button {
+  margin-inline-end: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .comment-item {
+    padding-inline: 0.25rem;
+  }
+  .comment-header {
+    gap: 0.35rem;
+  }
+  .comment-actions {
+    gap: 0.35rem;
+  }
+}

@@ -1,6 +1,11 @@
 # Sprint 3 - Publicación de vídeos y participación
 
-Estado: lista para planificar; plan y tareas preparados, implementación no autorizada por esta petición.
+Estado: RF-4 implementado localmente en la rama de trabajo; las demás historias del sprint siguen pendientes.
+
+Actualización 2026-11-12: el usuario autoriza implementar exclusivamente H4/RF-4
+y aprueba su plan acotado, incluyendo persistencia, seguridad, integración en
+player y pruebas E2E. La autorización documental original se conserva como
+histórico; las demás historias siguen fuera de esta ejecución.
 Ticket o petición: objetivo, siete historias, AC y Definition of Done aportados por el usuario el 2026-11-11.
 Origen en REQUIREMENT.md: US-03 a US-11; NFR-01 a NFR-05 y NFR-07. US-01/US-02 se verifican como regresión.
 Fuentes: [requisitos MVP](../../REQUIREMENT.md), [constitución](../../.agents/constitution.md), [SDD](../../docs/SDD.md).

@@ -30,6 +30,13 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false)
     private UserAccount user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Column(nullable = false, length = 2000)
     private String text;
 
@@ -42,10 +49,11 @@ public class Comment {
     protected Comment() {
     }
 
-    public Comment(Video video, UserAccount user, String text) {
+    public Comment(Video video, UserAccount user, String text, Comment parent) {
         this.video = video;
         this.user = user;
         this.text = text;
+        this.parent = parent;
     }
 
     @PrePersist
@@ -78,6 +86,23 @@ public class Comment {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Long getParentId() {
+        return parent == null ? null : parent.getId();
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void delete() {
+        text = "";
+        deletedAt = LocalDateTime.now();
     }
 
     public void updateText(String text) {

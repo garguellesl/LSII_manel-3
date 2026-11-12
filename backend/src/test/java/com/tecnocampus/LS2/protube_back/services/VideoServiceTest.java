@@ -28,6 +28,9 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     VideoService videoService;
 
     @Autowired
+    CommentService commentService;
+
+    @Autowired
     JdbcTemplate jdbc;
 
     @Test
@@ -271,8 +274,8 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         Long userId = registerUser("four@example.com", "four").id();
         Long videoId = createVideo(userId, "4.mp4").id();
 
-        var comment = videoService.addComment(videoId, new CommentRequest(userId, "Nice video"));
-        var updatedComment = videoService.updateComment(comment.id(), new UpdateCommentRequest("Updated comment"), userId);
+        var comment = commentService.addComment(videoId, new CommentRequest("Nice video", null), userId);
+        var updatedComment = commentService.updateComment(comment.id(), new UpdateCommentRequest("Updated comment"), userId);
         var like = videoService.likeVideo(videoId, userId);
         var watch = videoService.recordWatch(videoId, new WatchHistoryRequest(userId, 7));
         var analytics = videoService.getAnalyticsForOwner(userId, userId).get(0);
@@ -302,7 +305,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         Long userId = registerUser("five@example.com", "five").id();
 
         assertThrows(ResourceNotFoundException.class,
-                () -> videoService.addComment(99L, new CommentRequest(userId, "Missing video")));
+                () -> commentService.addComment(99L, new CommentRequest("Missing video", null), userId));
     }
 
     @Test

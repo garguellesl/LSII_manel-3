@@ -17,6 +17,12 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    @ExceptionHandler(com.tecnocampus.LS2.protube_back.services.DeletedCommentException.class)
+    ResponseEntity<Map<String, String>> deletedComment() {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Comment deleted", "code", "COMMENT_DELETED"));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     ResponseEntity<Map<String, String>> notFound(ResourceNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", exception.getMessage()));
