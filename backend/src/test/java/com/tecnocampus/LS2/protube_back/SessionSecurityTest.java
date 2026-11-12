@@ -312,7 +312,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
         mvc.perform(delete("/api/comments/" + comment).session(token.session()).header(token.header(), token.value()))
                 .andExpect(status().isNoContent());
         mvc.perform(delete("/api/comments/" + comment).session(token.session()).header(token.header(), token.value()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNoContent());
         mvc.perform(post("/api/videos/" + id + "/likes").session(token.session()).header(token.header(), token.value())
                         .contentType("application/json").content("{\"userId\":" + other.id() + "}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(actor.id()));
@@ -327,5 +327,47 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/users/" + other.id() + "/watch-history").session(stranger.session()))
                 .andExpect(status().isOk()).andExpect(content().json("[]"));
+    }
+
+    @Test
+    void discussionsRequireSessionAndCsrfAndNeverTrustLikeIdentity() throws Exception {
+        UserResponse author = account();
+        UserResponse other = account();
+        Long video = video(author);
+        Token own = csrf(login(author));
+        Token stranger = csrf(login(other));
+        Token guest = csrf(null);
+        String collection = "/api/videos/" + video + "/comments";
+        MvcResult created = mvc.perform(post(collection).session(own.session()).header(own.header(), own.value())
+                        .contentType("application/json").content("{\"text\":\"root\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long id = mapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        String item = "/api/comments/" + id;
+        for (var mutation : List.of(post(collection), patch(item), delete(item), post(item + "/likes"), delete(item + "/likes"))) {
+            mvc.perform(mutation.session(guest.session()).header(guest.header(), guest.value())
+                            .contentType("application/json").content("{\"text\":\"bad\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+        for (var mutation : List.of(post(collection), patch(item), delete(item), post(item + "/likes"), delete(item + "/likes"))) {
+            mvc.perform(mutation.session(own.session()).contentType("application/json").content("{\"text\":\"bad\"}"))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+        }
+        mvc.perform(post(item + "/likes").session(stranger.session()).header(stranger.header(), stranger.value())
+                        .contentType("application/json").content("{\"userId\":" + author.id() + "}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.likesCount").value(1));
+        mvc.perform(delete(item + "/likes").session(own.session()).header(own.header(), own.value()).param("userId", other.id().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.likesCount").value(1));
+        mvc.perform(get(collection)).andExpect(status().isOk()).andExpect(jsonPath("$[0].likedByMe").value(false))
+                .andExpect(jsonPath("$[0].canEdit").value(false)).andExpect(jsonPath("$[0].author.email").doesNotExist());
+        mvc.perform(get(collection).session(stranger.session())).andExpect(jsonPath("$[0].likedByMe").value(true));
+        mvc.perform(delete(item).session(own.session()).header(own.header(), own.value())).andExpect(status().isNoContent());
+        for (var mutation : List.of(patch(item), post(item + "/likes"), delete(item + "/likes"))) {
+            mvc.perform(mutation.session(own.session()).header(own.header(), own.value()).contentType("application/json")
+                            .content("{\"text\":\"bad\"}"))
+                    .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("COMMENT_DELETED"));
+        }
+        mvc.perform(post(collection).session(stranger.session()).header(stranger.header(), stranger.value())
+                        .contentType("application/json").content("{\"text\":\"reply\",\"parentId\":" + id + "}"))
+                .andExpect(status().isConflict());
     }
 }

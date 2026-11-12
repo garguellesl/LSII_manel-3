@@ -64,6 +64,29 @@ que levanta Compose.
 
 ## Alcance
 
+### Sprint 3: conversaciones (RF-4)
+
+`tests/comments.spec.ts` añade cinco recorridos al job E2E existente, con API y
+PostgreSQL reales: lectura anónima y texto seguro; dos usuarios publican/responden
+a varios niveles/editan/dan y retiran likes/borran un padre, con recargas; permisos,
+CSRF, validación de padres/texto y rechazo de acciones sobre eliminados; conversación
+profunda en pantallas de 375 y 320 px y teclado; fallos de red con reintento y
+conservación del borrador. Solo el último recorrido intercepta peticiones para
+inyectar fallos de red deliberados; los reintentos vuelven al servidor real.
+
+Ejecutar `npm test -- --workers=2` en esta carpeta después de reconstruir el stack
+aislado. `npm test -- comments.spec.ts --workers=2` ejecuta solo conversaciones.
+El test móvil genera `discussion-mobile.png` dentro de `test-results/` (ignorado
+por Git). No añadir capturas, trazas, informes ni datos generados al repositorio.
+Las carreras de escritura y persistencia entre reinicios se verifican además en
+`CommentConcurrencyTest` y `PostgreSqlPersistenceTest` con Testcontainers.
+
+Las fechas de comentarios se normalizan en el cliente desde los arrays
+`LocalDateTime` que entrega la configuración MVC existente; los mocks de API
+deben respetar ese formato o el ISO también admitido por el cliente.
+
+### Recorridos anteriores
+
 6 recorridos mínimos del sprint (ver tabla de trazabilidad en `spec.md`):
 registro con sesión automática → perfil → logout → login; catálogo y
 reproducción; búsqueda por título/descripción; editor de etiquetas como

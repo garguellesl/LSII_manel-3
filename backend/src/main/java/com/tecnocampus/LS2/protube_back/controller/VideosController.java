@@ -1,7 +1,5 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
-import com.tecnocampus.LS2.protube_back.model.CommentRequest;
-import com.tecnocampus.LS2.protube_back.model.CommentResponse;
 import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
@@ -73,19 +71,6 @@ public class VideosController {
             @Valid @RequestBody UpdateVideoRequest request, Principal principal
     ) {
         return ResponseEntity.ok(videoService.updateVideo(id, request, Long.valueOf(principal.getName())));
-    }
-
-    @GetMapping("/{id}/comments")
-    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long id) {
-        return ResponseEntity.ok(videoService.getComments(id));
-    }
-
-    @PostMapping("/{id}/comments")
-    public ResponseEntity<CommentResponse> addComment(
-            @PathVariable Long id,
-            @Valid @RequestBody CommentRequest request, Principal principal
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(videoService.addComment(id, new CommentRequest(Long.valueOf(principal.getName()), request.text())));
     }
 
     @PostMapping("/{id}/likes")

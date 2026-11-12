@@ -9,6 +9,7 @@ import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import com.tecnocampus.LS2.protube_back.services.UserService;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
+import com.tecnocampus.LS2.protube_back.services.CommentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -25,6 +26,38 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PostgreSqlPersistenceTest {
+
+    @Test
+    void upgradingV3PreservesHistoricalCommentsAndEnforcesThreadAndLikeIntegrity() {
+        try (var database = new PostgreSQLContainer<>("postgres:16-alpine").withPassword(UUID.randomUUID().toString())) {
+            database.start();
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword())
+                    .target("3").load().migrate();
+            var jdbc = new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
+                    database.getJdbcUrl(), database.getUsername(), database.getPassword()));
+            jdbc.update("INSERT INTO app_users (id,email,account_name,first_name,last_name,password_hash) VALUES (1,'old@example.test','old','First','Last','test')");
+            jdbc.update("INSERT INTO videos (id,title,description,media_path,owner_user_id) VALUES (1,'First','','first.mp4',1),(2,'Second','','second.mp4',1)");
+            jdbc.update("INSERT INTO comments (id,video_id,user_id,text,created_at,updated_at) VALUES (10,1,1,'historical',timestamp '2020-01-01',timestamp '2020-02-01')");
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword()).load().migrate();
+            assertEquals("historical", jdbc.queryForObject("select text from comments where id=10", String.class));
+            assertEquals(2020, jdbc.queryForObject("select extract(year from created_at) from comments where id=10", Integer.class));
+            assertTrue(jdbc.queryForObject("select parent_id is null and deleted_at is null from comments where id=10", Boolean.class));
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> jdbc.update("insert into comments (video_id,user_id,text,parent_id) values (2,1,'wrong video',10)"));
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> jdbc.update("insert into comments (video_id,user_id,text,parent_id) values (1,1,'missing parent',999)"));
+            jdbc.update("insert into comments (video_id,user_id,text,parent_id) values (1,1,'child',10)");
+            jdbc.update("insert into comment_likes (comment_id,user_id) values (10,1)");
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> jdbc.update("insert into comment_likes (comment_id,user_id) values (10,1)"));
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> jdbc.update("delete from comments where id=10"));
+            // A video deletion still cascades its entire discussion and likes, without a dangling parent FK.
+            jdbc.update("delete from videos where id=1");
+            assertEquals(0L, jdbc.queryForObject("select count(*) from comments", Long.class));
+            assertEquals(0L, jdbc.queryForObject("select count(*) from comment_likes", Long.class));
+        }
+    }
 
     @Test
     void upgradingV2MarksExistingTagsButLeavesLegacyEmptyVideosEligibleForBackfill() {
@@ -55,6 +88,8 @@ class PostgreSqlPersistenceTest {
             database.start();
             Long userId;
             Long videoId;
+            Long commentId;
+            Long replyId;
             String description = "Persistent PostgreSQL description. ".repeat(100).trim();
 
             try (var application = startApplication(database, "dev")) {
@@ -67,12 +102,18 @@ class PostgreSqlPersistenceTest {
                         "Persistent video", description, "persistent.mp4", null, 10,
                         userId, List.of("Java", "PostgreSQL")
                 )).id();
-                videos.addComment(videoId, new CommentRequest(userId, "Persisted comment"));
+                var comments = application.getBean(CommentService.class);
+                commentId = comments.addComment(videoId, new CommentRequest("Persisted comment", null), userId).id();
+                replyId = comments.addComment(videoId, new CommentRequest("Reply", commentId), userId).id();
+                comments.addComment(videoId, new CommentRequest("Nested", replyId), userId);
+                comments.updateComment(replyId, new com.tecnocampus.LS2.protube_back.model.UpdateCommentRequest("Edited reply"), userId);
+                comments.setLike(replyId, userId, true);
+                comments.deleteComment(commentId, userId);
                 videos.likeVideo(videoId, userId);
                 videos.recordWatch(videoId, new WatchHistoryRequest(userId, 5));
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(
@@ -91,7 +132,14 @@ class PostgreSqlPersistenceTest {
                 var persistedVideo = videos.getVideo(videoId).orElseThrow();
                 assertEquals(description, persistedVideo.description());
                 assertEquals(List.of("java", "postgresql"), persistedVideo.tags());
-                assertEquals(1, videos.getComments(videoId).size());
+                var discussion = application.getBean(CommentService.class).getComments(videoId, userId);
+                assertEquals(3, discussion.size());
+                assertEquals("Comment deleted", discussion.getFirst().text());
+                assertEquals(commentId, discussion.get(1).parentId());
+                assertEquals("Edited reply", discussion.get(1).text());
+                assertEquals(1, discussion.get(1).likesCount());
+                assertTrue(discussion.get(1).likedByMe());
+                assertEquals(replyId, discussion.get(2).parentId());
                 assertEquals(1, videos.getWatchHistory(userId, userId).size());
                 assertEquals(1, videos.getAnalyticsForOwner(userId, userId).getFirst().likesCount());
 
@@ -101,7 +149,7 @@ class PostgreSqlPersistenceTest {
                 application.getBean(VideoRepository.class).deleteById(videoId);
                 assertTrue(videos.getVideo(videoId).isEmpty());
                 var jdbc = application.getBean(JdbcTemplate.class);
-                for (String table : List.of("video_tags", "comments", "video_likes", "watch_history")) {
+                for (String table : List.of("video_tags", "comments", "comment_likes", "video_likes", "watch_history")) {
                     assertEquals(0L, jdbc.queryForObject("select count(*) from " + table, Long.class));
                 }
                 // Removing a video's associations must not remove shared tag values.

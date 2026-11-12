@@ -1,17 +1,13 @@
 package com.tecnocampus.LS2.protube_back.services;
 
-import com.tecnocampus.LS2.protube_back.entities.Comment;
 import com.tecnocampus.LS2.protube_back.entities.Tag;
 import com.tecnocampus.LS2.protube_back.entities.UserAccount;
 import com.tecnocampus.LS2.protube_back.entities.Video;
 import com.tecnocampus.LS2.protube_back.entities.VideoLike;
 import com.tecnocampus.LS2.protube_back.entities.WatchHistory;
-import com.tecnocampus.LS2.protube_back.model.CommentRequest;
-import com.tecnocampus.LS2.protube_back.model.CommentResponse;
 import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
-import com.tecnocampus.LS2.protube_back.model.UpdateCommentRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoAnalyticsResponse;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
 import com.tecnocampus.LS2.protube_back.model.VideoSummary;
@@ -125,41 +121,6 @@ public class VideoService {
     }
 
     @Transactional
-    public CommentResponse addComment(Long videoId, CommentRequest request) {
-        Video video = findVideo(videoId);
-        UserAccount user = findUser(request.userId());
-        Comment comment = commentRepository.save(new Comment(video, user, request.text().trim()));
-        return toCommentResponse(comment);
-    }
-
-    @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long videoId) {
-        if (!videoRepository.existsById(videoId)) {
-            throw new ResourceNotFoundException("Video not found");
-        }
-        return commentRepository.findByVideoIdOrderByCreatedAtAsc(videoId).stream()
-                .map(this::toCommentResponse)
-                .toList();
-    }
-
-    @Transactional
-    public CommentResponse updateComment(Long commentId, UpdateCommentRequest request, Long actorId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
-        requireSameUser(comment.getUser().getId(), actorId);
-        comment.updateText(request.text().trim());
-        return toCommentResponse(comment);
-    }
-
-    @Transactional
-    public void deleteComment(Long commentId, Long actorId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
-        requireSameUser(comment.getUser().getId(), actorId);
-        commentRepository.delete(comment);
-    }
-
-    @Transactional
     public LikeResponse likeVideo(Long videoId, Long userId) {
         Video video = findVideo(videoId);
         UserAccount user = findUser(userId);
@@ -208,7 +169,7 @@ public class VideoService {
                         video.getTitle(),
                         watchHistoryRepository.countByVideoId(video.getId()),
                         videoLikeRepository.countByVideoId(video.getId()),
-                        commentRepository.countByVideoId(video.getId())
+                        commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId())
                 ))
                 .toList();
     }
@@ -227,7 +188,7 @@ public class VideoService {
                 urlFor(video.getMediaPath()),
                 tagNames(video),
                 videoLikeRepository.countByVideoId(video.getId()),
-                commentRepository.countByVideoId(video.getId()),
+                commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
                 watchHistoryRepository.countByVideoId(video.getId())
         );
     }
@@ -243,19 +204,8 @@ public class VideoService {
                 urlFor(video.getMediaPath()),
                 tagNames(video),
                 videoLikeRepository.countByVideoId(video.getId()),
-                commentRepository.countByVideoId(video.getId()),
+                commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
                 watchHistoryRepository.countByVideoId(video.getId())
-        );
-    }
-
-    private CommentResponse toCommentResponse(Comment comment) {
-        return new CommentResponse(
-                comment.getId(),
-                comment.getVideo().getId(),
-                comment.getUser().getId(),
-                comment.getUser().getAccountName(),
-                comment.getText(),
-                comment.getCreatedAt()
         );
     }
 

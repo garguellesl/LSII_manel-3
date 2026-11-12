@@ -5,6 +5,10 @@ import App from '../../App';
 import { authClient } from '../../utils/authClient';
 
 jest.mock('axios');
+jest.mock('../../utils/commentClient', () => ({
+  ...jest.requireActual('../../utils/commentClient'),
+  commentClient: { list: jest.fn().mockResolvedValue([]) },
+}));
 jest.mock('../../useAvailableTags', () => ({
   useAvailableTags: () => ({ loading: false, error: false, tags: ['rock', 'pop', 'reguetton'], reload: jest.fn() }),
 }));

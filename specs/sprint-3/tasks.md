@@ -1,7 +1,11 @@
 # Tareas - Sprint 3
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md)
-Alcance autorizado: preparación documental de spec, plan y tareas. Las tareas de implementación siguientes quedan propuestas, sin ejecutar.
+Alcance autorizado: implementación local de RF-4 (AC1–AC10), con las tareas T3, T15–T17 y validación E2E acotada. El resto del sprint continúa propuesto.
+
+Actualización 2026-11-12: autorizado el plan acotado de RF-4; ejecución de T3,
+T15-T17 y escenarios pertinentes de T24, sin declarar completas tareas globales
+del sprint. Ver [handoff](../../docs/ai/tasks/sprint3-comments-replies-likes.md).
 Coordinación: [handoff](../../docs/ai/tasks/sprint-3-specs.md). Prompt: [registro](../../prompts/11-sprint-3-specs.md).
 
 ## Ejecución
@@ -16,10 +20,10 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T1.
   - Hecho cuando: migraciones nuevas añadan campos de perfil, categorías, origen y estado de publicación sin perder IDs/owners/rutas/datos; PostgreSQL vacío y actualización V1/V2 con datos pasen. No editar migraciones aplicadas.
   - Evidencia: pendiente.
-- [ ] T3 - Persistir jerarquía y likes de comentario (RF-4, RF-8)
+- [x] T3 - Persistir jerarquía y likes de comentario (RF-4, RF-8)
   - Depende de: T1.
   - Hecho cuando: migración preserve comentarios existentes como raíces y añada padre, borrado lógico, índices y unicidad de like por cuenta/comentario; se prueben integridad, rollback y no cascada de respuestas.
-  - Evidencia: pendiente.
+  - Evidencia: `V4__comment_discussions.sql`; PostgreSQL persistence/security tests; `mvn -Pprod clean verify` completado.
 - [ ] T4 - Persistir apertura y contador de reproducciones (RF-7, RF-8)
   - Depende de: T1, T2.
   - Hecho cuando: tabla de claves únicas y contador inicial cero pasen migración y concurrencia; datos históricos externos/historial no se conviertan en reproducciones.
@@ -64,18 +68,18 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T13.
   - Hecho cuando: guardar/cancelar, estados y avatar predeterminado funcionen en móvil/escritorio; contexto de sesión y vistas de cuenta refresquen nombre/avatar; límites 2 MiB y errores se cubran con mocks.
   - Evidencia: pendiente.
-- [ ] T15 - API de comentarios y respuestas multinivel (RF-4, RF-8, RF-9)
-  - Depende de: T3, T13.
+- [x] T15 - API de comentarios y respuestas multinivel (RF-4, RF-8, RF-9)
+  - Depende de: T3 y representación pública mínima del autor acordada en el plan RF-4 (T13 completo se mantiene pendiente).
   - Hecho cuando: publicación/lectura/edición/borrado lógico con orden estable y DTO compatible pasen pruebas; validar padre activo del mismo vídeo, texto seguro/no blanco, permisos y carreras de respuesta/borrado; respuestas preservadas.
-  - Evidencia: pendiente.
-- [ ] T16 - Like/unlike de comentario idempotente (RF-4, RF-9)
+  - Evidencia: `CommentServiceTest`, `CommentsControllerTest`, `CommentConcurrencyTest`, PostgreSQL persistence/security tests; `mvn -Pprod clean verify` (127 tests, JaCoCo checks cumplidos).
+- [x] T16 - Like/unlike de comentario idempotente (RF-4, RF-9)
   - Depende de: T15.
   - Hecho cuando: API refleje estado propio/cantidad, UNIQUE evite duplicados concurrentes y borrado bloquee nuevas mutaciones; visitantes/ajenos no alteren identidad, y no se cambien likes de vídeo.
-  - Evidencia: pendiente.
-- [ ] T17 - Conversación integrada en el reproductor (RF-4, RF-5)
+  - Evidencia: unique constraint y `CommentConcurrencyTest`; endpoints cubiertos por tests de servicio/controlador y E2E.
+- [x] T17 - Conversación integrada en el reproductor (RF-4, RF-5)
   - Depende de: T15, T16.
   - Hecho cuando: UI permita leer, publicar, responder a varios niveles, editar/borrar propios y like/unlike; tombstones, orden, errores, estados y ramas profundas usables con teclado/móvil tengan cobertura con mocks.
-  - Evidencia: pendiente.
+  - Evidencia: pruebas de hook/componentes, build/lint frontend y `e2e/tests/comments.spec.ts`; 14/14 E2E pasaron antes del último ajuste de estilos. El reintento con los estilos finales quedó sin infraestructura Docker.
 - [ ] T18 - Mejorar contexto, layout y fallos del reproductor (RF-5, RF-2, RF-3)
   - Depende de: T12, T14, T17.
   - Hecho cuando: player muestre categoría/creador/metadatos correctos, `toMediaUrl` soporte ausencia de miniatura, detecte medio no disponible y preserve navegación/controles; textos largos y teclado/móvil se verifiquen.
@@ -122,20 +126,28 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 | RF-1 | T6-T10/T24: multipart, límites, propietario, compensación y E2E upload→playback | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-2 | T11-T12/T24: extender `VideoServiceTest`/`VideosControllerTest`, editor y flujo de búsqueda tras editar | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-3 | T13-T14/T24: perfil/save/cancel, límites y propagación de avatar/nombre | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
-| RF-4 | T3/T15-T17/T24: jerarquía, tombstone, permisos y concurrencia likes/borrado | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
-| RF-5 | T18/T24: ampliar `VideoPlayerPage.test.tsx`, ausencia de imagen, fallo de medio, teclado/móvil | `npm run build`; `npm run test -- --coverage --watchAll=false --ci`; `npm run lint` en frontend; E2E/manual | No ejecutado |
+| RF-4 | T3/T15-T17/T24 (alcance RF-4): jerarquía, tombstone, permisos y concurrencia likes/borrado | backend `mvn -Pprod clean verify`; Jest frontend; Playwright E2E | Backend 127 tests y cobertura aprobada; frontend 144 tests/23 suites; E2E 14/14 en ejecución anterior. Reintento final bloqueado porque Docker Desktop estaba apagado. |
+| RF-5 | Solo integración responsive de discusión en player; T18 y RF-5 global siguen pendientes | `npm run build`; `npm run test -- --coverage --watchAll=false --ci`; `npm run lint`; Playwright | Build/lint correctos; tests frontend arriba; E2E móvil pasó en ejecución anterior. |
 | RF-6 | T19-T20/T24: SQL OR/AND, distinct/count, UI de limpiar filtros y respuestas obsoletas | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-7 | T4/T21-T23/T24: contador concurrente, UUID, playing/reapertura, panel y propietario | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
-| RF-8 | T2-T7/T24-T25: ampliar `PostgreSqlPersistenceTest`/`VideoImportServiceTest`, migración y reinicio con medios | `mvn clean verify` y `mvn -Pprod clean verify` en backend; Compose aislado/manual según plan | No ejecutado |
-| RF-9 | T24: ampliar `SessionSecurityTest`, CSRF, ID ajeno en todos los recursos, DTOs públicos | `mvn clean verify` en backend; `npm test` en e2e | No ejecutado |
+| RF-8 | T3 acotada: migración de comentarios/likes e integridad en PostgreSQL | `mvn -Pprod clean verify` en backend; Compose E2E aislado | Migración e integridad cubiertas; 127 tests pasan. El resto de RF-8 sigue pendiente. |
+| RF-9 | Seguridad acotada a comments: CSRF, sesión, ownership, soft delete y DTO público | `mvn -Pprod clean verify`; E2E | Seguridad cubierta en backend y ejecución E2E 14/14 anterior. Otras rutas de RF-9 pendientes. |
 
 “Tests frontend” significa el comando completo de Jest indicado en RF-5; las pruebas de integración requieren Docker/PostgreSQL aislado. No se sustituirán por H2 ni se omitirán silenciosamente si Docker no está disponible.
 
+## Ejecución RF-4 (2026-11-12)
+
+- Backend: `mvn -Pprod clean verify` en `backend/` — BUILD SUCCESS, 127 tests, cero fallos; JaCoCo superó los umbrales configurados. Incluye migraciones/PostgreSQL, sesiones/CSRF, servicio, API y concurrencia.
+- Frontend: `npm run build`, `npm run lint` y `npm run test -- --coverage --watchAll=false --ci` — correctos; 144 tests en 23 suites. Cobertura: líneas 99.44 %, statements 98.34 %, funciones 98.96 %, ramas 93.13 %.
+- Playwright: los 14 E2E (9 existentes y 5 de comentarios) pasaron en la ejecución completa anterior. Se intentó repetir tras el ajuste visual final, pero Docker Desktop ya no estaba activo y `localhost:18080` rechazó conexiones; el reintento no constituye una validación fallida del comportamiento.
+- `git diff --check` y compilación TypeScript específica de E2E completadas. Los resultados y artefactos temporales de Playwright no se versionan.
+- Alcance: T3/T15/T16/T17 completadas. T24 permanece abierta por depender de las demás historias del sprint; no inferir que RF-1 a RF-9 estén completas.
+
 ## Cierre
 
-- Criterios de finalización de producto: pendientes; ningún RF se declara implementado o validado.
-- Verificaciones generales de implementación: no ejecutadas, por alcance exclusivamente documental.
-- Verificación documental de esta preparación: comprobar secciones de templates, enlaces locales, cobertura RF→diseño→tareas→pruebas, IDs/dependencias y ausencia de tareas marcadas como hechas; resultados en el handoff.
-- Bloqueos observados de producto: ninguno evaluado mediante ejecución; los riesgos del plan siguen abiertos. Coordinación de implementación, versiones Flyway y revisión de supuestos pendientes antes de T1.
-- Pendientes: autorización posterior de implementación y ejecución T1-T26; revisión formal de equipo, CI, staging y merge.
-- Veredicto: sprint no validado; documentación preparada para revisión.
+- RF-4 y AC1–AC10: implementados localmente y verificados con evidencia indicada arriba; revisión/merge pendientes.
+- Otras historias y cierre global de sprint: pendientes, sin implementar en este cambio.
+- Verificación documental: alcance y evidencia RF-4 registrados; tareas y requisitos de las demás historias conservan su estado pendiente.
+- Limitación de verificación: Docker Desktop no respondió al reintento E2E final; no se pudo repetir tras el ajuste visual menor. La suite E2E completa había pasado anteriormente.
+- Pendientes: repetir E2E cuando Docker esté disponible; revisión formal del equipo, CI, staging y merge. No hay despliegue autorizado ni realizado.
+- Veredicto: RF-4 listo para revisión local; sprint 3 completo no validado.

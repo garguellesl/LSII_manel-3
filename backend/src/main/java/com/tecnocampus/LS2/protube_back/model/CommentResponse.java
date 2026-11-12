@@ -8,6 +8,13 @@ public record CommentResponse(
         Long userId,
         String accountName,
         String text,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long parentId,
+        boolean deleted,
+        LocalDateTime updatedAt,
+        PublicAuthor author,
+        long likesCount,
+        boolean likedByMe,
+        boolean canEdit
 ) {
 }
