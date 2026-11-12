@@ -34,12 +34,15 @@ class VideosControllerTest {
     @Mock
     VideoService videoService;
 
+    @Mock
+    com.tecnocampus.LS2.protube_back.services.VideoUploadService uploads;
+
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new VideosController(videoService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new VideosController(videoService), new VideoUploadController(uploads))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -149,7 +152,7 @@ class VideosControllerTest {
 
     @Test
     void createVideoReturnsCreatedVideo() throws Exception {
-        when(videoService.createVideo(any())).thenReturn(new VideoDetail(
+        when(uploads.registerExisting(any(), any())).thenReturn(new VideoDetail(
                 10L, "Created", "owner", "desc", 1,
                 null, "/media/created.mp4", List.of(), 0, 0, 0
         ));
@@ -184,7 +187,7 @@ class VideosControllerTest {
 
     @Test
     void createVideoReturnsBadRequestWithTagFieldErrorWhenTagIsInvalid() throws Exception {
-        when(videoService.createVideo(any())).thenThrow(
+        when(uploads.registerExisting(any(), any())).thenThrow(
                 new com.tecnocampus.LS2.protube_back.services.InvalidTagsException(
                         Map.of("tags[0]", "tag must not be blank")));
 

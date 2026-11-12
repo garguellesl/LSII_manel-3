@@ -23,7 +23,24 @@ public class AppStartupRunner implements ApplicationRunner {
     public AppStartupRunner(Environment env, VideoImportService videoImportService) {
         this.videoImportService = videoImportService;
         final var rootDir = env.getProperty("pro_tube.store.dir");
-        this.rootPath = resolveStoreDirectory(rootDir);
+        Path store = resolveStoreDirectory(rootDir);
+        String importDir = env.getProperty("pro_tube.import.dir");
+        if (importDir == null || importDir.isBlank()) {
+            this.rootPath = store;
+        } else {
+            Path imports = Paths.get(importDir).toAbsolutePath().normalize();
+            if (store == null || !imports.startsWith(store.toAbsolutePath().normalize())) {
+                throw new IllegalArgumentException("Import directory must be inside the configured media store");
+            }
+            try {
+                if (!imports.toRealPath().startsWith(store.toRealPath())) {
+                    throw new IllegalArgumentException("Import directory must resolve inside the media store");
+                }
+                this.rootPath = imports;
+            } catch (java.io.IOException exception) {
+                throw new IllegalArgumentException("Configured import directory is unavailable", exception);
+            }
+        }
         this.loadInitialData = env.getProperty("pro_tube.load_initial_data", Boolean.class, false);
     }
 

@@ -13,6 +13,14 @@ public record VideoDetail(
         List<String> tags,
         long likesCount,
         long commentsCount,
-        long viewsCount
+        long viewsCount,
+        String category,
+        String source
 ) {
+    public VideoDetail(Long id, String title, String user, String description, double duration,
+                       String thumbnailUrl, String videoUrl, List<String> tags,
+                       long likesCount, long commentsCount, long viewsCount) {
+        this(id, title, user, description, duration, thumbnailUrl, videoUrl, tags,
+                likesCount, commentsCount, viewsCount, null, "LEGACY");
+    }
 }

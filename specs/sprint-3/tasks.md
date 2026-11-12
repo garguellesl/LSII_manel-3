@@ -151,3 +151,7 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 - Limitación de verificación: Docker Desktop no respondió al reintento E2E final; no se pudo repetir tras el ajuste visual menor. La suite E2E completa había pasado anteriormente.
 - Pendientes: repetir E2E cuando Docker esté disponible; revisión formal del equipo, CI, staging y merge. No hay despliegue autorizado ni realizado.
 - Veredicto: RF-4 listo para revisión local; sprint 3 completo no validado.
+
+## Ejecución acotada de subida (2026-11-12/13)
+
+La petición nueva autoriza RF-1 y las partes necesarias de RF-8/RF-9. Las tareas U1-U4, el contrato concreto y toda la evidencia ejecutada están en [upload.md](upload.md); [handoff](../../docs/ai/tasks/sprint3-video-upload.md). Subida implementada y verificada localmente. Complementa partes T2/T6-T10/T24 sin declarar terminadas las tareas globales que también abarcan importación extendida, sustitución de archivos, perfil, staging y cierre/revisión del sprint. Se conserva íntegra la evidencia histórica de RF-4.

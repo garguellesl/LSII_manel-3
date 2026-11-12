@@ -23,6 +23,26 @@ public class ApiExceptionHandler {
                 .body(Map.of("error", "Comment deleted", "code", "COMMENT_DELETED"));
     }
 
+    @ExceptionHandler(com.tecnocampus.LS2.protube_back.services.UploadException.class)
+    ResponseEntity<Map<String, String>> upload(com.tecnocampus.LS2.protube_back.services.UploadException exception) {
+        return ResponseEntity.status(exception.getStatus()).body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<Map<String, String>> uploadTooLarge() {
+        return ResponseEntity.status(413).body(Map.of("error", "Upload exceeds the allowed size (video 100 MiB, thumbnail 5 MiB)"));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    ResponseEntity<Map<String, String>> missingUploadPart() {
+        return ResponseEntity.badRequest().body(Map.of("error", "Missing required upload metadata or video"));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    ResponseEntity<Map<String, String>> invalidMultipart() {
+        return ResponseEntity.badRequest().body(Map.of("error", "Incomplete or invalid multipart upload"));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     ResponseEntity<Map<String, String>> notFound(ResourceNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", exception.getMessage()));

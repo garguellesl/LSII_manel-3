@@ -6,7 +6,7 @@ type LoadingState = 'loading' | 'success' | 'error';
 export type VideoSummary = {
   id: number;
   title: string;
-  thumbnailUrl: string;
+  thumbnailUrl: string | null;
   videoUrl: string;
 };
 export type VideoPage = {

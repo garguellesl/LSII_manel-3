@@ -10,7 +10,9 @@ export type VideoDetail = {
   user: string;
   description: string;
   duration: number;
-  thumbnailUrl: string;
+  thumbnailUrl: string | null;
+  category?: string | null;
+  source?: string;
   videoUrl: string;
   tags: string[];
 };

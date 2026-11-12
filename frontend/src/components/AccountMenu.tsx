@@ -33,6 +33,9 @@ export function AccountMenu() {
       )}
       {auth.status === 'authenticated' && auth.user && (
         <>
+          <Link className="account-link account-link--primary" to="/upload">
+            Subir vídeo
+          </Link>
           <Link className="account-link account-profile" to="/profile" aria-label="Mi perfil">
             <UserAvatar name={auth.user.accountName} />
             <span className="account-name">{auth.user.accountName}</span>

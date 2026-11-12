@@ -28,6 +28,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PostgreSqlPersistenceTest {
 
     @Test
+    void uploadedMediaAndOwnershipSurviveRestartAndRecoveryHandlesBothCommitOutcomes(@org.junit.jupiter.api.io.TempDir Path store) throws Exception {
+        try (var database = new PostgreSQLContainer<>("postgres:16-alpine").withPassword(UUID.randomUUID().toString())) {
+            database.start();
+            Long owner;
+            Long videoId;
+            String mediaPath;
+            UUID abandoned;
+            UUID staged;
+            Files.writeString(store.resolve("original.json"), "preserve import source");
+            try (var application = startApplication(database, "dev", store)) {
+                var user = application.getBean(UserService.class).register(new RegisterRequest("upload-restart@example.test",
+                        "upload-restart", "Upload", "Test", "password123"));
+                owner = user.id();
+                var upload = application.getBean(com.tecnocampus.LS2.protube_back.services.VideoUploadService.class).upload(
+                        new com.tecnocampus.LS2.protube_back.model.UploadVideoRequest("Restart upload", "Description", "Technology", List.of()),
+                        com.tecnocampus.LS2.protube_back.support.UploadFixtures.video(),
+                        com.tecnocampus.LS2.protube_back.support.UploadFixtures.image("jpg"), owner);
+                videoId = upload.id();
+                mediaPath = upload.videoUrl().substring("/media/".length());
+                var storage = application.getBean(com.tecnocampus.LS2.protube_back.services.MediaStorageService.class);
+                abandoned = storage.begin();
+                storage.write(abandoned, com.tecnocampus.LS2.protube_back.support.UploadFixtures.video(), false);
+                storage.publish(abandoned);
+                staged = storage.begin();
+                storage.write(staged, com.tecnocampus.LS2.protube_back.support.UploadFixtures.video(), false);
+                // Simulate a process stopping after commit and before removing the recovery manifest.
+                String committedId = Path.of(mediaPath).getParent().getFileName().toString();
+                Files.createFile(store.resolve("uploads/.pending/" + committedId + ".manifest"));
+            }
+            try (var application = startApplication(database, "prod", store)) {
+                var persisted = application.getBean(VideoService.class).getVideo(videoId).orElseThrow();
+                assertEquals("Technology", persisted.category());
+                assertEquals("UPLOAD", persisted.source());
+                assertEquals("Restart upload", persisted.title());
+                assertEquals(owner, application.getBean(JdbcTemplate.class).queryForObject("select owner_user_id from videos where id=?", Long.class, videoId));
+                assertTrue(Files.isRegularFile(store.resolve(persisted.thumbnailUrl().substring("/media/".length()))));
+                assertTrue(java.util.Arrays.equals(com.tecnocampus.LS2.protube_back.support.UploadFixtures.mp4(), Files.readAllBytes(store.resolve(mediaPath))));
+                var storage = application.getBean(com.tecnocampus.LS2.protube_back.services.MediaStorageService.class);
+                assertTrue(storage.pendingIds().isEmpty());
+                assertTrue(Files.notExists(store.resolve(storage.mediaPath(abandoned))));
+                assertTrue(Files.notExists(store.resolve("uploads/.pending/" + staged)));
+                assertEquals("preserve import source", Files.readString(store.resolve("original.json")));
+            }
+        }
+    }
+
+    @Test
     void upgradingV3PreservesHistoricalCommentsAndEnforcesThreadAndLikeIntegrity() {
         try (var database = new PostgreSQLContainer<>("postgres:16-alpine").withPassword(UUID.randomUUID().toString())) {
             database.start();
@@ -77,6 +124,8 @@ class PostgreSqlPersistenceTest {
             assertEquals(List.of(true, false), jdbc.queryForList(
                     "SELECT tags_initialized FROM videos ORDER BY id", Boolean.class));
             assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM video_tags", Long.class));
+            assertEquals(List.of("LEGACY", "LEGACY"), jdbc.queryForList("select source from videos order by id", String.class));
+            assertEquals(0L, jdbc.queryForObject("select count(*) from videos where category is not null", Long.class));
         }
     }
 
@@ -113,7 +162,7 @@ class PostgreSqlPersistenceTest {
                 videos.recordWatch(videoId, new WatchHistoryRequest(userId, 5));
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3", "4"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4", "5"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(
@@ -242,6 +291,10 @@ class PostgreSqlPersistenceTest {
     }
 
     private ConfigurableApplicationContext startApplication(PostgreSQLContainer<?> database, String profile) {
+        return startApplication(database, profile, Path.of("."));
+    }
+
+    private ConfigurableApplicationContext startApplication(PostgreSQLContainer<?> database, String profile, Path store) {
         return new SpringApplicationBuilder(ProtubeBackApplication.class).run(
                 "--spring.profiles.active=" + profile,
                 "--ENV_PROTUBE_DB_HOST=" + database.getHost(),
@@ -249,7 +302,7 @@ class PostgreSqlPersistenceTest {
                 "--ENV_PROTUBE_DB=" + database.getDatabaseName(),
                 "--ENV_PROTUBE_DB_USER=" + database.getUsername(),
                 "--ENV_PROTUBE_DB_PASS=" + database.getPassword(),
-                "--pro_tube.store.dir=.",
+                "--pro_tube.store.dir=" + store,
                 "--pro_tube.load_initial_data=false",
                 "--server.port=0",
                 "--logging.level.org.springframework.web=INFO"

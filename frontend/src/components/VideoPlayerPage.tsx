@@ -53,6 +53,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
       </video>
       <h1 className="video-player-title">{value.title}</h1>
       {value.user && <p className="video-player-user">{value.user}</p>}
+      {value.category && <p className="video-player-category">{value.category}</p>}
       {value.description && <p className="video-player-description">{value.description}</p>}
       <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       <CommentSection videoId={value.id} />

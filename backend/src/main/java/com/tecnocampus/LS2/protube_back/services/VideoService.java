@@ -205,7 +205,9 @@ public class VideoService {
                 tagNames(video),
                 videoLikeRepository.countByVideoId(video.getId()),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                watchHistoryRepository.countByVideoId(video.getId())
+                watchHistoryRepository.countByVideoId(video.getId()),
+                video.getCategory(),
+                video.getSource()
         );
     }
 
