@@ -55,7 +55,7 @@ La evidencia anterior corresponde a 542c579; los resultados siguientes comprobar
 
 - [x] P1 - Integrar 77452ef sin perder los temas ni el contrato combinado (RF-1 a RF-4); terminado cuando no haya conflictos y DTO/migraciones/cabecera estén preservados.
 - [x] P2 - Aplicar y verificar la paleta en reacciones (RF-3); terminado con estados activos/inactivos/hover/foco y persistencia de reacción/reproducción comprobados en ambos temas y móvil.
-- [ ] P3 - Verificar, publicar en la rama de PR #29 y revisar CI; terminado con resultados locales/remotos reales, descripción actualizada y sin merge a main.
+- [x] P3 - Verificar, publicar en la rama de PR #29 y revisar CI; terminado con resultados locales/remotos reales, descripción actualizada y sin merge a main.
 
 Evidencia local nueva, 2026-11-13:
 
@@ -76,3 +76,12 @@ Persisten las limitaciones de la base local V5 alternativa y de la experiencia f
 
 - Resultado local de la corrección: build y lint código 0; 28 suites / 176 pruebas y snapshot satisfactorios, cobertura conservada. Imagen final construida; suite Playwright completa 23/23 satisfactoria contra protube-pr29-check aislado, incluida la cuenta de 100 caracteres y ambos temas a 320 px. Reproducción mínima posterior: scrollWidth 320 frente a viewport 320 en las cuatro fuentes comprobadas. Dos capturas completas de móvil revisadas fuera del repositorio: texto íntegro en varias líneas, medios y controles visibles, sin scroll horizontal. diff --check correcto.
 - Siguiente paso de P3: publicar esta corrección y comprobar el nuevo CI remoto; no se confunde el fallo de d769a30 con el resultado todavía pendiente del nuevo commit.
+
+
+### Cierre P3 tras comprobar GitHub
+
+- Corrección publicada normalmente en party--ClairObscur-buttons: dc5c183881ed663555e8f42c60ea23958889070f; PR #29 abierta y fusionable, mergeable_state clean, sin conflictos. No se ha fusionado ninguna PR ni modificado main.
+- [CI del código corregido](https://github.com/garguellesl/LSII_manel-3/actions/runs/43421118887): build-and-test y e2e completados con success. Logs contrastados: 176 pruebas frontend y snapshot; Maven -Pprod clean verify con 159 pruebas, 0 fallos, 0 errores, 0 omitidas y BUILD SUCCESS; 23 E2E pasan sin reintentos fallidos. Build/lint y gates de cobertura satisfactorios.
+- El ajuste de texto resuelve el overflow de móvil detectado en el primer CI; no se ha relajado el ancho de aceptación, ocultado contenido ni alterado reproducción/reacciones. La base de subida 77452ef y su worktree se mantienen intactos.
+- Entorno protube-pr29-check retirado junto a sus dos volúmenes y su imagen temporal; entorno/base de desarrollo conservados. Árbol de código publicado limpio. Este cierre documental registra evidencia del commit dc5c183; no presenta futuros checks del commit documental como ya ejecutados.
+- Quedan revisión/merge del equipo y, fuera del alcance actual, experiencia fiesta/recurso verificado. Las bases con la V5 de subida ya aplicada siguen necesitando una transición revisada: no se ha reparado ni alterado su historial.
