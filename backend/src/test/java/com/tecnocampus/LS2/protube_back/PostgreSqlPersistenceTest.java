@@ -75,6 +75,26 @@ class PostgreSqlPersistenceTest {
     }
 
     @Test
+    void upgradingReactionsV5PreservesExistingVotesAndAddsUploadMetadata() {
+        try (var database = new PostgreSQLContainer<>("postgres:16-alpine").withPassword(UUID.randomUUID().toString())) {
+            database.start();
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword())
+                    .target("5").load().migrate();
+            var jdbc = new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
+                    database.getJdbcUrl(), database.getUsername(), database.getPassword()));
+            jdbc.update("INSERT INTO app_users (id,email,account_name,first_name,last_name,password_hash) VALUES (1,'combined@example.test','combined','First','Last','test')");
+            jdbc.update("INSERT INTO videos (id,title,description,media_path,owner_user_id) VALUES (10,'Existing','','existing.mp4',1)");
+            jdbc.update("INSERT INTO video_likes (video_id,user_id,reaction_type) VALUES (10,1,'DISLIKE')");
+
+            org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword()).load().migrate();
+            assertEquals("DISLIKE", jdbc.queryForObject("select reaction_type from video_likes where video_id=10", String.class));
+            assertEquals("LEGACY", jdbc.queryForObject("select source from videos where id=10", String.class));
+            assertEquals(1L, jdbc.queryForObject("select owner_user_id from videos where id=10", Long.class));
+            assertTrue(jdbc.queryForObject("select category is null from videos where id=10", Boolean.class));
+        }
+    }
+
+    @Test
     void upgradingV3PreservesHistoricalCommentsAndEnforcesThreadAndLikeIntegrity() {
         try (var database = new PostgreSQLContainer<>("postgres:16-alpine").withPassword(UUID.randomUUID().toString())) {
             database.start();
@@ -162,7 +182,7 @@ class PostgreSqlPersistenceTest {
                 videos.recordWatch(videoId, new WatchHistoryRequest(userId, 5));
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3", "4", "5"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4", "5", "6"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(

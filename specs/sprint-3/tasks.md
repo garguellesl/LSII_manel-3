@@ -1,7 +1,7 @@
 # Tareas - Sprint 3
 
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md)
-Alcance autorizado: implementación local de RF-4 (AC1–AC10), con las tareas T3, T15–T17 y validación E2E acotada. El resto del sprint continúa propuesto.
+Alcance autorizado: implementación local de RF-4 (AC1–AC10) y RF-10 (reacciones de vídeo), incluidas API, UI y pruebas. El resto del sprint continúa propuesto.
 
 Actualización 2026-11-12: autorizado el plan acotado de RF-4; ejecución de T3,
 T15-T17 y escenarios pertinentes de T24, sin declarar completas tareas globales
@@ -116,6 +116,22 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T25.
   - Hecho cuando: AC tengan evidencia, CI y revisión del equipo sean satisfactorias, prompt revisado según política y PR fusionada a main mediante squash sin credenciales/medios/generados. Coordinar liberación explícita de ownership, sin push directo a main.
   - Evidencia: pendiente. No implica autorización para publicar/fusionar desde esta petición.
+- [x] T27 - Persistir tipo de reacción en likes de vídeo (RF-10, RF-8)
+  - Depende de: V4 de comentarios en la rama base.
+  - Hecho cuando: migración V5 conserva votos existentes como LIKE, limita valores y mantiene unicidad por usuario/vídeo; integración PostgreSQL y concurrencia pasan.
+  - Evidencia: V5 preserva likes como LIKE; PostgreSQL Testcontainers ejecutó migración hasta V5 y persistencia/reinicio pasó en `mvn -Pprod clean verify`.
+- [x] T28 - API autenticada de like/dislike y lectura del estado propio (RF-10, RF-9)
+  - Depende de: T27.
+  - Hecho cuando: rutas idempotentes permiten cambiar/retirar reacción, devuelven ambos contadores sin identidad, protegen CSRF/sesión y exponen solo el estado del principal.
+  - Evidencia: `VideoServiceTest`, `VideosControllerTest`, `SessionSecurityTest`; privacidad comprobada sin `userId`; 42 tests backend enfocados pasan.
+- [x] T29 - Contadores públicos y controles de reacción en UI (RF-10)
+  - Depende de: T28.
+  - Hecho cuando: tarjetas/player muestran contadores, player permite cambiar/retirar, visitante lee e inicia sesión; teclado, móvil y errores se prueban con API simulada.
+  - Evidencia: Jest y build/lint frontend; componente y tarjeta presentan estado y contadores.
+- [x] T30 - E2E y regresión de reacciones (RF-10)
+  - Depende de: T27-T29.
+  - Hecho cuando: dos cuentas y visitante verifican privacidad, persistencia, exclusividad, conteos y CSRF; checks completos se registran aquí.
+  - Evidencia: `npm test -- --workers=2` en E2E: 15/15 pasan, incluida reacción, refresco, privacidad y regresiones.
 
 ## Validación por requisito
 
@@ -143,6 +159,13 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 - `git diff --check` y compilación TypeScript específica de E2E completadas. Los resultados y artefactos temporales de Playwright no se versionan.
 - Alcance: T3/T15/T16/T17 completadas. T24 permanece abierta por depender de las demás historias del sprint; no inferir que RF-1 a RF-9 estén completas.
 
+## Ejecución RF-10 (2026-11-12)
+
+- Backend `mvn -Pprod clean verify`: 128 tests, cero fallos; JaCoCo cumplido. Incluye PostgreSQL real y Flyway V5. Tras añadir la prueba de alternancia, `VideoServiceTest` y `VideosControllerTest`: 42 tests, cero fallos (`-Djacoco.skip=true`).
+- Frontend: 145 tests en 23 suites; build y lint correctos. Una prueba nueva comprueba los contadores públicos en las tarjetas.
+- Playwright: E2E nuevo de reacciones pasó (cambio like→dislike, refresco, estado propio, contador público y ausencia de userId). Una regresión de comentarios fue intermitente en la primera ejecución y pasó al repetirla; repetición final de la suite completa: 15/15.
+- RF-10 y T27-T30 completados con evidencia local; el resto del sprint permanece pendiente.
+
 ## Cierre
 
 - RF-4 y AC1–AC10: implementados localmente y verificados con evidencia indicada arriba; revisión/merge pendientes.
@@ -155,3 +178,22 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 ## Ejecución acotada de subida (2026-11-12/13)
 
 La petición nueva autoriza RF-1 y las partes necesarias de RF-8/RF-9. Las tareas U1-U4, el contrato concreto y toda la evidencia ejecutada están en [upload.md](upload.md); [handoff](../../docs/ai/tasks/sprint3-video-upload.md). Subida implementada y verificada localmente. Complementa partes T2/T6-T10/T24 sin declarar terminadas las tareas globales que también abarcan importación extendida, sustitución de archivos, perfil, staging y cierre/revisión del sprint. Se conserva íntegra la evidencia histórica de RF-4.
+
+## Integración de subida y reacciones (2026-11-13)
+
+Alcance y contrato: I-RF1 a I-RF3 de spec.md; plan previo en plan.md. Handoff: docs/ai/tasks/upload-reactions-integration.md.
+
+- [x] I-T1 - Resolver DTO/mapeo sin perder campos (I-RF1/I-RF2); terminado cuando compile y no queden marcadores.
+- [x] I-T2 - Adaptar fixtures y probar defaults/JSON/contadores independientes (I-RF1/I-RF2); terminado con pruebas pertinentes satisfactorias.
+- [x] I-T3 - Desambiguar V5/V6 y probar actualización conservando datos (I-RF3); terminado con Flyway/PostgreSQL y regresión de reinicio satisfactorios.
+- [x] I-T4 - Verificación combinada y entrega; terminado con resultados reales registrados y trabajo original conservado. Sin commit ni push.
+
+Evidencia final local 2026-11-13 (Europe/Madrid):
+
+- I-T1/I-T2: Maven clean verify con Java 21/Maven 3.9.12: BUILD SUCCESS, 159 casos (158 pasan; 1 de enlaces simbólicos omitido por limitación de Windows), sin fallos/errores; JaCoCo cumple sus umbrales sin cambios. VideoDetailTest añade dos casos de contrato/JSON; VideosControllerTest prueba valores distintos combinados; VideoServiceTest prueba dos likes/un dislike/tres entradas de historial y category/source, más ceros/LEGACY. Los dos fixtures de 13 argumentos pasan a 14; los de 11 se conservan y verifican defaults.
+- I-T3: instalación vacía y V2/V3/V5-reacciones→V6 con PostgreSQL/Testcontainers, conservación de votos/propietario/metadata y reinicio dev/prod pasan. V5 de main conserva su SQL; V6 de subida conserva exactamente el SQL de la V5 anterior de la rama.
+- I-T4/frontend: npm ci (lockfiles sin modificar), npm run build, npm run test -- --coverage --watchAll=false --ci y npm run lint: correctos; 25 suites, 157 pruebas y snapshot pasan; gates de cobertura satisfechos.
+- I-T4/E2E: imagen de producción del código combinado y Compose aislado protube-merge-check; npx playwright test --workers=2 con origen propio: 18/18 pasan (subida/reproducción, reacciones, cuentas, búsqueda, tags y comentarios). No se prueba contra la base ni el almacén del usuario.
+- Comprobaciones finales: sin marcadores en código ni entradas de conflicto en índice; enlaces locales y diff comprobados. Cambio original del usuario en la rama de apariencia conservado.
+
+Limitación real: consulta de solo lectura al PostgreSQL local detecta V5__video_upload_metadata.sql ya aplicada. Ese historial local alternativo necesita una transición revisada antes de usar el código combinado; esta tarea no cambia datos, ejecuta repair/clean ni modifica su historial. Las pruebas de actualización V5→V6 parten de la V5 de reacciones de main. Merge preparado localmente sin commit/push; el PR remoto no se declara actualizado. No reemplaza resultados históricos ni significa cierre completo del sprint.

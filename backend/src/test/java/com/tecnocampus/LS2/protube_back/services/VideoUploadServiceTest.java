@@ -32,7 +32,7 @@ class VideoUploadServiceTest {
     VideoUploadService service;
     UUID id = UUID.randomUUID();
     UploadVideoRequest request = new UploadVideoRequest(" Title ", " desc ", "Music", List.of());
-    VideoDetail detail = new VideoDetail(1L, "Title", "owner", "desc", 2, null, "/media/video", List.of(), 0, 0, 0, "Music", "UPLOAD");
+    VideoDetail detail = new VideoDetail(1L, "Title", "owner", "desc", 2, null, "/media/video", List.of(), 0, 0, 0, 0, "Music", "UPLOAD");
 
     @BeforeEach void setup() {
         service = new VideoUploadService(storage, validator, videos, users, tags, details, transactions);

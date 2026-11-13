@@ -8,6 +8,8 @@ export type VideoSummary = {
   title: string;
   thumbnailUrl: string | null;
   videoUrl: string;
+  likesCount?: number;
+  dislikesCount?: number;
 };
 export type VideoPage = {
   content: VideoSummary[];

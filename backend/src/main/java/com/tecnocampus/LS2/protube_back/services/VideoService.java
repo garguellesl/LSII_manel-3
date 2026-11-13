@@ -122,20 +122,35 @@ public class VideoService {
 
     @Transactional
     public LikeResponse likeVideo(Long videoId, Long userId) {
-        Video video = findVideo(videoId);
-        UserAccount user = findUser(userId);
-        if (!videoLikeRepository.existsByVideoIdAndUserId(videoId, userId)) {
-            videoLikeRepository.save(new VideoLike(video, user));
-        }
-        return new LikeResponse(videoId, userId, true, videoLikeRepository.countByVideoId(videoId));
+        return setReaction(videoId, userId, VideoLike.ReactionType.LIKE);
     }
 
     @Transactional
     public LikeResponse unlikeVideo(Long videoId, Long userId) {
-        findVideo(videoId);
-        findUser(userId);
-        videoLikeRepository.findByVideoIdAndUserId(videoId, userId).ifPresent(videoLikeRepository::delete);
-        return new LikeResponse(videoId, userId, false, videoLikeRepository.countByVideoId(videoId));
+        return removeReaction(videoId, userId, VideoLike.ReactionType.LIKE);
+    }
+
+    @Transactional public LikeResponse dislikeVideo(Long videoId, Long userId) { return setReaction(videoId, userId, VideoLike.ReactionType.DISLIKE); }
+    @Transactional public LikeResponse undislikeVideo(Long videoId, Long userId) { return removeReaction(videoId, userId, VideoLike.ReactionType.DISLIKE); }
+    @Transactional(readOnly = true) public LikeResponse getReaction(Long videoId, Long userId) {
+        findVideo(videoId); findUser(userId);
+        var reaction = videoLikeRepository.findByVideoIdAndUserId(videoId, userId).map(VideoLike::getReactionType).orElse(null);
+        return reactionResponse(videoId, reaction);
+    }
+    private LikeResponse setReaction(Long videoId, Long userId, VideoLike.ReactionType reaction) {
+        findVideo(videoId); findUser(userId);
+        videoLikeRepository.upsertReaction(videoId, userId, reaction.name());
+        return reactionResponse(videoId, reaction);
+    }
+    private LikeResponse removeReaction(Long videoId, Long userId, VideoLike.ReactionType reaction) {
+        findVideo(videoId); findUser(userId);
+        videoLikeRepository.deleteByVideoIdAndUserIdAndReactionType(videoId, userId, reaction);
+        return reactionResponse(videoId, videoLikeRepository.findByVideoIdAndUserId(videoId, userId).map(VideoLike::getReactionType).orElse(null));
+    }
+    private LikeResponse reactionResponse(Long videoId, VideoLike.ReactionType reaction) {
+        return new LikeResponse(videoId, reaction == VideoLike.ReactionType.LIKE, reaction == VideoLike.ReactionType.DISLIKE,
+                videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.LIKE),
+                videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.DISLIKE));
     }
 
     @Transactional
@@ -168,7 +183,7 @@ public class VideoService {
                         video.getId(),
                         video.getTitle(),
                         watchHistoryRepository.countByVideoId(video.getId()),
-                        videoLikeRepository.countByVideoId(video.getId()),
+                        videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                         commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId())
                 ))
                 .toList();
@@ -187,9 +202,10 @@ public class VideoService {
                 urlFor(video.getThumbnailPath()),
                 urlFor(video.getMediaPath()),
                 tagNames(video),
-                videoLikeRepository.countByVideoId(video.getId()),
+                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                watchHistoryRepository.countByVideoId(video.getId())
+                watchHistoryRepository.countByVideoId(video.getId()),
+                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE)
         );
     }
 
@@ -203,9 +219,10 @@ public class VideoService {
                 urlFor(video.getThumbnailPath()),
                 urlFor(video.getMediaPath()),
                 tagNames(video),
-                videoLikeRepository.countByVideoId(video.getId()),
+                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
                 watchHistoryRepository.countByVideoId(video.getId()),
+                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE),
                 video.getCategory(),
                 video.getSource()
         );

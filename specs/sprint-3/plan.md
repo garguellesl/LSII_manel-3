@@ -55,6 +55,17 @@ Todos los archivos nuevos citados a continuación son propuestas, no implementac
 | RF-7 | `VideoService`, repositorios y datos de reproducción nuevos, `UsersController`; player, panel/cliente de analíticas | Eventos idempotentes y agregación de vídeos subidos propios |
 | RF-8 | `VideoImportService`, entidades, Flyway nuevo, almacenamiento, configuración/Compose y documentación | Procedencia, conservación del formato externo y persistencia |
 | RF-9 | `SecurityConfig`, `SessionSecurityTest`, controladores/servicios y clientes de sesión | Identidad del servidor, propiedad y CSRF en todos los contratos |
+| RF-10 | `VideoLike`, `VideoLikeRepository`, `VideoService`, `VideosController`, DTOs; VideoCard/VideoPlayerPage y cliente/hook | Like/dislike exclusivo persistente, conteos públicos y estado propio privado |
+
+## Diseño RF-10: reacciones a vídeos
+
+- Origen: ampliación solicitada y aprobada por el usuario el 2026-11-12; no existe US de reacciones a vídeos en REQUIREMENT.md. Se mantiene en esta especificación Sprint 3, sin crear otra carpeta SDD.
+- V5 añade `reaction_type` a `video_likes`, valor permitido LIKE/DISLIKE y DEFAULT LIKE para preservar votos existentes. La unicidad actual `(video_id,user_id)` garantiza una reacción por cuenta/vídeo.
+- POST/DELETE `/videos/{id}/likes` y `/videos/{id}/dislikes`: POST establece/cambia la reacción de forma idempotente; DELETE retira solo esa reacción. Mutaciones exigen sesión + CSRF y derivan el usuario del principal.
+- GET `/videos/{id}/reaction` autenticado devuelve solo el estado propio. `VideoDetail`/`VideoSummary` añaden `dislikesCount`; los contadores públicos no incluyen identidades. DTO de mutación devuelve videoId, reaction, likesCount, dislikesCount y no userId.
+- Repositorio usa upsert PostgreSQL contra la clave única para serializar cambios concurrentes. Servicio obtiene conteos por tipo; controladores no acceden a entidades/repositorios.
+- UI: contadores en VideoCard y player; botones accesibles en player, visitor ve conteos y acceso a iniciar sesión. La UI conserva estado servidor confirmado y permite reintentar errores.
+- Pruebas: migración preserva likes existentes; servicio/controller/security cubren toggle, cambio, concurrencia, recurso inexistente, CSRF y DTO sin identidad; Jest con API simulada; E2E con visitante, dos cuentas, refresco y móvil.
 
 Mantener Controller → Service → Repository y DTOs. Extraer almacenamiento/operaciones de conversación cuando ayude a probarlas sin convertir `VideoService` en una capa adicional de acceso desde controladores a repositorios. No introducir refactor general del monorepo.
 
@@ -168,3 +179,12 @@ Constitución: (1) fuentes y stack inspeccionados, cambios limitados; (2) requis
 ## Ejecución acotada RF-1 (2026-11-12/13)
 
 [Diseño y evidencia de subida](upload.md), rama feature/sprint3-video-upload desde main 2e862ec. V5 amplía category/source. Se reutilizan etiquetas públicas existentes en /api/videos/tags; GET /api/categories comparte el catálogo nuevo. Solo se insertan filas de vídeos una vez completos los archivos; los manifiestos privados permiten recuperar operaciones sin fila pendiente pública. No se exige implementar el resto de T5/perfil/edición para publicar una subida nueva. Compose separa originales read-only en imports del volumen escribible del store, conservando las URLs originales. El resto del diseño y evidencia del sprint conserva su alcance.
+
+## Integración de contratos de subida/reacciones (2026-11-13)
+
+Base de subida 29c7179 y main 9c67085. El usuario elige feature/sprint3-video-upload como destino; se prepara en una copia separada para conservar su VideoDetail modificado en la rama de apariencia.
+
+- Resolver únicamente los conflictos de VideoDetail y VideoService con record canónico de 14 campos: ... likesCount, commentsCount, viewsCount, dislikesCount, category, source. El constructor legado de 11 argumentos delega con 0/null/LEGACY. toDetail consulta DISLIKE antes de category/source y conserva el conteo LIKE que aporta main.
+- Ajustar los dos fixtures de subida con 13 argumentos a 14 (0 dislikes). Mantener los usos de 11 argumentos como regresión real; probar defaults, valores no cero y JSON completo. Servicio PostgreSQL: dos likes, un dislike, tres entradas de historial y metadata UPLOAD/Gaming, para detectar intercambio de contadores o pérdida de campos.
+- Mantener V5__video_reactions.sql idéntica a main. Renumerar la migración de subida aún no integrada a V6, conservando exactamente su SQL; verificar instalación vacía y actualización de V5-reacciones con filas/like previo. Actualizar el test que enumera versiones a 1..6. No se alteran datos ni historial de la instalación local.
+- La integración trae los cambios existentes de main en frontend/servicio/tests; verificar Maven clean verify con Java 21/Docker/PostgreSQL aislados y frontend build/Jest/lint. E2E de subida/reacciones si el entorno aislado está disponible. No afirmar CI remoto ni resolver el PR remoto sin commit/push autorizados.
