@@ -52,3 +52,13 @@ Riesgos: orden CSS/Bootstrap, flashes con JS retrasado, controles heredando esti
 Constitución: stack/patrones inspeccionados; spec/plan/tareas previos al código; UI separada de persistencia; pruebas mock/Jest y navegador; datos/medios protegidos; handoff/prompt pendientes de revisión formal. No hay conflicto bloqueante para la fase actual; el nombre de rama sigue la instrucción expresa del usuario.
 
 Ajuste tras revisión visual: cambiar de tema debe actualizar colores inmediatamente. Se retiran las transiciones de border/background/color y sombras de foco que retenían temporalmente colores anteriores; se conserva la animación de pulsación por transform. No se añaden timers ni clases temporales. Se comprueba el color computado inmediatamente después de alternar, además del contraste de estados estables.
+
+## Adaptación de la PR #29 (2026-11-13)
+
+Rama limpia de apariencia 542c579 y rama de subida publicada 77452ef. Se integra esta última mediante merge sin reescribir historial. Único conflicto Git inicial: CONTEXT.md, resuelto conservando ambas secciones (apariencia e integración subida/reacciones). No se descartan los cambios previos.
+
+- Incorporar los cambios ya comprobados de DTO, mapeo, tests y V5/V6; no volver a resolverlos de forma distinta.
+- VideoPlayerPage añade solo clases de presentación al contenedor y botones de reacción; App.css aplica tokens y estados pulsado/hover/foco/deshabilitado, wrap y objetivos de 44 px. No cambiar el cliente ni las reglas de reacción.
+- appearance.spec.ts prepara una reacción real y comprueba paleta/contraste del estado activo e inactivo en ambos temas, también después de alternar mientras el vídeo continúa. Mantener controles de cabecera y fiesta disabled.
+- Repetir frontend build/Jest/cobertura/lint, Maven verify del código combinado y suite E2E completa en stack aislado. La base local V5-subida se conserva intacta.
+- Tras verificar, commit de integración y push normal a party--ClairObscur-buttons (sin force-push ni push a main), actualizar descripción de PR #29 con resultado y limitaciones, y comprobar conflictos/CI remotos. Esta petición autoriza actualizar esa PR; no autoriza fusionarla ni activar fiesta.

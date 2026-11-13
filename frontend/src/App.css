@@ -1130,3 +1130,41 @@
     justify-content: flex-start;
   }
 }
+
+/* Reaction controls use the same theme and selected-state contrast as the rest of the UI. */
+.video-reactions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-block: 1rem;
+}
+.video-reactions p {
+  margin: 0;
+}
+.video-reaction-button {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 999px;
+  background: var(--pt-surface);
+  color: var(--pt-text);
+  cursor: pointer;
+}
+.video-reaction-button:hover:not(:disabled) {
+  border-color: var(--pt-accent);
+  background: var(--pt-surface-hover);
+}
+.video-reaction-button[aria-pressed='true'] {
+  border-color: var(--pt-accent);
+  background: var(--pt-accent);
+  color: var(--pt-on-accent);
+}
+.video-reaction-button[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--pt-accent-hover);
+  color: var(--pt-on-accent);
+}
+.video-reaction-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}

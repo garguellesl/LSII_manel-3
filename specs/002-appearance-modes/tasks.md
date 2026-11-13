@@ -48,3 +48,20 @@ Alcance autorizado: implementar RF-1 a RF-4; documentar F-1 a F-4 sin implementa
 - Bloqueos: ninguno para RF-1 a RF-4. Primera pasada E2E detectó borde claro con contraste 2,95:1 sobre inset; se corrigió el token a 3,15:1 y la suite completa posterior pasa. No se relajó la aceptación. Hover/foco de controles primarios tienen contraste real verificado, además de la matriz de tokens.
 - Pendiente futuro: implementar fiesta solo cuando se solicite; verificar recurso real antes de F-3. Revisión de equipo, CI remoto y merge no realizados.
 - Veredicto: alcance actual cumplido localmente. Fiesta pendiente de una futura petición de implementación; CI remoto, revisión de equipo y merge pendientes.
+
+## Adaptación de PR #29 a subida y reacciones (2026-11-13)
+
+La evidencia anterior corresponde a 542c579; los resultados siguientes comprobarán el conjunto nuevo. No se reinterpretan como ejecuciones nuevas los checks históricos.
+
+- [x] P1 - Integrar 77452ef sin perder los temas ni el contrato combinado (RF-1 a RF-4); terminado cuando no haya conflictos y DTO/migraciones/cabecera estén preservados.
+- [x] P2 - Aplicar y verificar la paleta en reacciones (RF-3); terminado con estados activos/inactivos/hover/foco y persistencia de reacción/reproducción comprobados en ambos temas y móvil.
+- [ ] P3 - Verificar, publicar en la rama de PR #29 y revisar CI; terminado con resultados locales/remotos reales, descripción actualizada y sin merge a main.
+
+Evidencia local nueva, 2026-11-13:
+
+- P1: merge de 77452ef en la rama de apariencia; conflicto único en CONTEXT conservando ambas secciones. El árbol backend es idéntico al de 77452ef (git diff sin diferencias): se reutiliza su Maven clean verify satisfactorio (158 pruebas correctas y 1 de enlaces simbólicos no ejecutable en Windows, PostgreSQL aislado y gates JaCoCo satisfechos). El empaquetado Docker de producción incorpora el frontend combinado; GitHub ejecutará de nuevo -Pprod clean verify en Linux.
+- P2: npm run build, npm run test -- --coverage --watchAll=false --ci y npm run lint correctos: 28 suites, 176 tests y snapshot pasan; gates de cobertura >=75 % conservados. Sin dependencias nuevas.
+- P2/regresión: npx playwright test --workers=2 contra Compose protube-pr29-check aislado: 23/23 pasan. El recorrido de apariencia comprueba like seleccionado/dislike inactivo, hover/foco/contraste, conservación de reacción y vídeo al alternar, y controles >=44 px sin overflow a 320 px, además de cuenta/subida/comentarios/etiquetas y primer render sin destellos. Fiesta continúa disabled.
+- P3/checkpoint previo a publicación: diff/enlaces/conflictos revisados, descripción de PR preparada y árbol local verificado. El push y los checks remotos se registrarán en la propia PR y en el chat tras ejecutarlos; no se presentan aquí como ya completados en el momento de este commit. No se autoriza ni se realiza merge a main.
+
+Persisten las limitaciones de la base local V5 alternativa y de la experiencia fiesta futura. No se ha modificado la base local ni se ha activado fiesta.

@@ -98,3 +98,9 @@ Activar fiesta, implementar paleta arcoíris/confeti/Rick Roll/contadores, añad
 - RF-1 a RF-4 con evidencia real en [tasks.md](tasks.md); F-1 a F-4 documentados y sin implementar.
 - Comprobaciones del frontend satisfechas y regresiones de navegación/reproducción verificadas en navegador.
 - Plan y tareas distinguen trabajo actual y futuro; handoff y prompt con su aprobación real.
+
+## Actualización de la PR #29 (2026-11-13)
+
+La petición nueva autoriza actualizar la PR Party clair obscur buttons incorporando la integración de subida/reacciones de feature/sprint3-video-upload (77452ef), incluida main 9c67085. El alcance funcional sigue siendo claro/oscuro y fiesta deshabilitada.
+
+Ampliación de la aceptación RF-3: los botones de like/dislike existentes conservarán su funcionamiento, contadores y aria-pressed al alternar el tema; estado normal, seleccionado, hover, foco, pendiente/error y disposición móvil usarán la misma paleta. No se cambian sus reglas de negocio. Se conserva VideoDetail con dislikesCount/category/source y las migraciones V5-reacciones/V6-subida; no se adapta automáticamente ninguna BD local con la V5 alternativa ya aplicada.

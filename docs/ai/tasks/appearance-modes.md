@@ -1,8 +1,8 @@
 # appearance-modes: temas y botón fiesta futuro
 
-- Shared task: petición del chat 2026-11-13; sin issue/PR proporcionado ni tracker remoto comprobado.
+- Shared task: PR #29 https://github.com/garguellesl/LSII_manel-3/pull/29, consultada el 2026-11-13; abierta, head party--ClairObscur-buttons y base main. Actualización de esta PR autorizada expresamente en el chat.
 - Owner / reviewer: usuario solicitante con Codex; revisión formal del equipo pendiente.
-- State: review (implementación local verificada, pendiente de revisión formal).
+- State: review (código combinado verificado localmente, actualización de PR #29 preparada).
 - Branch: party--ClairObscur-buttons desde feature/sprint3-video-upload 29c7179, confirmado por el usuario. Git no admite espacios; nombre explícito prevalece sobre feature/.
 - Last update: 2026-11-13, Europe/Madrid.
 - Coordination: árbol limpio verificado; confirmación anterior del usuario de ausencia de otro trabajo, sin garantía sobre tracker ni cambios sin publicar. No se detectan cambios locales ajenos.
@@ -25,3 +25,16 @@
 - Ownership: sin publicación ni liberación remota inventada; esta tarea no altera la rama base de vídeos.
 
 - Cierre de verificación: ajuste de colores inmediato sin mezclar transiciones previas; repetidos build/lint, 175 pruebas y 22 E2E con la imagen final, todos satisfactorios. Capturas finales actualizadas. Entorno de prueba retirado, desarrollo conservado.
+
+## Nueva petición de actualización PR #29
+
+- Base de apariencia: 542c579; integración entrante publicada: feature/sprint3-video-upload 77452ef (incluye main 9c67085). Árbol limpio contrastado antes de merge; no se editan trabajos de otras copias.
+- Paths añadidos al alcance: VideoPlayerPage.tsx (solo clases visuales), App.css y ampliación de appearance.spec.ts; conservar modificaciones entrantes de subida/reacciones y ambas secciones de CONTEXT. Sin lógica de reacciones nueva ni efectos fiesta.
+- Ejecución/evidencia: P1-P3 en specs/002-appearance-modes/tasks.md. Nueva petición autoriza commit/push normal y descripción de la PR #29; no merge a main. La exclusión histórica de publicación del primer encargo no limita esta petición nueva.
+- Prompt: prompts/17-adapt-appearance-pr.md, pendiente de revisión formal del equipo.
+
+## Evidencia de adaptación antes del commit/push
+
+- P1/P2 satisfactorios: incorporación de 77452ef, DTO y migraciones preservados; estilos visuales de reacciones añadidos sin cambiar handlers; 176 pruebas frontend, build/lint y 23 E2E correctos. Backend idéntico a la integración ya verificada por Maven.
+- Publicación: se mantiene la PR #29 con base main, sin force-push. El estado definitivo de push/CI se registra en la PR y el chat después de publicar; este handoff describe el checkpoint local previo.
+- La PR #28 de subida sigue independiente; no se fusiona ninguna PR. Base de datos local y experiencia fiesta permanecen fuera de cambios.

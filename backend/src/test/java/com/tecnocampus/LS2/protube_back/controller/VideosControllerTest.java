@@ -131,7 +131,26 @@ class VideosControllerTest {
                 .andExpect(jsonPath("$.description").value("A description"))
                 .andExpect(jsonPath("$.duration").value(79.5))
                 .andExpect(jsonPath("$.videoUrl").value("/media/7.mp4"))
-                .andExpect(jsonPath("$.tags[0]").value("java"));
+                .andExpect(jsonPath("$.tags[0]").value("java"))
+                .andExpect(jsonPath("$.dislikesCount").value(0))
+                .andExpect(jsonPath("$.category").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.source").value("LEGACY"));
+    }
+
+    @Test
+    void getVideoSerializesReactionsAndUploadMetadataTogether() throws Exception {
+        when(videoService.getVideo(8L)).thenReturn(Optional.of(new VideoDetail(
+                8L, "Uploaded", "owner", "Description", 12,
+                null, "/media/uploads/video.mp4", List.of(), 2, 0, 3, 1, "Gaming", "UPLOAD")));
+
+        mockMvc.perform(get("/api/videos/8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likesCount").value(2))
+                .andExpect(jsonPath("$.commentsCount").value(0))
+                .andExpect(jsonPath("$.viewsCount").value(3))
+                .andExpect(jsonPath("$.dislikesCount").value(1))
+                .andExpect(jsonPath("$.category").value("Gaming"))
+                .andExpect(jsonPath("$.source").value("UPLOAD"));
     }
 
     @Test

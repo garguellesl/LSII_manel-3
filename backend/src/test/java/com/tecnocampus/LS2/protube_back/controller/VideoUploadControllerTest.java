@@ -30,11 +30,12 @@ class VideoUploadControllerTest {
 
     @Test void acceptsMultipartWithSessionActorAndReturnsLocationAndDto() throws Exception {
         when(uploads.upload(any(), any(), any(), eq(3L))).thenReturn(new VideoDetail(10L, "Title", "owner", "", 2, null,
-                "/media/uploads/test/video.mp4", List.of(), 0, 0, 0, "Music", "UPLOAD"));
+                "/media/uploads/test/video.mp4", List.of(), 0, 0, 0, 0, "Music", "UPLOAD"));
         mvc.perform(multipart("/api/videos").file(metadata("Title")).file(UploadFixtures.video())
                         .with(user("3")).with(csrf()))
                 .andExpect(status().isCreated()).andExpect(header().string("Location", "/api/videos/10"))
-                .andExpect(jsonPath("$.category").value("Music")).andExpect(jsonPath("$.source").value("UPLOAD"));
+                .andExpect(jsonPath("$.category").value("Music")).andExpect(jsonPath("$.source").value("UPLOAD"))
+                .andExpect(jsonPath("$.dislikesCount").value(0));
         verify(uploads).upload(any(), any(), isNull(), eq(3L));
     }
 

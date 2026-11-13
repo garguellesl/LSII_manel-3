@@ -265,6 +265,13 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
       })
     ).ok(),
   ).toBe(true);
+  expect(
+    (
+      await request.post(`/api/videos/${video.id}/likes`, {
+        headers: { [csrf.headerName]: csrf.token },
+      })
+    ).ok(),
+  ).toBe(true);
   await page.context().addCookies((await request.storageState()).cookies);
 
   for (const theme of ["light", "dark"] as const) {
@@ -347,6 +354,26 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     await assertRenderedContrast(submitComment);
     await submitComment.focus();
     await assertRenderedContrast(submitComment);
+    const activeReaction = page.getByRole("button", {
+      name: "Like 1",
+      exact: true,
+    });
+    const inactiveReaction = page.getByRole("button", {
+      name: "Dislike 0",
+      exact: true,
+    });
+    await expect(activeReaction).toHaveAttribute("aria-pressed", "true");
+    await expect(inactiveReaction).toHaveCSS(
+      "background-color",
+      palette[theme].surface,
+    );
+    await expect(inactiveReaction).toHaveCSS("color", palette[theme].text);
+    await assertRenderedContrast(inactiveReaction);
+    await activeReaction.hover();
+    await assertRenderedContrast(activeReaction);
+    await activeReaction.focus();
+    await expect(activeReaction).toHaveCSS("outline-width", "3px");
+    await assertRenderedContrast(activeReaction);
     const player = page.locator("video");
     await player.evaluate(async (element: HTMLVideoElement) => {
       element.muted = true;
@@ -369,6 +396,9 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     await page
       .getByRole("button", { name: "Modo oscuro", exact: true })
       .click();
+    await expect(activeReaction).toHaveAttribute("aria-pressed", "true");
+    await assertRenderedContrast(activeReaction);
+    await assertRenderedContrast(inactiveReaction);
     await expect(player).toHaveAttribute("data-retained", "yes");
     await expect(player).toHaveAttribute("src", src!);
     expect(
@@ -387,6 +417,16 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
       avatar,
     );
     await chooseTheme(page, theme);
+    await page.setViewportSize({ width: 320, height: 800 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const reactionBox = await activeReaction.boundingBox();
+    expect(reactionBox!.height).toBeGreaterThanOrEqual(44);
+    await assertRenderedContrast(activeReaction);
+    await page.setViewportSize({ width: 1280, height: 720 });
   }
 });
 
