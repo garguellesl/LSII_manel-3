@@ -38,3 +38,10 @@
 - P1/P2 satisfactorios: incorporación de 77452ef, DTO y migraciones preservados; estilos visuales de reacciones añadidos sin cambiar handlers; 176 pruebas frontend, build/lint y 23 E2E correctos. Backend idéntico a la integración ya verificada por Maven.
 - Publicación: se mantiene la PR #29 con base main, sin force-push. El estado definitivo de push/CI se registra en la PR y el chat después de publicar; este handoff describe el checkpoint local previo.
 - La PR #28 de subida sigue independiente; no se fusiona ninguna PR. Base de datos local y experiencia fiesta permanecen fuera de cambios.
+
+
+## Corrección posterior a la primera publicación
+
+- d769a30 publicado en PR #29, sin conflictos; build-and-test remoto satisfactorio. E2E Linux detectó overflow del reproductor a 320 px (22 pasan, 1 falla, también al reintentar).
+- App.css permite partir texto largo del reproductor mediante el patrón overflow-wrap:anywhere ya usado en comentarios. appearance.spec.ts usa una cuenta única de 100 caracteres y mantiene el límite de viewport con diagnóstico; no se modifica lógica de negocio ni se oculta contenido.
+- Verificación local nueva satisfactoria: build/lint, 176 pruebas frontend y snapshot, 23/23 E2E y dos capturas completas de móvil en ambos temas. Evidencia y pendiente remoto en tasks.md, seguimiento P2/P3. El cierre exige comprobar el CI de la corrección.

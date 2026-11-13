@@ -62,3 +62,8 @@ Rama limpia de apariencia 542c579 y rama de subida publicada 77452ef. Se integra
 - appearance.spec.ts prepara una reacción real y comprueba paleta/contraste del estado activo e inactivo en ambos temas, también después de alternar mientras el vídeo continúa. Mantener controles de cabecera y fiesta disabled.
 - Repetir frontend build/Jest/cobertura/lint, Maven verify del código combinado y suite E2E completa en stack aislado. La base local V5-subida se conserva intacta.
 - Tras verificar, commit de integración y push normal a party--ClairObscur-buttons (sin force-push ni push a main), actualizar descripción de PR #29 con resultado y limitaciones, y comprobar conflictos/CI remotos. Esta petición autoriza actualizar esa PR; no autoriza fusionarla ni activar fiesta.
+
+
+### Corrección de móvil detectada por CI
+
+El primer CI de la integración d769a30 pasa build-and-test y falla E2E por overflow del reproductor autenticado a 320 px. La captura/trace contienen un nombre de cuenta sin espacios; el reproductor no permite partir palabras largas. Una reproducción con sus estilos reales y un nombre válido de 100 caracteres produce scrollWidth 1226 frente a 320 en Windows (también ocurre con otras fuentes). Aplicar overflow-wrap:anywhere al contenido del reproductor, siguiendo el patrón existente de comentarios, sin recortar texto ni ocultar overflow. Mantener reproducción y handlers intactos. Ampliar el recorrido a una cuenta única de longitud máxima y conservar el límite de 320 px con diagnóstico de elementos desbordados. Repetir checks frontend y E2E aislado y publicar la corrección para comprobar Linux; no atribuir todavía el resultado remoto al arreglo.

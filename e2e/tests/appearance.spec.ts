@@ -250,7 +250,9 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
   page,
   request,
 }) => {
-  await registerUser(request, uniqueUser("appearance"));
+  const user = uniqueUser("appearance");
+  user.accountName = user.accountName.padEnd(100, "w");
+  await registerUser(request, user);
   const video = await createOwnVideo(request, {
     title: `Theme video ${crypto.randomUUID()}`,
     description: "Theme test description",
@@ -418,11 +420,16 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     );
     await chooseTheme(page, theme);
     await page.setViewportSize({ width: 320, height: 800 });
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
+    const layout = await page.evaluate(() => ({
+      viewport: innerWidth,
+      scroll: document.documentElement.scrollWidth,
+      overflowing: [...document.querySelectorAll("main *")]
+        .filter((element) => element.scrollWidth > element.clientWidth + 1)
+        .map((element) => element.className || element.tagName),
+    }));
+    expect(layout.scroll, JSON.stringify(layout)).toBeLessThanOrEqual(
+      layout.viewport,
+    );
     const reactionBox = await activeReaction.boundingBox();
     expect(reactionBox!.height).toBeGreaterThanOrEqual(44);
     await assertRenderedContrast(activeReaction);

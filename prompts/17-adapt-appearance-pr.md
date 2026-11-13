@@ -18,3 +18,5 @@ a los cambios hechos aqui
 ## Notes
 
 Contexto: feature/sprint3-video-upload publicado en 77452ef incorpora main 9c67085, DTO combinado y V5-reacciones/V6-subida. La rama de apariencia 542c579 deriva de la subida anterior. Actualizar exclusivamente esta PR, sin force-push ni merge a main, conservar modo fiesta deshabilitado y base local intacta. La autorización de actualización no equivale a revisión formal del equipo.
+
+Seguimiento de verificación: el CI inicial detecta overflow móvil; se corrige el ajuste de texto del reproductor y se amplía la prueba a la longitud máxima de cuenta existente (100), conservando el criterio de viewport. Ver resultados reales y secuencia en specs/002-appearance-modes/tasks.md.

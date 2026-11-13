@@ -65,3 +65,14 @@ Evidencia local nueva, 2026-11-13:
 - P3/checkpoint previo a publicación: diff/enlaces/conflictos revisados, descripción de PR preparada y árbol local verificado. El push y los checks remotos se registrarán en la propia PR y en el chat tras ejecutarlos; no se presentan aquí como ya completados en el momento de este commit. No se autoriza ni se realiza merge a main.
 
 Persisten las limitaciones de la base local V5 alternativa y de la experiencia fiesta futura. No se ha modificado la base local ni se ha activado fiesta.
+
+
+### Seguimiento de CI de d769a30
+
+- Publicación y descripción de PR #29 completadas; GitHub declara la rama fusionable, sin conflictos. build-and-test remoto satisfactorio (incluye Maven/PostgreSQL Linux).
+- E2E remoto falla: 22/23 pasan; el recorrido autenticado detecta overflow a 320 px en ambas tentativas. La ejecución local anterior sí había pasado. No se considera cerrado P3.
+- Corrección P2/P3 en curso: partir contenido largo en el reproductor; prueba con cuenta válida de 100 caracteres y diagnóstico de overflow. Reproducción aislada previa al arreglo: ancho 320, scrollWidth 1226 con los estilos reales. Criterio de aceptación conservado; resultados finales pendientes de ejecutar.
+
+
+- Resultado local de la corrección: build y lint código 0; 28 suites / 176 pruebas y snapshot satisfactorios, cobertura conservada. Imagen final construida; suite Playwright completa 23/23 satisfactoria contra protube-pr29-check aislado, incluida la cuenta de 100 caracteres y ambos temas a 320 px. Reproducción mínima posterior: scrollWidth 320 frente a viewport 320 en las cuatro fuentes comprobadas. Dos capturas completas de móvil revisadas fuera del repositorio: texto íntegro en varias líneas, medios y controles visibles, sin scroll horizontal. diff --check correcto.
+- Siguiente paso de P3: publicar esta corrección y comprobar el nuevo CI remoto; no se confunde el fallo de d769a30 con el resultado todavía pendiente del nuevo commit.
