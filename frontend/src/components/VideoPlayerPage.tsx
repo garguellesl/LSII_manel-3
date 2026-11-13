@@ -87,13 +87,25 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
       {value.user && <p className="video-player-user">{value.user}</p>}
       {value.category && <p className="video-player-category">{value.category}</p>}
       {value.description && <p className="video-player-description">{value.description}</p>}
-      <div aria-label="Video reactions">
+      <div className="video-reactions" aria-label="Video reactions">
         {auth.status === 'authenticated' ? (
           <>
-            <button disabled={saving} aria-pressed={reaction === 'LIKE'} onClick={() => void react('likes')}>
+            <button
+              className="video-reaction-button"
+              type="button"
+              disabled={saving}
+              aria-pressed={reaction === 'LIKE'}
+              onClick={() => void react('likes')}
+            >
               Like {counts.likes}
             </button>
-            <button disabled={saving} aria-pressed={reaction === 'DISLIKE'} onClick={() => void react('dislikes')}>
+            <button
+              className="video-reaction-button"
+              type="button"
+              disabled={saving}
+              aria-pressed={reaction === 'DISLIKE'}
+              onClick={() => void react('dislikes')}
+            >
               Dislike {counts.dislikes}
             </button>
           </>

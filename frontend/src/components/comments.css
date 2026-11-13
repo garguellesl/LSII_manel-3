@@ -14,7 +14,7 @@
 .comment-item {
   min-width: 0;
   padding: 1rem 0.5rem;
-  border-top: 1px solid #64748b66;
+  border-top: 1px solid var(--pt-border-subtle);
   scroll-margin-top: 1rem;
 }
 .comment-header,
@@ -35,10 +35,10 @@
 }
 .comment-header time,
 .comment-form small {
-  color: #b8c2d1;
+  color: var(--pt-muted);
 }
 .comment-section a {
-  color: #61dafb;
+  color: var(--pt-accent);
 }
 .comment-parent {
   display: inline-block;
@@ -62,7 +62,7 @@
   width: 100%;
   min-width: 0;
   padding: 0.75rem;
-  border: 1px solid #64748b;
+  border: 1px solid var(--pt-border);
   border-radius: 0.5rem;
   background: transparent;
   color: inherit;
@@ -74,33 +74,33 @@
   max-width: 100%;
   white-space: normal;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #64748b;
+  border: 1px solid var(--pt-border);
   border-radius: 0.6rem;
-  background: #1e2126;
-  color: #f1f5f9;
+  background: var(--pt-surface);
+  color: var(--pt-text);
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
 }
 .comment-section button:hover:not(:disabled) {
-  border-color: #61dafb;
-  background: #293744;
+  border-color: var(--pt-accent);
+  background: var(--pt-surface-hover);
 }
 .comment-form button[type='submit'] {
-  border-color: #61dafb;
-  background: #61dafb;
-  color: #111827;
+  border-color: var(--pt-accent);
+  background: var(--pt-accent);
+  color: var(--pt-on-accent);
 }
 .comment-section button[aria-pressed='true'] {
-  border-color: #61dafb;
-  color: #61dafb;
+  border-color: var(--pt-accent);
+  color: var(--pt-accent);
 }
 .comment-section button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 .comment-section :focus-visible {
-  outline: 2px solid #61dafb;
+  outline: 2px solid var(--pt-accent);
   outline-offset: 3px;
 }
 .comment-section [role='alert'] {
@@ -123,4 +123,10 @@
   .comment-actions {
     gap: 0.35rem;
   }
+}
+
+.comment-form button[type='submit']:hover:not(:disabled),
+.comment-form button[type='submit']:focus-visible {
+  background: var(--pt-accent-hover);
+  color: var(--pt-on-accent);
 }

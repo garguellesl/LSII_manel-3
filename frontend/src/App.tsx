@@ -8,6 +8,7 @@ import { VideoPlayerPage } from './components/VideoPlayerPage';
 import { useAllVideos } from './useAllVideos';
 import { AuthProvider } from './components/AuthProvider';
 import { AccountMenu } from './components/AccountMenu';
+import { AppearanceControls } from './components/AppearanceControls';
 import { AuthPage } from './components/AuthPage';
 import { ProfilePage } from './components/ProfilePage';
 import { Pagination } from './components/Pagination';
@@ -45,7 +46,10 @@ function AppRoutes() {
   return (
     <div className="App">
       <header className="App-header">
-        <AccountMenu />
+        <div className="header-toolbar">
+          <AppearanceControls />
+          <AccountMenu />
+        </div>
         <Link to="/" aria-label="Go to home">
           <img
             src="/protube-logo-removebg-preview.png"
