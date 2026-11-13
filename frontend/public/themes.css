@@ -1,0 +1,165 @@
+/* Semantic palette: the default remains Protube's existing dark appearance. */
+:root {
+  color-scheme: dark;
+  --pt-bg: #282c34;
+  --pt-bg-rgb: 40, 44, 52;
+  --pt-surface: #1e2126;
+  --pt-inset: #161a20;
+  --pt-surface-hover: #293744;
+  --pt-text: #f5f7fa;
+  --pt-text-rgb: 245, 247, 250;
+  --pt-secondary: #d1d5db;
+  --pt-muted: #a4afbf;
+  --pt-placeholder: #a4afbf;
+  --pt-accent: #61dafb;
+  --pt-accent-rgb: 97, 218, 251;
+  --pt-accent-hover: #a0eaff;
+  --pt-accent-hover-rgb: 160, 234, 255;
+  --pt-on-accent: #14202a;
+  --pt-border: #748399;
+  --pt-border-subtle: #495568;
+  --pt-focus: #61dafb;
+  --pt-focus-shadow: rgb(97 218 251 / 25%);
+  --pt-hover-overlay: rgb(255 255 255 / 10%);
+  --pt-accent-soft: rgb(97 218 251 / 12%);
+  --pt-accent-badge: rgb(97 218 251 / 18%);
+  --pt-danger: #ffbaba;
+  --pt-danger-border: #f5a9a9;
+  --pt-danger-soft: rgb(245 101 101 / 12%);
+  --pt-danger-focus: rgb(245 169 169 / 15%);
+  --pt-success: #68d391;
+  --pt-disabled-text: #b1bac8;
+  --pt-disabled-bg: #252b35;
+  --pt-shadow: rgb(0 0 0 / 35%);
+  --pt-popup-shadow: rgb(0 0 0 / 53%);
+  --pt-decoration-start: rgb(97 218 251 / 35%);
+  --pt-decoration-end: rgb(159 122 234 / 35%);
+  --pt-banner-start: rgb(97 218 251 / 55%);
+  --pt-banner-end: rgb(159 122 234 / 55%);
+
+  /* Media backdrops and avatar identity do not change between themes. */
+  --pt-video-backdrop: #000;
+  --pt-avatar-ink: #14202a;
+  --pt-avatar-cyan: #61dafb;
+  --pt-avatar-orange: #f6ad55;
+  --pt-avatar-violet: #9f7aea;
+  --pt-avatar-green: #68d391;
+  --pt-avatar-red: #fc8181;
+  --pt-avatar-pink: #f687b3;
+  --pt-avatar-blue: #63b3ed;
+  --pt-avatar-yellow: #fbd38d;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --pt-bg: #f4f6fa;
+  --pt-bg-rgb: 244, 246, 250;
+  --pt-surface: #fff;
+  --pt-inset: #e7edf6;
+  --pt-surface-hover: #e9f0f9;
+  --pt-text: #182232;
+  --pt-text-rgb: 24, 34, 50;
+  --pt-secondary: #425066;
+  --pt-muted: #536176;
+  --pt-placeholder: #536176;
+  --pt-accent: #075a85;
+  --pt-accent-rgb: 7, 90, 133;
+  --pt-accent-hover: #064466;
+  --pt-accent-hover-rgb: 6, 68, 102;
+  --pt-on-accent: #fff;
+  --pt-border: #77869a;
+  --pt-border-subtle: #c2ccd9;
+  --pt-focus: #075a85;
+  --pt-focus-shadow: rgb(7 90 133 / 22%);
+  --pt-hover-overlay: rgb(24 34 50 / 6%);
+  --pt-accent-soft: rgb(7 90 133 / 9%);
+  --pt-accent-badge: rgb(7 90 133 / 12%);
+  --pt-danger: #a31532;
+  --pt-danger-border: #ba3452;
+  --pt-danger-soft: rgb(163 21 50 / 8%);
+  --pt-danger-focus: rgb(163 21 50 / 15%);
+  --pt-success: #1e6b36;
+  --pt-disabled-text: #536176;
+  --pt-disabled-bg: #e7edf6;
+  --pt-shadow: rgb(24 34 50 / 12%);
+  --pt-popup-shadow: rgb(24 34 50 / 16%);
+  --pt-decoration-start: rgb(7 90 133 / 9%);
+  --pt-decoration-end: rgb(110 76 173 / 10%);
+  --pt-banner-start: rgb(7 90 133 / 15%);
+  --pt-banner-end: rgb(110 76 173 / 15%);
+}
+
+/* Keep Bootstrap and native controls on the same palette, regardless of CSS import order. */
+:root[data-theme] {
+  --bs-body-bg: var(--pt-bg);
+  --bs-body-bg-rgb: var(--pt-bg-rgb);
+  --bs-body-color: var(--pt-text);
+  --bs-body-color-rgb: var(--pt-text-rgb);
+  --bs-emphasis-color: var(--pt-text);
+  --bs-secondary-color: var(--pt-secondary);
+  --bs-secondary-bg: var(--pt-inset);
+  --bs-tertiary-color: var(--pt-muted);
+  --bs-tertiary-bg: var(--pt-surface);
+  --bs-border-color: var(--pt-border);
+  --bs-link-color: var(--pt-accent);
+  --bs-link-color-rgb: var(--pt-accent-rgb);
+  --bs-primary: var(--pt-accent);
+  --bs-primary-rgb: var(--pt-accent-rgb);
+  --bs-link-hover-color: var(--pt-accent-hover);
+  --bs-link-hover-color-rgb: var(--pt-accent-hover-rgb);
+  --bs-code-color: var(--pt-accent);
+  background: var(--pt-bg);
+  color: var(--pt-text);
+}
+
+body {
+  margin: 0;
+  background: var(--pt-bg);
+  color: var(--pt-text);
+}
+
+:where(a) {
+  color: var(--pt-accent);
+}
+:where(a:hover) {
+  color: var(--pt-accent-hover);
+}
+:where(button, input:not([type='checkbox']):not([type='radio']), textarea, select) {
+  color: var(--pt-text);
+  background-color: var(--pt-surface);
+  border: 1px solid var(--pt-border);
+  border-radius: 0.5rem;
+  font: inherit;
+}
+:where(input, progress) {
+  accent-color: var(--pt-accent);
+}
+:where(input, textarea)::placeholder {
+  color: var(--pt-placeholder);
+  opacity: 1;
+}
+:where(input)::file-selector-button {
+  color: var(--pt-on-accent);
+  background: var(--pt-accent);
+  border: 1px solid var(--pt-accent);
+  border-radius: 0.3rem;
+  padding: 0.35rem 0.6rem;
+}
+:where(button:not(:disabled)):hover {
+  background-color: var(--pt-surface-hover);
+}
+:where(input, textarea, select):disabled {
+  color: var(--pt-disabled-text);
+}
+:root[data-theme] :focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+}
+::selection {
+  color: var(--pt-on-accent);
+  background: var(--pt-accent);
+}
+
+:where([role='alert'], .video-tag-error) {
+  color: var(--pt-danger);
+}
