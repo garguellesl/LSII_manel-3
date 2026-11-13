@@ -39,6 +39,12 @@ public class Video {
     @Column(name = "thumbnail_path", length = 500)
     private String thumbnailPath;
 
+    @Column(length = 40)
+    private String category;
+
+    @Column(nullable = false, length = 16)
+    private String source = "LEGACY";
+
     @Column(name = "duration_seconds", nullable = false)
     private double durationSeconds;
 
@@ -88,6 +94,15 @@ public class Video {
     void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public void markUploaded(String category) {
+        this.category = category;
+        this.source = "UPLOAD";
+    }
+
+    public String getCategory() { return category; }
+
+    public String getSource() { return source; }
 
     public Long getId() {
         return id;

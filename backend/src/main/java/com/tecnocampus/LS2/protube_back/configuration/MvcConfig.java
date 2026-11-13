@@ -27,9 +27,34 @@ public class MvcConfig implements WebMvcConfigurer {
         String storeDirectory = env.getProperty("pro_tube.store.dir");
         if (storeDirectory != null && !storeDirectory.isBlank()) {
             Path resolvedStoreDirectory = resolveStoreDirectory(storeDirectory);
+            java.util.List<String> locations = new java.util.ArrayList<>();
+            locations.add(resolvedStoreDirectory.toUri().toString());
+            String configuredImports = env.getProperty("pro_tube.import.dir");
+            if (configuredImports != null && !configuredImports.isBlank()) {
+                Path imports = Paths.get(configuredImports).toAbsolutePath().normalize();
+                if (!imports.startsWith(resolvedStoreDirectory.toAbsolutePath().normalize())) {
+                    throw new IllegalArgumentException("Import directory must be inside the configured media store");
+                }
+                String importLocation = imports.toUri().toString();
+                locations.add(importLocation.endsWith("/") ? importLocation : importLocation + "/");
+            }
             registry
                .addResourceHandler("/media/**")
-               .addResourceLocations(resolvedStoreDirectory.toUri().toString());
+               .addResourceLocations(locations.toArray(String[]::new))
+               .resourceChain(false)
+               .addResolver(new org.springframework.web.servlet.resource.PathResourceResolver() {
+                   @Override
+                   protected org.springframework.core.io.Resource getResource(String resourcePath,
+                           org.springframework.core.io.Resource location) throws java.io.IOException {
+                       if (java.util.Arrays.stream(resourcePath.replace('\\', '/').split("/"))
+                               .anyMatch(part -> part.startsWith("."))) return null;
+                       var resource = super.getResource(resourcePath, location);
+                       if (resource == null) return null;
+                       Path store = resolvedStoreDirectory.toRealPath();
+                       Path file = resource.getFile().toPath().toRealPath();
+                       return file.startsWith(store) ? resource : null;
+                   }
+               });
         } else {
             LOG.warn("Skipping /media/** resource handler because ENV_PROTUBE_STORE_DIR is not configured");
         }

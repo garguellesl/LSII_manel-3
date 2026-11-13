@@ -9,6 +9,9 @@ jest.mock('../../utils/authClient', () => ({
   authClient: { currentUser: jest.fn(), login: jest.fn(), register: jest.fn(), logout: jest.fn() },
 }));
 jest.mock('../../utils/userClient', () => ({ userClient: { analytics: jest.fn(), watchHistory: jest.fn() } }));
+jest.mock('../../useUploadOptions', () => ({
+  useUploadOptions: () => ({ status: 'success', categories: ['Music'], tags: [], retry: jest.fn() }),
+}));
 jest.mock('../../useAllVideos', () => ({ useAllVideos: () => ({ loading: 'success', value: [], message: '' }) }));
 
 const client = authClient as jest.Mocked<typeof authClient>;
@@ -48,6 +51,19 @@ describe('Authentication navigation and pages', () => {
     client.logout.mockResolvedValue(undefined);
     users.analytics.mockResolvedValue([]);
     users.watchHistory.mockResolvedValue([]);
+  });
+
+  it('returns to upload after login or registration', async () => {
+    client.currentUser.mockResolvedValue(null);
+    const page = renderPage('/upload');
+    await screen.findByRole('heading', { name: 'Bienvenido de nuevo' });
+    fireEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Registrarse' }));
+    await screen.findByRole('heading', { name: 'Crea tu cuenta' });
+    fillRegister();
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect(await screen.findByRole('heading', { name: 'Subir vídeo' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Subir vídeo' })).toHaveAttribute('href', '/upload');
+    page.unmount();
   });
 
   it('keeps the public catalog available while checking the session, then offers both account links', async () => {

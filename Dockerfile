@@ -10,7 +10,9 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -Pprod -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
-RUN addgroup -S protube && adduser -S -G protube protube
+RUN addgroup -S protube && adduser -S -G protube protube \
+    && mkdir -p /media-store/imports \
+    && chown -R protube:protube /media-store
 COPY --from=build --chown=protube:protube /workspace/backend/target/protube-back-0.0.1-SNAPSHOT.jar app.jar
 USER protube
 EXPOSE 8080

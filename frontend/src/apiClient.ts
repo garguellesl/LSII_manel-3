@@ -1,10 +1,17 @@
 import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import { getEnv } from './utils/Env';
 
-export async function mutate<T>(path: string, body: unknown, method: 'post' | 'patch' | 'delete' = 'post'): Promise<T> {
+export async function mutate<T>(
+  path: string,
+  body: unknown,
+  method: 'post' | 'patch' | 'delete' = 'post',
+  options: Pick<AxiosRequestConfig, 'onUploadProgress' | 'signal'> = {}
+): Promise<T> {
   const base = getEnv().API_BASE_URL;
   const csrf = await axios.get<{ token: string; headerName: string }>(`${base}/auth/csrf`, { withCredentials: true });
   const config = {
+    ...options,
     withCredentials: true,
     headers: { [csrf.data.headerName]: csrf.data.token },
   };

@@ -174,3 +174,26 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 - Limitación de verificación: Docker Desktop no respondió al reintento E2E final; no se pudo repetir tras el ajuste visual menor. La suite E2E completa había pasado anteriormente.
 - Pendientes: repetir E2E cuando Docker esté disponible; revisión formal del equipo, CI, staging y merge. No hay despliegue autorizado ni realizado.
 - Veredicto: RF-4 listo para revisión local; sprint 3 completo no validado.
+
+## Ejecución acotada de subida (2026-11-12/13)
+
+La petición nueva autoriza RF-1 y las partes necesarias de RF-8/RF-9. Las tareas U1-U4, el contrato concreto y toda la evidencia ejecutada están en [upload.md](upload.md); [handoff](../../docs/ai/tasks/sprint3-video-upload.md). Subida implementada y verificada localmente. Complementa partes T2/T6-T10/T24 sin declarar terminadas las tareas globales que también abarcan importación extendida, sustitución de archivos, perfil, staging y cierre/revisión del sprint. Se conserva íntegra la evidencia histórica de RF-4.
+
+## Integración de subida y reacciones (2026-11-13)
+
+Alcance y contrato: I-RF1 a I-RF3 de spec.md; plan previo en plan.md. Handoff: docs/ai/tasks/upload-reactions-integration.md.
+
+- [x] I-T1 - Resolver DTO/mapeo sin perder campos (I-RF1/I-RF2); terminado cuando compile y no queden marcadores.
+- [x] I-T2 - Adaptar fixtures y probar defaults/JSON/contadores independientes (I-RF1/I-RF2); terminado con pruebas pertinentes satisfactorias.
+- [x] I-T3 - Desambiguar V5/V6 y probar actualización conservando datos (I-RF3); terminado con Flyway/PostgreSQL y regresión de reinicio satisfactorios.
+- [x] I-T4 - Verificación combinada y entrega; terminado con resultados reales registrados y trabajo original conservado. Sin commit ni push.
+
+Evidencia final local 2026-11-13 (Europe/Madrid):
+
+- I-T1/I-T2: Maven clean verify con Java 21/Maven 3.9.12: BUILD SUCCESS, 159 casos (158 pasan; 1 de enlaces simbólicos omitido por limitación de Windows), sin fallos/errores; JaCoCo cumple sus umbrales sin cambios. VideoDetailTest añade dos casos de contrato/JSON; VideosControllerTest prueba valores distintos combinados; VideoServiceTest prueba dos likes/un dislike/tres entradas de historial y category/source, más ceros/LEGACY. Los dos fixtures de 13 argumentos pasan a 14; los de 11 se conservan y verifican defaults.
+- I-T3: instalación vacía y V2/V3/V5-reacciones→V6 con PostgreSQL/Testcontainers, conservación de votos/propietario/metadata y reinicio dev/prod pasan. V5 de main conserva su SQL; V6 de subida conserva exactamente el SQL de la V5 anterior de la rama.
+- I-T4/frontend: npm ci (lockfiles sin modificar), npm run build, npm run test -- --coverage --watchAll=false --ci y npm run lint: correctos; 25 suites, 157 pruebas y snapshot pasan; gates de cobertura satisfechos.
+- I-T4/E2E: imagen de producción del código combinado y Compose aislado protube-merge-check; npx playwright test --workers=2 con origen propio: 18/18 pasan (subida/reproducción, reacciones, cuentas, búsqueda, tags y comentarios). No se prueba contra la base ni el almacén del usuario.
+- Comprobaciones finales: sin marcadores en código ni entradas de conflicto en índice; enlaces locales y diff comprobados. Cambio original del usuario en la rama de apariencia conservado.
+
+Limitación real: consulta de solo lectura al PostgreSQL local detecta V5__video_upload_metadata.sql ya aplicada. Ese historial local alternativo necesita una transición revisada antes de usar el código combinado; esta tarea no cambia datos, ejecuta repair/clean ni modifica su historial. Las pruebas de actualización V5→V6 parten de la V5 de reacciones de main. Merge preparado localmente sin commit/push; el PR remoto no se declara actualizado. No reemplaza resultados históricos ni significa cierre completo del sprint.

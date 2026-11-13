@@ -14,9 +14,14 @@ public record VideoDetail(
         long likesCount,
         long commentsCount,
         long viewsCount,
-        long dislikesCount
+        long dislikesCount,
+        String category,
+        String source
 ) {
-    public VideoDetail(Long id, String title, String user, String description, double duration, String thumbnailUrl, String videoUrl, List<String> tags, long likesCount, long commentsCount, long viewsCount) {
-        this(id,title,user,description,duration,thumbnailUrl,videoUrl,tags,likesCount,commentsCount,viewsCount,0);
+    public VideoDetail(Long id, String title, String user, String description, double duration,
+                       String thumbnailUrl, String videoUrl, List<String> tags,
+                       long likesCount, long commentsCount, long viewsCount) {
+        this(id, title, user, description, duration, thumbnailUrl, videoUrl, tags,
+                likesCount, commentsCount, viewsCount, 0, null, "LEGACY");
     }
 }

@@ -93,3 +93,9 @@ reproducción; búsqueda por título/descripción; editor de etiquetas como
 propietario; visibilidad de etiquetas para no propietario y anónimo; acceso a
 `/profile` sin sesión. No sustituye al MVP completo ni instrumenta cobertura
 de código.
+
+### Sprint 3: subida de vídeos (RF-1, 2026-11-13)
+
+`tests/video-upload.spec.ts` cubre registro con retorno a /upload, subida MP4 real sin miniatura, búsqueda, reproducción efectiva, recarga, formulario en 320 px, teclado y conservación del borrador ante fallo de red. El fixture `createOwnVideo` ahora sube una copia de `videos/25.mp4` al store aislado y aplica etiquetas con el PATCH existente: la API ya rechaza rutas ficticias. La ausencia de miniatura está corregida; el hallazgo histórico anterior deja de aplicar a esta rama.
+
+Compose crea `uploaded_media` por proyecto y lo monta como store escribible; los originales se leen de imports. Dockerfile prepara los permisos del usuario de la aplicación. Nunca reutilizar un volumen/store de desarrollo para la suite. El derribo con `-p protube-e2e ... down -v` elimina solo los datos de ese entorno. Evidencia de 17 pruebas satisfactorias en [upload.md](../specs/sprint-3/upload.md).

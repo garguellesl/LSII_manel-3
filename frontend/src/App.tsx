@@ -11,6 +11,7 @@ import { AccountMenu } from './components/AccountMenu';
 import { AuthPage } from './components/AuthPage';
 import { ProfilePage } from './components/ProfilePage';
 import { Pagination } from './components/Pagination';
+import { UploadVideoPage } from './components/UploadVideoPage';
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function AppRoutes() {
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/upload" element={<UploadVideoPage />} />
           <Route path="*" element={<p role="alert">Page not found.</p>} />
         </Routes>
       </header>

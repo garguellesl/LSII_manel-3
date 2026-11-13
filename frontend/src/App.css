@@ -1015,3 +1015,66 @@
   opacity: 0.5;
   cursor: wait;
 }
+
+/* Video upload */
+.upload-page {
+  width: min(100%, 760px);
+  text-align: left;
+}
+.upload-page > a {
+  display: block;
+  margin: 1rem 0;
+}
+.upload-page fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.upload-page input,
+.upload-page textarea,
+.upload-page select {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.upload-page textarea,
+.upload-page select {
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid #69718a;
+  font: inherit;
+}
+.upload-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 1rem 0;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.upload-tags legend {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.upload-tags label {
+  overflow-wrap: anywhere;
+}
+.upload-tags input {
+  width: auto;
+}
+.upload-page progress {
+  display: block;
+  width: 100%;
+  margin: 0.8rem 0;
+}
+.upload-page :focus-visible {
+  outline: 3px solid #6195ff;
+  outline-offset: 3px;
+}
+.video-card-placeholder {
+  display: grid;
+  place-items: center;
+  background: #20283b;
+  color: #c8d3ed;
+  font-size: 3rem;
+}

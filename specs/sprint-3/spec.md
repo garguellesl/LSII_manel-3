@@ -181,3 +181,13 @@ Transcodificación, subida reanudable, streaming adaptativo, sustitución/borrad
 - Migraciones y configuración documentadas; verificación de staging con persistencia de base y medios y UI responsive/accesible.
 - Implementación revisada, CI satisfactoria y PR fusionada en `main`; prompts conservados con revisión real del equipo, sin secretos ni archivos generados comprometidos.
 - Esta preparación documental no satisface por sí sola el Definition of Done del sprint ni autoriza ejecutar su despliegue.
+
+## Integración acotada de subida y reacciones (2026-11-13)
+
+Petición: resolver el PR de feature/sprint3-video-upload con main y actualizar pruebas sin perder ninguno de los dos contratos. No añade funciones nuevas.
+
+- I-RF1: Cuando se consulte un vídeo, el detalle deberá conservar simultáneamente dislikesCount, category y source, además de likes/comments/views. Cada contador se mantiene separado.
+- I-RF2: Cuando código anterior use el constructor de 11 argumentos, deberá obtener dislikesCount=0, category=null y source=LEGACY. Los fixtures actuales de 13 argumentos deberán adoptar explícitamente el nuevo campo, sin perder el sentido de sus pruebas.
+- I-RF3: Cuando se instale o actualice desde main, las migraciones de reacciones y subida deberán poder aplicarse juntas sin duplicar versión, conservando IDs, relaciones y datos. La V5 de reacciones ya incluida en main no se modifica; la migración de subida pendiente de integrar se publica como V6 con el mismo SQL. No se edita ni repara automáticamente ninguna BD existente.
+
+Las BD locales que ya hubieran aplicado la V5 alternativa de subida requieren una transición de historial revisada por su responsable antes de arrancar con ambas ramas. No ejecutar clean ni repair indiscriminado ni modificar bases ajenas desde esta tarea.

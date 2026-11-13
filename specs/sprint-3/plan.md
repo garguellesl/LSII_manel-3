@@ -175,3 +175,16 @@ Comandos previstos, no ejecutados en esta petición documental:
 Riesgos: discrepancia DB/disco y limpieza tras crash; montaje actualmente de lectura; ampliación de `viewsCount` y exclusión de importados en panel; contenido MP4 no reproducible por codec; ramas muy profundas; privacidad de DTOs; nuevas rutas SPA en producción; colisiones de migraciones/contratos con trabajo del equipo. El checklist de entrega exigirá respaldar DB y medios, restauración comprobable y rollback de aplicación compatible; no revertir esquema destruyendo datos.
 
 Constitución: (1) fuentes y stack inspeccionados, cambios limitados; (2) requisitos/plan/tareas previos a código y fase documental respetada; (3) capas/DTOs/hooks definidos; (4) escenarios y evidencia futura sin marcar aprobados; (5) datos, medios y cambios existentes protegidos; (6) trazabilidad RF/T, coordinación y prompt pendientes de revisión formal. No se detecta conflicto bloqueante para esta fase.
+
+## Ejecución acotada RF-1 (2026-11-12/13)
+
+[Diseño y evidencia de subida](upload.md), rama feature/sprint3-video-upload desde main 2e862ec. V5 amplía category/source. Se reutilizan etiquetas públicas existentes en /api/videos/tags; GET /api/categories comparte el catálogo nuevo. Solo se insertan filas de vídeos una vez completos los archivos; los manifiestos privados permiten recuperar operaciones sin fila pendiente pública. No se exige implementar el resto de T5/perfil/edición para publicar una subida nueva. Compose separa originales read-only en imports del volumen escribible del store, conservando las URLs originales. El resto del diseño y evidencia del sprint conserva su alcance.
+
+## Integración de contratos de subida/reacciones (2026-11-13)
+
+Base de subida 29c7179 y main 9c67085. El usuario elige feature/sprint3-video-upload como destino; se prepara en una copia separada para conservar su VideoDetail modificado en la rama de apariencia.
+
+- Resolver únicamente los conflictos de VideoDetail y VideoService con record canónico de 14 campos: ... likesCount, commentsCount, viewsCount, dislikesCount, category, source. El constructor legado de 11 argumentos delega con 0/null/LEGACY. toDetail consulta DISLIKE antes de category/source y conserva el conteo LIKE que aporta main.
+- Ajustar los dos fixtures de subida con 13 argumentos a 14 (0 dislikes). Mantener los usos de 11 argumentos como regresión real; probar defaults, valores no cero y JSON completo. Servicio PostgreSQL: dos likes, un dislike, tres entradas de historial y metadata UPLOAD/Gaming, para detectar intercambio de contadores o pérdida de campos.
+- Mantener V5__video_reactions.sql idéntica a main. Renumerar la migración de subida aún no integrada a V6, conservando exactamente su SQL; verificar instalación vacía y actualización de V5-reacciones con filas/like previo. Actualizar el test que enumera versiones a 1..6. No se alteran datos ni historial de la instalación local.
+- La integración trae los cambios existentes de main en frontend/servicio/tests; verificar Maven clean verify con Java 21/Docker/PostgreSQL aislados y frontend build/Jest/lint. E2E de subida/reacciones si el entorno aislado está disponible. No afirmar CI remoto ni resolver el PR remoto sin commit/push autorizados.

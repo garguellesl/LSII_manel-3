@@ -10,7 +10,13 @@ export function VideoCard({ video }: VideoCardProps) {
   return (
     <li className="video-card">
       <Link to={`/videos/${video.id}`} className="video-card-link" aria-label={`Watch ${video.title}`}>
-        <img src={toMediaUrl(video.thumbnailUrl)} alt="" className="video-card-thumbnail" />
+        {video.thumbnailUrl ? (
+          <img src={toMediaUrl(video.thumbnailUrl)} alt="" className="video-card-thumbnail" />
+        ) : (
+          <div className="video-card-thumbnail video-card-placeholder" aria-hidden="true">
+            ▶
+          </div>
+        )}
         <h2 className="video-card-title">{video.title}</h2>
       </Link>
       <p aria-label="Video reactions">

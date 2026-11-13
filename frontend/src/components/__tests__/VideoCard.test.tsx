@@ -3,6 +3,17 @@ import { MemoryRouter } from 'react-router-dom';
 import { VideoCard } from '../VideoCard';
 
 describe('VideoCard', () => {
+  it('renders a playable link when no thumbnail was uploaded', () => {
+    render(
+      <MemoryRouter>
+        <ul>
+          <VideoCard video={{ id: 5, title: 'No thumbnail', thumbnailUrl: null, videoUrl: '/media/5.mp4' }} />
+        </ul>
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('link', { name: 'Watch No thumbnail' })).toHaveAttribute('href', '/videos/5');
+    expect(document.querySelector('img')).toBeNull();
+  });
   it('renders the thumbnail and title as a link to the player page', () => {
     render(
       <MemoryRouter>

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { APIRequestContext } from '@playwright/test';
 import type { NewUser } from './users';
 
@@ -25,7 +26,7 @@ export type VideoDetail = {
   user: string;
   description: string;
   duration: number;
-  thumbnailUrl: string;
+  thumbnailUrl: string | null;
   videoUrl: string;
   tags: string[];
 };
@@ -48,39 +49,26 @@ export async function registerUser(api: APIRequestContext, user: NewUser): Promi
   return (await response.json()) as UserResponse;
 }
 
-/**
- * Crea un vídeo propio del usuario ya autenticado en `api` (el backend ignora
- * cualquier propietario enviado por el cliente y usa siempre el principal de
- * la sesión: VideosController.createVideo). La ruta de medio es sintética y
- * única; VideoService.createVideo no comprueba que el archivo exista en disco
- * (solo VideoImportService lo hace) — ver "Riesgo documentado" en
- * specs/sprint-2/plan.md si ese contrato cambia alguna vez.
- */
+
+/** Upload a real sample into the isolated writable store; tags use the existing owner editor API. */
 export async function createOwnVideo(
   api: APIRequestContext,
   options: { title: string; description: string; tags?: string[] }
 ): Promise<VideoDetail> {
-  const headers = await csrfHeader(api);
-  const id = crypto.randomUUID();
-  // thumbnailPath no se deja a null: VideoDetail.thumbnailUrl pasaría a null y
-  // frontend/src/utils/media.ts#toMediaUrl llama a `.startsWith` sobre ese
-  // valor sin comprobar null, lo que deja la página en blanco (descubierto al
-  // ejecutar esta suite por primera vez). Es un fallo real de la aplicación,
-  // pero fuera de alcance arreglarlo aquí (T18 no cambia funcionalidad); el
-  // fixture evita el caso en vez de modificar el componente.
   const response = await api.post('/api/videos', {
-    headers,
-    data: {
-      title: options.title,
-      description: options.description,
-      mediaPath: `e2e/${id}.mp4`,
-      thumbnailPath: `e2e/${id}.webp`,
-      durationSeconds: 1,
-      tags: options.tags ?? [],
+    headers: await csrfHeader(api),
+    multipart: {
+      metadata: {
+        name: 'metadata.json', mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify({ title: options.title, description: options.description, category: 'Other', tags: [] })),
+      },
+      video: { name: 'sample.mp4', mimeType: 'video/mp4', buffer: readFileSync(new URL('../../videos/25.mp4', import.meta.url)) },
     },
   });
-  if (!response.ok()) {
-    throw new Error(`POST /api/videos failed with ${response.status()}: ${await response.text()}`);
-  }
-  return (await response.json()) as VideoDetail;
+  if (!response.ok()) throw new Error(`POST /api/videos failed with ${response.status()}: ${await response.text()}`);
+  const video = (await response.json()) as VideoDetail;
+  if (!options.tags?.length) return video;
+  const tagged = await api.patch(`/api/videos/${video.id}`, { headers: await csrfHeader(api), data: { tags: options.tags } });
+  if (!tagged.ok()) throw new Error(`PATCH video tags failed with ${tagged.status()}: ${await tagged.text()}`);
+  return (await tagged.json()) as VideoDetail;
 }

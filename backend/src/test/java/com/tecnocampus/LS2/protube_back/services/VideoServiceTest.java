@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,6 +33,9 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    com.tecnocampus.LS2.protube_back.repositories.VideoRepository videoRepository;
 
     @Test
     void availableTagsAreDistinctSortedAndOnlyAssociatedWithVideos() {
@@ -288,6 +292,42 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(1, analytics.likesCount());
         assertEquals(1, analytics.viewsCount());
         assertEquals(1, videoService.getWatchHistory(userId, userId).size());
+    }
+
+    @Test
+    void detailKeepsIndependentReactionCountsAndUploadedMetadata() {
+        Long owner = registerUser("combined-owner@example.test", "combined-owner").id();
+        Long liker = registerUser("combined-liker@example.test", "combined-liker").id();
+        Long disliker = registerUser("combined-disliker@example.test", "combined-disliker").id();
+        Long id = createVideo(owner, "combined.mp4").id();
+        videoRepository.findById(id).orElseThrow().markUploaded("Gaming");
+
+        videoService.likeVideo(id, owner);
+        videoService.likeVideo(id, liker);
+        videoService.dislikeVideo(id, disliker);
+        for (int i = 0; i < 3; i++) videoService.recordWatch(id, new WatchHistoryRequest(owner, i));
+
+        var detail = videoService.getVideo(id).orElseThrow();
+        assertEquals(2, detail.likesCount());
+        assertEquals(0, detail.commentsCount());
+        assertEquals(3, detail.viewsCount());
+        assertEquals(1, detail.dislikesCount());
+        assertEquals("Gaming", detail.category());
+        assertEquals("UPLOAD", detail.source());
+        var summary = videoService.getVideos("", 0, 24).content().getFirst();
+        assertEquals(2, summary.likesCount());
+        assertEquals(1, summary.dislikesCount());
+    }
+
+    @Test
+    void videosWithoutReactionsKeepZeroCountsAndLegacyMetadata() {
+        Long owner = registerUser("combined-empty@example.test", "combined-empty").id();
+        var created = createVideo(owner, "combined-empty.mp4");
+        var detail = videoService.getVideo(created.id()).orElseThrow();
+        assertEquals(0, detail.likesCount());
+        assertEquals(0, detail.dislikesCount());
+        assertNull(detail.category());
+        assertEquals("LEGACY", detail.source());
     }
 
     @Test

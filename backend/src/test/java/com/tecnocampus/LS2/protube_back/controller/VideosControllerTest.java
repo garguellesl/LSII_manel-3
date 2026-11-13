@@ -34,12 +34,15 @@ class VideosControllerTest {
     @Mock
     VideoService videoService;
 
+    @Mock
+    com.tecnocampus.LS2.protube_back.services.VideoUploadService uploads;
+
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new VideosController(videoService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new VideosController(videoService), new VideoUploadController(uploads))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -128,7 +131,26 @@ class VideosControllerTest {
                 .andExpect(jsonPath("$.description").value("A description"))
                 .andExpect(jsonPath("$.duration").value(79.5))
                 .andExpect(jsonPath("$.videoUrl").value("/media/7.mp4"))
-                .andExpect(jsonPath("$.tags[0]").value("java"));
+                .andExpect(jsonPath("$.tags[0]").value("java"))
+                .andExpect(jsonPath("$.dislikesCount").value(0))
+                .andExpect(jsonPath("$.category").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.source").value("LEGACY"));
+    }
+
+    @Test
+    void getVideoSerializesReactionsAndUploadMetadataTogether() throws Exception {
+        when(videoService.getVideo(8L)).thenReturn(Optional.of(new VideoDetail(
+                8L, "Uploaded", "owner", "Description", 12,
+                null, "/media/uploads/video.mp4", List.of(), 2, 0, 3, 1, "Gaming", "UPLOAD")));
+
+        mockMvc.perform(get("/api/videos/8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likesCount").value(2))
+                .andExpect(jsonPath("$.commentsCount").value(0))
+                .andExpect(jsonPath("$.viewsCount").value(3))
+                .andExpect(jsonPath("$.dislikesCount").value(1))
+                .andExpect(jsonPath("$.category").value("Gaming"))
+                .andExpect(jsonPath("$.source").value("UPLOAD"));
     }
 
     @Test
@@ -149,7 +171,7 @@ class VideosControllerTest {
 
     @Test
     void createVideoReturnsCreatedVideo() throws Exception {
-        when(videoService.createVideo(any())).thenReturn(new VideoDetail(
+        when(uploads.registerExisting(any(), any())).thenReturn(new VideoDetail(
                 10L, "Created", "owner", "desc", 1,
                 null, "/media/created.mp4", List.of(), 0, 0, 0
         ));
@@ -184,7 +206,7 @@ class VideosControllerTest {
 
     @Test
     void createVideoReturnsBadRequestWithTagFieldErrorWhenTagIsInvalid() throws Exception {
-        when(videoService.createVideo(any())).thenThrow(
+        when(uploads.registerExisting(any(), any())).thenThrow(
                 new com.tecnocampus.LS2.protube_back.services.InvalidTagsException(
                         Map.of("tags[0]", "tag must not be blank")));
 

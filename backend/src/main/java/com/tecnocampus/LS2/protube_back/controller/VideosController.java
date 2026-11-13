@@ -1,6 +1,5 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
-import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
@@ -56,13 +55,6 @@ public class VideosController {
         return videoService.getVideo(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("")
-    public ResponseEntity<VideoDetail> createVideo(@Valid @RequestBody CreateVideoRequest request, Principal principal) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(videoService.createVideo(new CreateVideoRequest(
-                request.title(), request.description(), request.mediaPath(), request.thumbnailPath(),
-                request.durationSeconds(), Long.valueOf(principal.getName()), request.tags())));
     }
 
     @PatchMapping("/{id}")

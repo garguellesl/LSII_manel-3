@@ -67,3 +67,19 @@ Keep task progress in `docs/ai/tasks/<ticket>.md` and the shared issue/PR. Keep 
 
 
 Maven Production follow-up (2026-10-28, same working tree): `.run/Production.run.xml` now uses Maven Exec to launch the complete Compose delivery (`up --build -d --wait`), without manual ENV_PROTUBE variables or a host Spring Boot process. Maven exits when containers are ready; stop with `docker compose stop`. The host `ProtubeBackApplication` run configuration is unchanged. Exact saved command and HTTP smoke verified; see RF-4/T4 in the delivery tasks.
+
+## Authenticated video upload update (2026-11-13)
+
+Local working tree on feature/sprint3-video-upload, based on main 2e862ec. See [scoped verification](../../specs/sprint-3/upload.md); no remote CI, staging or merge claim.
+
+- VideoUploadController handles POST /api/videos multipart (metadata JSON, required MP4, optional JPG/PNG) and legacy JSON registration of existing unmanaged media. VideoUploadService uses server identity, existing tags, categories, transaction commit and generated paths; MediaStorageService keeps durable private manifests in uploads/.pending and recovers on startup. MediaFileValidator verifies contents and inclusive 100/5 MiB limits. V5 adds category/source; historical rows remain LEGACY.
+- /upload is protected and reachable from AccountMenu. Login/registration return to it. UploadVideoPage/useUploadOptions/uploadClient offer category/tag loading, validation, progress, processing, retry and success links. Media URL/card/player handle absent thumbnails; detail displays category. Existing video editing, comments and analytics retain their own behavior.
+- GET /api/categories is public; existing GET /api/videos/tags remains an array. Detail adds category/source; no new private account fields. JSON registration now rejects absent files and managed upload paths, so E2E fixtures upload the existing sample bytes instead of inventing paths.
+- Compose now mounts the writable uploaded_media volume at /media-store and originals read-only at /media-store/imports. Optional ENV_PROTUBE_IMPORT_DIR / pro_tube.import.dir must resolve inside the configured store; startup imports there and MVC falls back there for historical URLs. Without it, dev/prod keep their existing single-store behavior. Backup database, managed volume and original media together. One writer per store.
+- Previous statements that upload is absent or Compose can only read apply to the older baseline above. Full RF-8 import provenance/category snapshots, metadata/profile editing and sprint-wide completion are still outside this upload change. MP4 validation is structural without transcoding; thumbnails are limited to 25 megapixels as well as 5 MiB.
+
+## Upload/reactions integration (2026-11-13)
+
+Working tree for feature/sprint3-video-upload combines upload 29c7179 and main 9c67085, without a merge commit or push yet. VideoDetail now preserves dislikesCount/category/source with the 11-argument constructor defaulting to 0/null/LEGACY. VideoService maps LIKE and DISLIKE counts separately and retains upload metadata. Fixtures and regression tests cover the combined contract; evidence in specs/sprint-3/tasks.md I-T1..I-T4.
+
+The canonical merged migration sequence is V5__video_reactions.sql (unchanged from main) then V6__video_upload_metadata.sql (same SQL as the unmerged upload V5). Local databases that already applied the alternative upload V5 need a reviewed history transition before using this integration. A read-only check confirmed that state in the user's development database; no repair, clean, data or schema change was made there. The original appearance working tree, including the user's local VideoDetail edit, is preserved.

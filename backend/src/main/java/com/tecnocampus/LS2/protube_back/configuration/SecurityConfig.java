@@ -58,7 +58,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/videos", "/api/videos/*",
+                        .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/categories", "/api/videos", "/api/videos/*",
                                 "/api/videos/*/comments").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers("/api/**").authenticated()

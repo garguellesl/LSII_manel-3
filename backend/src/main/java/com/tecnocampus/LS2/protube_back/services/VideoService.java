@@ -222,7 +222,9 @@ public class VideoService {
                 videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
                 watchHistoryRepository.countByVideoId(video.getId()),
-                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE)
+                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE),
+                video.getCategory(),
+                video.getSource()
         );
     }
 

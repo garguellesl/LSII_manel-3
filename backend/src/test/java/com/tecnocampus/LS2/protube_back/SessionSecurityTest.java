@@ -278,7 +278,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
-    void spoofedOwnerIdDoesNotChangeTheAuthenticatedOwner() throws Exception {
+    void spoofedOwnerCannotPublishMissingMedia() throws Exception {
         UserResponse actor = account();
         UserResponse other = account();
         Token token = csrf(login(actor));
@@ -286,7 +286,9 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                         .contentType("application/json").content(mapper.writeValueAsString(Map.of(
                                 "title", "Owned", "description", "", "mediaPath", "owned.mp4",
                                 "ownerUserId", other.id(), "durationSeconds", 0))))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.user").value(actor.accountName()));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Media file does not exist"));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from videos where media_path='owned.mp4'", Long.class));
+        // Spoofed multipart ownership is covered by VideoUploadIntegrationTest with a real stored file.
     }
 
     @Test
