@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useVideo } from '../useVideo';
 import type { VideoDetail } from '../useVideo';
 import { toMediaUrl } from '../utils/media';
 import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
 import { CommentSection } from './CommentSection';
+import { videoClient } from '../utils/videoClient';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from '../utils/Env';
@@ -45,6 +46,9 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
   const [counts, setCounts] = useState({ likes: value.likesCount ?? 0, dislikes: value.dislikesCount ?? 0 });
   const [saving, setSaving] = useState(false);
   const [reactionError, setReactionError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     if (auth.status === 'authenticated')
       axios
@@ -84,6 +88,28 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         Your browser does not support video playback.
       </video>
       <h1 className="video-player-title">{value.title}</h1>
+      {editable && (
+        <div className="video-owner-actions">
+          <Link to={`/videos/${value.id}/edit`}>Editar datos del vídeo</Link>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={() => {
+              if (!window.confirm('¿Eliminar este vídeo? El archivo del almacén se conservará.')) return;
+              setDeleting(true);
+              setDeleteError('');
+              videoClient
+                .deleteVideo(value.id)
+                .then(() => navigate('/'))
+                .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+                .finally(() => setDeleting(false));
+            }}
+          >
+            {deleting ? 'Eliminando…' : 'Eliminar vídeo'}
+          </button>
+          {deleteError && <p role="alert">{deleteError}</p>}
+        </div>
+      )}
       {value.user && <p className="video-player-user">{value.user}</p>}
       {value.category && <p className="video-player-category">{value.category}</p>}
       {value.description && <p className="video-player-description">{value.description}</p>}

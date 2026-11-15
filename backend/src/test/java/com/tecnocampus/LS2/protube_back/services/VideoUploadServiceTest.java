@@ -122,12 +122,14 @@ class VideoUploadServiceTest {
     @Test void registersOnlyExistingUnmanagedFilesAndOverridesCallerOwner() throws Exception {
         Path path = Path.of("existing");
         when(storage.existingFile("sample.mp4")).thenReturn(path);
+        when(validator.videoDuration(path)).thenReturn(12.5);
         when(details.createVideo(any())).thenReturn(detail);
         service.registerExisting(new CreateVideoRequest("Title", "", "sample.mp4", null, 2, 999L, List.of()), 3L);
         verify(validator).videoDuration(path);
         var request = org.mockito.ArgumentCaptor.forClass(CreateVideoRequest.class);
         verify(details).createVideo(request.capture());
         assertEquals(3L, request.getValue().ownerUserId());
+        assertEquals(12.5, request.getValue().durationSeconds());
         when(storage.existingFile("sample.mp4")).thenThrow(new IOException("offline"));
         assertEquals(503, assertThrows(UploadException.class, () -> service.registerExisting(request.getValue(), 3L)).getStatus());
     }

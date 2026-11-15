@@ -13,6 +13,7 @@ import { AuthPage } from './components/AuthPage';
 import { ProfilePage } from './components/ProfilePage';
 import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
+import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
 
 function App() {
   return (
@@ -74,6 +75,8 @@ function AppRoutes() {
             element={<ContentApp searchQuery={searchQuery} tags={tags} page={page} onPageChange={changePage} />}
           />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
+          <Route path="/videos/new" element={<NewVideoMetadataPage />} />
+          <Route path="/videos/:id/edit" element={<EditVideoMetadataPage />} />
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />

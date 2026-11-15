@@ -51,8 +51,8 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Evidencia: verificacion final T4/RF-2 al final de este documento; Maven 61 tests y Jest 63 tests, build/lint satisfactorios.
 - [x] T5 - Implementar búsqueda por etiquetas en backend (RF-3).
   - Depende de: T1, T4; D1 resuelta.
-  - Hecho cuando: `tag` repetido filtra parcialmente sin distinguir mayúsculas con OR y prioridad por número de filtros distintos coincidentes, se combina con texto, no duplica vídeos y maneja vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
-  - Evidencia: E3/E4 de la ejecución de etiquetas OR del 2026-11-03 arriba; Maven 107 tests y Jest 99 tests/build/lint correctos. Completa localmente, sin declarar integración remota.
+  - Hecho cuando: `tag` repetido filtra por nombre exacto sin distinguir mayúsculas, con OR y prioridad por número de filtros distintos coincidentes; se combina con texto, no duplica vídeos y maneja vacíos/desconocidos; pruebas de repositorio/servicio/controlador cubren el contrato.
+  - Evidencia: E3/E4 de la ejecución de etiquetas OR del 2026-11-03 más la decisión de coincidencia exacta y su validación en S1-S3 (2026-11-11); Maven 110 tests y Jest 103 tests/build/lint correctos. Completa localmente, sin declarar integración remota.
 - [x] T7 - Preparar sesión y frontera de seguridad (RF-4/RF-5/RF-6).
   - Depende de: T1 para contratos, topología y coordinación.
   - Hecho cuando: dependencias de seguridad gestionadas por Maven, filtros/contexto/sesión y errores API están configurados; cookie, fijación de sesión, CSRF y CORS/proxy están comprobados; existe inventario de rutas públicas/privadas y de cambios de identidad en DTOs.
@@ -81,41 +81,41 @@ Se conserva `task.md` como registro único solicitado para esta carpeta. Los ide
   - Depende de: T11/T12 o sus contratos mockeados.
   - Hecho cuando: `/profile` muestra datos propios, maneja carga/red/sesión caducada y no muestra datos de otro usuario; enlaces directos y guard de ruta están probados; la API sigue siendo la autoridad de acceso.
   - Evidencia: verificación local de autenticación del 2026-10-28 al final (A1-A3); pruebas Maven/PostgreSQL, Jest y HTTP ejecutadas. Sin afirmar merge/staging.
-- [ ] T14 - Completar CRUD de metadatos de vídeos propios en backend (RF-7).
+- [x] T14 - Completar CRUD de metadatos de vídeos propios en backend (RF-7).
   - Depende de: T7/T10, contrato acordado de T1; PostgreSQL de T2 para integrar.
   - Hecho cuando: POST/GET/PATCH existentes y DELETE nuevo cubren CRUD; propietario desde principal; transacciones y cascadas correctas; 400/401/403/404 probados; se rechazan rutas fuera del almacén y no se borran archivos físicos al eliminar metadatos.
-  - Evidencia: pendiente.
+  - Evidencia (2026-11-15): DELETE aplica propiedad desde el principal; PATCH rechaza título en blanco y admite campos omitidos; altas validan el almacén y miden duración real. `VideoServiceTest` y `SessionSecurityTest` verifican cascadas sobre PostgreSQL, dueño/ajeno/anónimo/CSRF y borrado; E2E confirma que tras DELETE el medio sigue respondiendo 200. `mvn clean verify`: 163 tests, 0 fallos/errores, 1 omitido; JaCoCo satisfecho.
 - [x] T15 - Verificar gestión de etiquetas propias en backend (RF-8).
   - Depende de: contrato RF-8, persistencia T2 y propiedad T7/T10; coordinada con T5. Su comprobación no requiere el CRUD adicional/DELETE de T14.
   - Hecho cuando: alta/consulta/sustitución/retirada de etiquetas opera sobre asociaciones del vídeo propio; reutiliza valores normalizados y evita duplicados; dos vídeos compartiendo etiqueta permanecen independientes al editar uno; no se renombra/borra el registro global ni se permiten escrituras ajenas.
   - Evidencia: E2/E5 de la ejecución del 2026-11-03 arriba; HTTP con PostgreSQL real y suite Maven completa de 107 tests/JaCoCo correcta. Alta/consulta/sustitución/retirada, independencia, permisos, vaciado/reinicio y registros globales conservados comprobados. Completa localmente; sin declarar merge de estos cambios.
-- [ ] T16 - Añadir editor y eliminación de vídeos en frontend (RF-7/RF-8).
+- [x] T16 - Añadir editor y eliminación de vídeos en frontend (RF-7/RF-8).
   - Depende de: contratos T14/T15 y T12; preparación con mocks permitida tras acuerdo.
   - Hecho cuando: el propietario crea/edita metadatos, gestiona etiquetas dentro de su vídeo y confirma eliminación; validación y errores visibles; listas/detalle/búsquedas se actualizan; no aparecen gestión global de etiquetas ni subida de archivos; pruebas de permisos/éxito/error con API mockeada.
-  - Evidencia: pendiente. Subtarea de etiquetas en T16a; CRUD de vídeos (crear/editar metadatos/borrar) sigue pendiente.
+  - Evidencia (2026-11-15): formulario/rutas `/videos/new` y `/videos/:id/edit`, cliente CSRF, controles de propietario y borrado confirmado verificados con Jest y E2E real. El E2E registra un fixture existente en el almacén, edita, recarga para comprobar persistencia, elimina metadatos y confirma que el archivo sigue sirviéndose. Frontend: build, lint y 29 suites/184 tests/1 snapshot correctos; Playwright aislado: 24/24.
   - [x] T16a - Editor de etiquetas en el detalle del vídeo (solo RF-8; sin CRUD de vídeos).
-    - Depende de: T15 (ya implementada en main, ver commits create-tags/associate-tags-to-video-1) para el contrato backend; sin dependencia de T14 (CRUD de vídeos), que sigue sin implementar.
+    - Depende de: T15 (ya implementada en main, ver commits create-tags/associate-tags-to-video-1) para el contrato backend; sin dependencia de T14 (CRUD de vídeos), que seguía sin implementar en este registro de 2026-11-02 y se completa en el cierre posterior.
     - Hecho cuando: el propietario añade (Enter/coma) y quita (botón accesible) etiquetas de su vídeo desde el detalle; errores `tags[i]`/`tags` del backend se muestran junto al campo; estado de guardado visible; límite de 40 visible; no propietarios ven las etiquetas en modo lectura; pruebas Jest/RTL con API mockeada cubren alta, baja, duplicados, error 400, error de red y ocultación del editor para quien no es propietario.
     - Código: tipo `tags: string[]` añadido a `VideoDetail` (`frontend/src/useVideo.ts`). Ayudante CSRF `mutate()` extraído de `authClient.ts` a `frontend/src/apiClient.ts` (con parámetro de método `'post'|'patch'`, por defecto `'post'`); `authClient.ts` lo importa sin cambiar su comportamiento. Nuevo `frontend/src/utils/videoClient.ts` (`updateTags`, PATCH `/videos/{id}`, mapeo de errores propio, no reutiliza el de `authClient`). Nuevo `frontend/src/utils/tagErrors.ts` (parser puro de `tags[i]`/`tags`). Nuevo hook `frontend/src/useUpdateVideoTags.ts`. Nuevo componente `frontend/src/components/VideoTagEditor.tsx` (lista de etiquetas siempre visible; alta por Enter/coma; deduplicación de cliente; límite de 40 bloqueado localmente; sin límite de 80 caracteres en cliente, delegado al 400 del backend; botones de retirada accesibles; estado de guardado). `VideoPlayerPage.tsx` determina la propiedad comparando `auth.user.accountName` con `value.user` y mantiene un `tagOverride` local para reflejar el guardado sin refetch.
     - Tests nuevos: `tagErrors.test.ts`, `videoClient.test.ts`, `useUpdateVideoTags.test.ts`, `VideoTagEditor.test.tsx`; `VideoPlayerPage.test.tsx` ampliado con casos de propiedad (propietario, otro usuario, anónimo, sesión en comprobación) mockeando `videoClient`. Fixtures existentes (`useVideo.test.ts`, `VideoPlayerPage.test.tsx`, `app.test.tsx`) actualizadas con el campo `tags` para mantener el tipo.
     - Evidencia real, 2026-11-02, `frontend/`: `npm run build` (`tsc -b && vite build`) correcto. `npm run test -- --coverage --watchAll=false --ci`: **16 suites, 94 tests, 1 snapshot**, 0 fallos; cobertura statements 98.05%, branches 92.37%, functions 97.61%, lines 98.98% (umbrales existentes 75% superados). `npm run lint` sin errores tras `lint-fix` (solo formateo prettier en los test nuevos).
-    - No ejecutado: E2E visual, staging, CI remota, cambios de backend (ninguno necesario). CRUD de vídeos (crear/editar título-descripción/borrar) y búsqueda por etiquetas (RF-3/D1) siguen fuera de alcance y pendientes. Sin commit.
-- [ ] T17 - Ejecutar regresión, cobertura y verificaciones de área (RF-1 a RF-8).
+    - No ejecutado en el registro de T16a (2026-11-02): E2E visual, staging, CI remota, cambios de backend (ninguno necesario). El CRUD de vídeos estaba fuera de aquel alcance y queda completado en T14/T16; búsqueda por etiquetas RF-3/D1 se gestiona en T5/T6. Sin commit en aquel registro.
+- [x] T17 - Ejecutar regresión, cobertura y verificaciones de área (RF-1 a RF-8).
   - Depende de: T3 a T16; se permite ejecutar checks enfocados durante su desarrollo.
   - Hecho cuando: Maven verify, build/tests/lint frontend y checks de integración aplicables pasan sobre el resultado combinado; cobertura cumple puertas actuales; regresiones de catálogo, reproducción y búsqueda por título están comprobadas. Registrar resultados reales y fallos, sin rebajar umbrales ni repetir pruebas sin cambios relevantes.
-  - Evidencia: pendiente.
+  - Evidencia (2026-11-15): sobre el resultado combinado, `backend/`: `mvn clean verify` → BUILD SUCCESS, 163 tests, 0 fallos/errores, 1 omitido; todas las puertas JaCoCo satisfechas. `frontend/`: build, Jest (29 suites, 184 tests, 1 snapshot) y lint correctos. `e2e/`: Compose aislado reconstruido desde el árbol actual y Playwright completo 24/24. Sin CI remota ni staging.
 - [x] T18 - Preparar y ejecutar E2E del sprint (RF-1 a RF-8; NFR-02).
   - Depende de: contratos acordados; ejecución final tras T17 y entorno disponible.
   - Hecho cuando: herramienta/script reales documentados y pruebas ejecutadas cubren registro automático, login/logout/perfil, acceso privado, búsqueda y gestión de vídeos/etiquetas; datos aislados en base de pruebas persistente y sin secretos en repositorio. No equivale a cubrir todo el MVP.
-  - Evidencia: suite Playwright real ejecutada 3 veces consecutivas contra un despliegue Docker Compose aislado (`protube-e2e`), **9/9 tests pasando en cada ejecución**, sin red flakiness observada. Detalle completo al final de este documento. Job de CI añadido a `.github/workflows/main.yml`; no ejecutado en remoto en esta sesión (sin push). T17 (regresión combinada) y el resto de RF-7 (CRUD completo de vídeos vía interfaz) siguen pendientes; esta ejecución no los sustituye.
-- [ ] T19 - Actualizar documentación y preparar entrega revisable (todos los RF; DoD global).
+  - Evidencia: suite Playwright real ejecutada 3 veces consecutivas contra Compose aislado (`protube-e2e`), **9/9 tests** en cada ejecución histórica. En la ejecución combinada del 2026-11-15 se reconstruyó la imagen desde el árbol actual y pasaron **24/24**, incluido alta de metadatos de un medio existente, edición, persistencia y borrado conservando el archivo. CI remota no ejecutada; no se afirma publicación.
+- [x] T19 - Actualizar documentación y preparar entrega revisable (todos los RF; DoD global).
   - Depende de: T17/T18 para cierre; documentación de configuración puede prepararse antes.
   - Hecho cuando: arranque/perfiles/PostgreSQL, contratos y comandos reales están documentados; `AGENTS.md` se revisa por si cambian hechos; prompts/decisiones tienen estado real de revisión; la PR está acotada y lista para CI/revisión, sin generados, secretos o rutas locales.
-  - Evidencia: pendiente.
+  - Evidencia (2026-11-15): plan, spec, tareas, `CONTEXT.md`, handoff y prompt 18 revisados/actualizados; handoff registra estado, checks, límites y siguiente puerta. El prompt mantiene estado pendiente de revisión del equipo. Diff final revisado, `git diff --check` satisfactorio y artefactos generados ignorados/no incluidos. Paquete local listo para revisión; no se afirma PR ni CI remota.
 - [ ] T20 - Integrar mediante PR y verificar staging (todos los RF; DoD global).
   - Depende de: T19, revisión/CI satisfactoria y entorno/responsable D4 identificados.
   - Hecho cuando: PR revisada e integrada con squash; versión desplegada en staging mediante procedimiento acordado; smoke tests de sesión/CSRF, persistencia, búsqueda, CRUD propio y rutas SPA pasan; queda referencia de versión, fecha, entorno y resultados sin secretos. Acordar entrega contenerizada conforme a NFR-03.
-  - Evidencia: pendiente. Esta tarea no está autorizada para ejecutarse en la petición documental actual.
+  - Evidencia: pendiente. Requiere resolver D3/D4, autorización externa para publicar/integrar y evidencia de staging; no está incluida en la autorización local de implementación.
 
 - [x] T21 - Preparar y verificar arranque conjunto de IntelliJ (RF-9).
   - Depende de: T2 y configuración local de entorno/Docker del usuario.
@@ -133,17 +133,17 @@ T1 cierra coordinación/contratos. Después pueden prepararse persistencia (T2),
 
 ## Validación por requisito
 
-La tabla conserva el alcance de todo el sprint. Los registros acotados actualizan RF-1 y RF-4/RF-5/RF-6 con sus pruebas locales; el resto sigue pendiente. Las pruebas descritas como futuras no se consideran ejecutadas por existir pruebas de persistencia.
+La tabla conserva el alcance de todo el sprint. Los registros actualizan RF-1 a RF-8 con la evidencia de cada tarea; RF-7 está verificado localmente en T14/T16/T17. Las pruebas descritas como futuras no se consideran ejecutadas por existir pruebas de persistencia.
 
 | RF / AC | Prueba o comprobación concreta prevista | Comando/directorio o tarea de evidencia | Resultado real |
 | --- | --- | --- | --- |
 | RF-1 / Database AC1 | Arranque PostgreSQL y migraciones/validación del esquema | `PostgreSqlPersistenceTest` en ambos comandos Maven del registro final | Satisfactorio local: conexión dev/prod y V1/V2 verificadas |
-| RF-1 / Database AC2 y DoD CRUD | Persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: ambos Maven verify; prueba de contexto dev -> prod | Persistencia y CRUD de repositorio satisfactorios; CRUD API/UI y reinicio de volumen siguen pendientes |
+| RF-1 / Database AC2 y DoD CRUD | Persistencia/relaciones; operaciones RF-7/RF-8 y lectura antes/después de reinicio | `backend/`: ambos Maven verify; prueba de contexto dev -> prod | Persistencia y CRUD verificados con PostgreSQL; CRUD API/UI de T14/T16 y checks integrados T17 pasan. Reinicio de volumen de desarrollo no forma parte de esta verificación |
 | RF-1 / Database AC3 | Revisión de configuración por perfiles, secretos/rutas y dependencias entregables | Diff, `docker compose config --quiet` y contenido del jar | Satisfactorio para esta configuración local; credenciales por entorno y H2 ausente |
 | RF-2 / Description AC1-AC2 | `VideoServiceTest`/`VideosControllerTest` ampliados y pruebas frontend: fragmento solo en descripción y mayúsculas | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
 | RF-2 / Description AC3 y casos límite | Vacío, no resultados, fallo, ranking estable, LIKE literal y respuesta obsoleta | Maven verify; Jest; T4/T6 | Verificado localmente: evidencia final T4/RF-2 |
-| RF-3 / Tags AC1-AC3 | Varias etiquetas según D1, coincidencia exacta/parcial, normalización y texto combinado | Maven verify; Jest; T5/T6 | No ejecutado; D1 pendiente |
-| RF-3 / Tags AC4 | Etiqueta desconocida, vacíos, duplicados y estado sin resultados | Maven verify; Jest; T5/T6 | No ejecutado |
+| RF-3 / Tags AC1-AC3 | Varias etiquetas según D1, coincidencia exacta sin distinguir mayúsculas, normalización y texto combinado | Maven verify; Jest; T5/T6 | Verificado localmente: PostgreSQL/Maven y Jest en el registro T5/S1-S3 (2026-11-11); suite frontend actual 29 suites/184 tests (2026-11-15) |
+| RF-3 / Tags AC4 | Etiqueta desconocida, vacíos, duplicados y estado sin resultados | Maven verify; Jest; T5/T6 | Verificado localmente: pruebas de servicio con PostgreSQL, contrato HTTP y estados de UI; evidencia T5/S1-S3 (2026-11-11) |
 | RF-4 / Register AC1 y aclaración | Alta válida en formulario y petición autenticada al perfil usando la misma sesión | Pruebas con filtros, Jest y E2E; T8/T12/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
 | RF-4 / Register AC2-AC3 | Validación, duplicados email/cuenta y colisión concurrente | `UserServiceTest`/`AuthControllerTest` ampliados, prueba PostgreSQL y Jest | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
 | RF-4 / Register AC4 | Hash almacenado, encoder válido y ausencia de contraseña/hash en DTOs/logs/UI | Prueba de servicio/integración y revisión; T8/T19 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
@@ -151,9 +151,9 @@ La tabla conserva el alcance de todo el sprint. Los registros acotados actualiza
 | RF-5 / Login AC4 | APIs privadas sin sesión, CSRF, expiración/logout y usuario A frente a B | Pruebas con filtros y E2E; T7/T9/T10/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
 | RF-6 / Profile AC1-AC2 | `/me` y `/profile` devuelven/muestran los campos de la cuenta autenticada | Nuevas pruebas de backend/perfil y Jest; T11/T13 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
 | RF-6 / Profile AC3-AC4 | Acceso directo sin sesión/caducado, manipulación de ID y datos privados de otra cuenta | MockMvc con filtros, Jest y E2E; T10/T11/T13/T18 | Satisfactorio local: A1-A3; Maven/PostgreSQL, Jest y HTTP. E2E visual/staging pendiente |
-| RF-7 / CRUD de vídeos | Alta/lectura/edición/borrado, propietario, integridad y archivo físico conservado | Maven verify/PostgreSQL/Jest/E2E; T14/T16/T18 | No ejecutado |
-| RF-8 / Etiquetas de vídeos propios | Compartir etiqueta entre dos vídeos, editar uno y comprobar el otro intacto; retirar asociación sin borrar Tag | Maven verify/PostgreSQL/Jest/E2E; T15/T16/T18 | No ejecutado |
-| DoD global / checks | Build, tests, lint y cobertura del resultado combinado | T17: comandos de área siguientes | No ejecutado |
+| RF-7 / CRUD de vídeos | Alta/lectura/edición/borrado, propietario, integridad y archivo físico conservado | Maven verify/PostgreSQL/Jest/E2E; T14/T16/T18 | Verificado localmente: Maven/PostgreSQL y JaCoCo, frontend build/Jest/lint, Playwright 24/24; E2E comprueba alta de medio existente, persistencia y conservación del archivo al borrar metadatos |
+| RF-8 / Etiquetas de vídeos propios | Compartir etiqueta entre dos vídeos, editar uno y comprobar el otro intacto; retirar asociación sin borrar Tag | Maven verify/PostgreSQL/Jest/E2E; T15/T16a/T18 | Verificado localmente: PostgreSQL y permisos/sustitución/retirada en T15; UI en T16a y E2E T18 (2026-11-02/03); suite frontend actual 29 suites/184 tests (2026-11-15) |
+| DoD global / checks | Build, tests, lint y cobertura del resultado combinado | T17: comandos de área siguientes | Verificado en el resultado combinado 2026-11-15; ver evidencia T17 |
 | DoD global / integración y entrega | CI/PR y smoke tests de staging de la versión integrada | T19/T20, enlaces y resultados por registrar | Pendiente |
 
 ## Comandos de verificación de implementación
@@ -342,3 +342,24 @@ Evidencia local (2026-11-11, Europe/Madrid):
 - La primera ejecución frontend limitada a dos suites pasó 26 tests, pero terminó con exit 1 por el umbral global de cobertura; la suite completa posterior lo satisface. Maven dentro del sandbox falló al acceder al repositorio local; la ejecución autorizada fuera del sandbox completó la verificación.
 - No ejecutado: prueba visual en navegador, E2E de la aplicación desplegada, CI remota o despliegue. No hay nuevas dependencias ni migraciones para el selector; V3 y los cambios anteriores se conservan.
 - Trazabilidad: prompts/12-tag-selector.md, pendiente de revisión del equipo. La autorización local del usuario no acredita aprobación del equipo ni merge.
+
+## Auditoría previa a implementar T14/T16 (2026-11-15; estado histórico)
+
+Esta auditoría registra el estado encontrado antes de ejecutar el plan aprobado. Sus conclusiones sobre T14/T16/T17/T19 y la falta de Docker son una fotografía histórica; el cierre verificado posterior al final de este documento es el estado vigente. RF-3/RF-8 y T20 conservan sus conclusiones.
+
+- RF-3 confirmado en el código actual: el backend consulta etiquetas asociadas por igualdad exacta sin distinguir mayúsculas, combina múltiples filtros mediante OR, combina texto y etiquetas mediante AND, calcula ranking/paginación en PostgreSQL y publica un catálogo de nombres asociados. El frontend permite seleccionar, retirar y limpiar filtros; mantiene los filtros al paginar y descarta respuestas anteriores. Los criterios RF-3 quedan verificados; la decisión del 2026-11-11 sustituye la coincidencia parcial descrita en registros históricos anteriores.
+- RF-8 confirmado en el código actual: el propietario puede añadir, sustituir y retirar asociaciones desde el detalle; el servicio normaliza/reutiliza etiquetas, valida la propiedad y mantiene independientes los vídeos que comparten un valor. La UI no ofrece administración global. T15 y T16a están marcadas como completadas con evidencia backend PostgreSQL, Jest y E2E en sus registros.
+- Verificación repetida en esta revisión: `frontend`: `npm.cmd test -- --coverage --watchAll=false --ci --runInBand` → 29 suites, 184 tests y 1 snapshot, todo correcto; `npm run build` y `npm run lint` también pasan. Backend con Java 21: pasaron 47 tests enfocados del análisis inicial y, tras implementar T14/T16, `VideosControllerTest` + `VideoUploadServiceTest`: 26 tests, 0 fallos, con `-Djacoco.skip=true` por ser una selección enfocada. Los tests que requieren PostgreSQL/Testcontainers no pudieron iniciar porque el usuario no puede iniciar Docker en este momento; no se presenta esa ejecución como verificación nueva de integración. Se conserva como evidencia histórica la suite Maven/PostgreSQL completa de RF-3 (110 tests, 2026-11-11) y RF-8/T15 (107 tests, 2026-11-03).
+- T14 y T16 estaban incompletas al redactar esta auditoría. La implementación y evidencia parcial posteriores figuran en la sección vigente al final.
+- T17 estaba abierta al redactar esta auditoría; su verificación combinada posterior consta al final.
+- T19 estaba parcialmente preparado al redactar esta auditoría; el cierre posterior consta al final. `gh` no está instalado y no se afirma haber comprobado PRs remotas.
+- T20 permanece abierta: D3 y D4 siguen pendientes en `spec.md`; no hay evidencia disponible aquí de revisión/CI/merge de una PR ni de despliegue y smoke tests de staging. No se marca completada por la verificación local.
+
+## Cierre verificado T14/T16/T17/T19 (2026-11-15)
+
+- Backend T14: DELETE `/api/videos/{id}` deriva actor de `Principal` y `VideoService` comprueba existencia/propiedad; `PATCH` omite campos `null` y rechaza títulos en blanco. El alta existente valida contención/ruta y persiste duración medida. PostgreSQL/Testcontainers confirma borrado de etiquetas asociadas, comentarios multinivel/likes, reacciones e historial, y conserva la fila global `Tag`. E2E confirma que el archivo físico sigue respondiendo tras borrar metadatos.
+- Frontend T16: rutas `/videos/new` y `/videos/:id/edit`, formulario de título/descripción/etiquetas, CSRF, acciones solo del propietario y borrado confirmado. Jest cubre creación/edición/validación/permisos/errores; Playwright ejerce alta desde archivo fixture existente, edición, recarga, borrado y conservación del archivo.
+- Verificación combinada T17, 2026-11-15: Java 21, `mvn clean verify` → BUILD SUCCESS, 163 tests, 0 fallos/errores, 1 omitido; puertas JaCoCo cumplidas. `frontend/`: `npm run build`, `npm run test -- --coverage --watchAll=false --ci --runInBand` (29 suites, 184 tests, 1 snapshot) y `npm run lint`, correctos. `e2e/`: Compose aislado `protube-e2e` reconstruido con `--build`; `npm test -- --workers=2` → 24/24.
+- Correcciones encontradas por integración: la aserción JDBC del borrado ahora fuerza `flush()` de JPA antes de consultar; la prueba HTTP anónima usa CSRF válido para llegar a autorización y distinguir 401 de 403 por token ausente; las aserciones E2E leen `response.status()` como método. El fixture existente se monta solo en Compose E2E y se copia temporalmente desde `videos/25.mp4`; el test elimina el archivo temporal en `finally`.
+- T19: documentación, contexto, handoff y trazabilidad actualizados; revisión final de diff y `git diff --check` satisfactorios. Prompt 18 permanece pendiente de aprobación del equipo. No se afirma PR, push ni CI remota.
+- T20 sigue abierta: resolver D3/D4 y autorizar PR/revisión/CI/merge/staging. El estado final no declara despliegue.

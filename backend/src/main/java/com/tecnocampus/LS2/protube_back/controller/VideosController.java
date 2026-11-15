@@ -65,6 +65,12 @@ public class VideosController {
         return ResponseEntity.ok(videoService.updateVideo(id, request, Long.valueOf(principal.getName())));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteVideo(@PathVariable Long id, Principal principal) {
+        videoService.deleteVideo(id, Long.valueOf(principal.getName()));
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/likes")
     public ResponseEntity<LikeResponse> likeVideo(
             @PathVariable Long id,

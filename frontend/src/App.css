@@ -1155,6 +1155,31 @@
   color: var(--pt-text);
   cursor: pointer;
 }
+
+.video-owner-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 0.75rem;
+}
+
+.video-owner-actions button,
+.video-owner-actions a {
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+}
+
+.video-metadata-page form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.video-metadata-page textarea,
+.video-metadata-page input {
+  width: 100%;
+  max-width: 100%;
+}
 .video-reaction-button:hover:not(:disabled) {
   border-color: var(--pt-accent);
   background: var(--pt-surface-hover);

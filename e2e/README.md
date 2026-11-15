@@ -22,13 +22,15 @@ esta sesión: la primera ejecución local sin `--build` falló en varios tests
 porque el contenedor servía una versión de la interfaz muy anterior al árbol
 de trabajo actual.
 
-`e2e/compose.override.yml` solo renombra el contenedor `db` a
+`e2e/compose.override.yml` renombra el contenedor `db` a
 `protube_e2e_postgres_db`: `compose.yaml` fija `container_name: postgres_db`
 para ese servicio, y los nombres de contenedor son globales a Docker (no se
 namespacean por proyecto, a diferencia de los volúmenes), así que un `-p
 protube-e2e` por sí solo no evita el choque si ya hay un stack de desarrollo
-corriendo con ese mismo nombre. Comprobado en esta sesión con un stack de
-desarrollo activo en paralelo.
+corriendo con ese mismo nombre. El override también monta `e2e/test-media` en
+`/media-store/e2e-test` dentro de la app aislada; Playwright copia ahí un fixture
+MP4 temporal para probar el registro de un medio preexistente y lo elimina al
+terminar el recorrido. Esa carpeta no se monta en el stack de desarrollo.
 
 Desde `e2e/`:
 

@@ -17,4 +17,33 @@ export const videoClient = {
       throw videoError(error, 'Could not save the tags. Please try again.');
     }
   },
+  async createMetadata(input: {
+    title: string;
+    description: string;
+    mediaPath: string;
+    tags: string[];
+  }): Promise<VideoDetail> {
+    try {
+      return await mutate<VideoDetail>('/videos', { ...input, durationSeconds: 0 }, 'post');
+    } catch (error) {
+      throw videoError(error, 'Could not register the video. Please try again.');
+    }
+  },
+  async updateMetadata(
+    videoId: number,
+    input: { title: string; description: string; tags: string[] }
+  ): Promise<VideoDetail> {
+    try {
+      return await mutate<VideoDetail>(`/videos/${videoId}`, input, 'patch');
+    } catch (error) {
+      throw videoError(error, 'Could not save the video details. Please try again.');
+    }
+  },
+  async deleteVideo(videoId: number): Promise<void> {
+    try {
+      await mutate<void>(`/videos/${videoId}`, null, 'delete');
+    } catch (error) {
+      throw videoError(error, 'Could not delete the video. Please try again.');
+    }
+  },
 };

@@ -121,6 +121,13 @@ public class VideoService {
     }
 
     @Transactional
+    public void deleteVideo(Long id, Long actorId) {
+        Video video = findDetailedVideo(id);
+        requireSameUser(video.getOwner().getId(), actorId);
+        videoRepository.delete(video);
+    }
+
+    @Transactional
     public LikeResponse likeVideo(Long videoId, Long userId) {
         return setReaction(videoId, userId, VideoLike.ReactionType.LIKE);
     }
