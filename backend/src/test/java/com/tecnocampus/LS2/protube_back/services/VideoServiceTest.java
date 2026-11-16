@@ -35,6 +35,9 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     JdbcTemplate jdbc;
 
     @Autowired
+    com.tecnocampus.LS2.protube_back.repositories.VideoPlayRepository videoPlayRepository;
+
+    @Autowired
     com.tecnocampus.LS2.protube_back.repositories.VideoRepository videoRepository;
 
     @Test
@@ -321,6 +324,14 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         var updatedComment = commentService.updateComment(comment.id(), new UpdateCommentRequest("Updated comment"), userId);
         var like = videoService.likeVideo(videoId, userId);
         var watch = videoService.recordWatch(videoId, new WatchHistoryRequest(userId, 7));
+        // Personal history is not a play: only the opening below counts, and only once.
+        java.util.UUID opening = java.util.UUID.randomUUID();
+        videoService.recordPlay(videoId, opening, userId);
+        videoService.recordPlay(videoId, opening, userId);
+        var play = videoPlayRepository.findById(opening).orElseThrow();
+        assertEquals(opening, play.getId());
+        assertEquals(videoId, play.getVideoId());
+        assertTrue(play.getPlayedAt() != null);
         var analytics = videoService.getAnalyticsForOwner(userId, userId).get(0);
 
         assertEquals("Nice video", comment.text());
@@ -330,7 +341,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(1, analytics.commentsCount());
         assertEquals(1, analytics.likesCount());
         assertEquals(1, analytics.viewsCount());
-        assertEquals(1, videoService.getWatchHistory(userId, userId).size());
+        assertEquals(2, videoService.getWatchHistory(userId, userId).size());
     }
 
     @Test
@@ -344,7 +355,7 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         videoService.likeVideo(id, owner);
         videoService.likeVideo(id, liker);
         videoService.dislikeVideo(id, disliker);
-        for (int i = 0; i < 3; i++) videoService.recordWatch(id, new WatchHistoryRequest(owner, i));
+        for (int i = 0; i < 3; i++) videoService.recordPlay(id, java.util.UUID.randomUUID(), null);
 
         var detail = videoService.getVideo(id).orElseThrow();
         assertEquals(2, detail.likesCount());

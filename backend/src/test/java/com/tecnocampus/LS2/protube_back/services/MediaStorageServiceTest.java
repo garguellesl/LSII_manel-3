@@ -66,6 +66,36 @@ class MediaStorageServiceTest {
         assertTrue(storage.pendingIds().isEmpty());
     }
 
+    @Test void avatarsUseGeneratedNamesAndOnlyGeneratedAvatarFilesCanBeDeleted() throws Exception {
+        var storage = storage();
+        Path keep = Files.writeString(store.resolve("original.mp4"), "keep");
+        Path staged = storage.stageAvatar(UploadFixtures.image("png"));
+        assertTrue(staged.startsWith(store.toRealPath().resolve("uploads/.pending")));
+        assertThrows(IllegalArgumentException.class, () -> storage.publishAvatar(staged, "../bad"));
+        String published = storage.publishAvatar(staged, "png");
+        assertTrue(published.matches("uploads/avatars/[0-9a-f-]{36}\\.png"));
+        assertFalse(Files.exists(staged));
+        assertTrue(storage.pendingIds().isEmpty());
+
+        for (String path : new String[]{"original.mp4", "../original.mp4", "uploads/avatars/../../original.mp4", ""}) {
+            storage.deleteAvatar(path);
+        }
+        storage.deleteAvatar(null);
+        assertEquals("keep", Files.readString(keep));
+        storage.deleteAvatar(published);
+        assertFalse(Files.exists(store.resolve(published)));
+
+        assertEquals(400, assertThrows(UploadException.class,
+                () -> storage.stageAvatar(new MockMultipartFile("avatar", new byte[0]))).getStatus());
+        assertEquals(413, assertThrows(UploadException.class, () -> storage.stageAvatar(
+                new MockMultipartFile("avatar", new byte[(int) MediaFileValidator.AVATAR_LIMIT + 1]))).getStatus());
+        Path discarded = storage.stageAvatar(UploadFixtures.image("jpg"));
+        storage.discardStagedAvatar(discarded);
+        try (var pending = Files.list(store.resolve("uploads/.pending"))) {
+            assertEquals(0, pending.count());
+        }
+    }
+
     @Test void refusesSymlinkedUploadDirectories() throws Exception {
         Path outside = Files.createDirectory(store.resolve("outside"));
         try { Files.createSymbolicLink(store.resolve("uploads"), outside); }

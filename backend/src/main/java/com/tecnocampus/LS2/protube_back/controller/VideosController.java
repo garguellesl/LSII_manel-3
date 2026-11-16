@@ -1,6 +1,7 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
+import com.tecnocampus.LS2.protube_back.model.PlayRequest;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
 import com.tecnocampus.LS2.protube_back.model.VideoPage;
@@ -98,6 +99,15 @@ public class VideosController {
     @DeleteMapping("/{id}/dislikes")
     public ResponseEntity<LikeResponse> undislikeVideo(@PathVariable Long id, Principal principal) {
         return ResponseEntity.ok(videoService.undislikeVideo(id, Long.valueOf(principal.getName())));
+    }
+
+    @PostMapping("/{id}/plays")
+    public ResponseEntity<Void> recordPlay(
+            @PathVariable Long id,
+            @Valid @RequestBody PlayRequest request, Principal principal
+    ) {
+        videoService.recordPlay(id, request.playId(), principal == null ? null : Long.valueOf(principal.getName()));
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/watch-history")

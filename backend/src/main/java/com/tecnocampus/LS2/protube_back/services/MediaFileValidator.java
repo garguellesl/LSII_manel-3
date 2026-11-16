@@ -37,6 +37,18 @@ public class MediaFileValidator {
         if (!valid) throw new UploadException(415, thumbnail ? "Thumbnail must be JPG or PNG" : "Video must be MP4");
     }
 
+    public static final long AVATAR_LIMIT = 2L * 1024 * 1024;
+
+    public void validateAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new UploadException(400, "Avatar must not be empty");
+        if (file.getSize() > AVATAR_LIMIT) throw new UploadException(413, "Avatar exceeds 2 MiB");
+        String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
+        String mime = file.getContentType();
+        boolean valid = ((name.endsWith(".jpg") || name.endsWith(".jpeg")) && "image/jpeg".equals(mime))
+                || (name.endsWith(".png") && "image/png".equals(mime));
+        if (!valid) throw new UploadException(415, "Avatar must be JPG or PNG");
+    }
+
     public String imageExtension(Path path) throws IOException {
         try (var input = ImageIO.createImageInputStream(path.toFile())) {
             if (input == null) throw invalidImage();

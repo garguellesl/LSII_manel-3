@@ -48,6 +48,25 @@ class VideosControllerTest {
     }
 
     @Test
+    void recordsPlaysForVisitorsAndSignedInViewersAndRejectsMissingIds() throws Exception {
+        java.util.UUID opening = java.util.UUID.randomUUID();
+        String body = "{\"playId\":\"" + opening + "\",\"userId\":99}";
+        mockMvc.perform(post("/api/videos/7/plays").contentType("application/json").content(body))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/videos/7/plays").principal(() -> "3").contentType("application/json").content(body))
+                .andExpect(status().isNoContent());
+        org.mockito.Mockito.verify(videoService).recordPlay(7L, opening, null);
+        org.mockito.Mockito.verify(videoService).recordPlay(7L, opening, 3L);
+
+        mockMvc.perform(post("/api/videos/7/plays").contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.doThrow(new com.tecnocampus.LS2.protube_back.services.ResourceNotFoundException("Video not found"))
+                .when(videoService).recordPlay(eq(8L), any(), any());
+        mockMvc.perform(post("/api/videos/8/plays").contentType("application/json").content(body))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void availableTagsReturnsNamesAndEmptyCatalog() throws Exception {
         when(videoService.getAvailableTags()).thenReturn(List.of("abba", "rock"), List.of());
         mockMvc.perform(get("/api/videos/tags"))

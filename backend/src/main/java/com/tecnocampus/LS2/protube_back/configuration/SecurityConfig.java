@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/categories", "/api/videos", "/api/videos/*",
                                 "/api/videos/*/comments").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        // Visitors also generate plays (RF-7); the session CSRF token is still required.
+                        .requestMatchers(HttpMethod.POST, "/api/videos/*/plays").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(errors -> errors
