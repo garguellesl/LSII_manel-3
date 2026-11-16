@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useVideo } from '../useVideo';
 import type { VideoDetail } from '../useVideo';
@@ -6,10 +7,16 @@ import { toMediaUrl } from '../utils/media';
 import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
 import { CommentSection } from './CommentSection';
+import { UserAvatar } from './UserAvatar';
 import { videoClient } from '../utils/videoClient';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from '../utils/Env';
+
+// Descriptions above either limit are collapsed behind a toggle so the controls
+// below them stay reachable without scrolling past the whole text.
+const DESCRIPTION_CHARACTER_LIMIT = 400;
+const DESCRIPTION_LINE_LIMIT = 6;
 
 export function VideoPlayerPage() {
   const { id } = useParams();
@@ -21,10 +28,14 @@ export function VideoPlayerPage() {
       <Link to="/" className="back-link">
         ← Back to videos
       </Link>
-      {loading === 'loading' && <div>Loading...</div>}
-      {loading === 'notFound' && <p role="alert">Video not found.</p>}
+      {loading === 'loading' && <PlayerSkeleton />}
+      {loading === 'notFound' && (
+        <p className="video-player-status" role="alert">
+          Video not found.
+        </p>
+      )}
       {loading === 'error' && (
-        <div role="alert">
+        <div className="video-player-status" role="alert">
           <h3>Error</h3> <p>{message}</p>
         </div>
       )}
@@ -39,6 +50,17 @@ export function VideoPlayerPage() {
   );
 }
 
+function PlayerSkeleton() {
+  return (
+    <div className="video-player-skeleton" role="status" aria-busy="true">
+      <span className="video-player-skeleton-media" aria-hidden="true" />
+      <span className="video-player-skeleton-line" aria-hidden="true" />
+      <span className="video-player-skeleton-line video-player-skeleton-line--short" aria-hidden="true" />
+      <span className="video-player-skeleton-label">Loading video…</span>
+    </div>
+  );
+}
+
 function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable: boolean }) {
   const [tags, setTags] = useState(value.tags);
   const auth = useAuth();
@@ -48,6 +70,8 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
   const [reactionError, setReactionError] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
+  const media = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   useEffect(() => {
     if (auth.status === 'authenticated')
@@ -74,77 +98,159 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
     }
   };
 
+  const retryPlayback = () => {
+    setMediaFailed(false);
+    // Reload the same source: a transient media failure must not need a page reload.
+    media.current?.load();
+  };
+
   return (
     <article className="video-player">
-      <video
-        key={value.id}
-        className="video-player-media"
-        controls
-        autoPlay
-        poster={toMediaUrl(value.thumbnailUrl)}
-        src={toMediaUrl(value.videoUrl)}
-        aria-label={value.title}
-      >
-        Your browser does not support video playback.
-      </video>
-      <h1 className="video-player-title">{value.title}</h1>
-      {editable && (
-        <div className="video-owner-actions">
-          <Link to={`/videos/${value.id}/edit`}>Editar datos del vídeo</Link>
-          <button
-            type="button"
-            disabled={deleting}
-            onClick={() => {
-              if (!window.confirm('¿Eliminar este vídeo? El archivo del almacén se conservará.')) return;
-              setDeleting(true);
-              setDeleteError('');
-              videoClient
-                .deleteVideo(value.id)
-                .then(() => navigate('/'))
-                .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
-                .finally(() => setDeleting(false));
-            }}
-          >
-            {deleting ? 'Eliminando…' : 'Eliminar vídeo'}
-          </button>
-          {deleteError && <p role="alert">{deleteError}</p>}
-        </div>
-      )}
-      {value.user && <p className="video-player-user">{value.user}</p>}
-      {value.category && <p className="video-player-category">{value.category}</p>}
-      {value.description && <p className="video-player-description">{value.description}</p>}
-      <div className="video-reactions" aria-label="Video reactions">
-        {auth.status === 'authenticated' ? (
-          <>
-            <button
-              className="video-reaction-button"
-              type="button"
-              disabled={saving}
-              aria-pressed={reaction === 'LIKE'}
-              onClick={() => void react('likes')}
-            >
-              Like {counts.likes}
+      <div className="video-player-main">
+        <video
+          key={value.id}
+          ref={media}
+          className="video-player-media"
+          controls
+          autoPlay
+          poster={toMediaUrl(value.thumbnailUrl)}
+          src={toMediaUrl(value.videoUrl)}
+          aria-label={value.title}
+          onError={() => setMediaFailed(true)}
+        >
+          Your browser does not support video playback.
+        </video>
+        {mediaFailed && (
+          <div className="video-media-error" role="alert">
+            <p>This video could not be played. The file may be unavailable.</p>
+            <button type="button" onClick={retryPlayback}>
+              Retry playback
             </button>
-            <button
-              className="video-reaction-button"
-              type="button"
-              disabled={saving}
-              aria-pressed={reaction === 'DISLIKE'}
-              onClick={() => void react('dislikes')}
-            >
-              Dislike {counts.dislikes}
-            </button>
-          </>
-        ) : (
-          <p>
-            👍 {counts.likes} · 👎 {counts.dislikes} <Link to="/login">Sign in to react</Link>
+          </div>
+        )}
+        <h1 className="video-player-title">{value.title}</h1>
+        <VideoMetaRow video={value} />
+        {value.user && (
+          // Creator identity comes from the public detail until RF-3 adds a profile
+          // DTO; replace value.user with displayName/avatarUrl there, not here.
+          <p className="video-creator">
+            <UserAvatar name={value.user} size="small" />
+            <span className="video-creator-label">Uploaded by</span>
+            <strong className="video-player-user">{value.user}</strong>
           </p>
         )}
+        {editable && (
+          <div className="video-owner-actions">
+            {/* RF-2 owner editing lives in its own route; this is its entry point. */}
+            <Link to={`/videos/${value.id}/edit`}>Editar datos del vídeo</Link>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => {
+                if (!window.confirm('¿Eliminar este vídeo? El archivo del almacén se conservará.')) return;
+                setDeleting(true);
+                setDeleteError('');
+                videoClient
+                  .deleteVideo(value.id)
+                  .then(() => navigate('/'))
+                  .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+                  .finally(() => setDeleting(false));
+              }}
+            >
+              {deleting ? 'Eliminando…' : 'Eliminar vídeo'}
+            </button>
+            {deleteError && <p role="alert">{deleteError}</p>}
+          </div>
+        )}
+        <VideoDescription videoId={value.id} text={value.description} />
+        <div className="video-reactions" aria-label="Video reactions">
+          {auth.status === 'authenticated' ? (
+            <>
+              <button
+                className="video-reaction-button"
+                type="button"
+                disabled={saving}
+                aria-pressed={reaction === 'LIKE'}
+                onClick={() => void react('likes')}
+              >
+                Like {counts.likes}
+              </button>
+              <button
+                className="video-reaction-button"
+                type="button"
+                disabled={saving}
+                aria-pressed={reaction === 'DISLIKE'}
+                onClick={() => void react('dislikes')}
+              >
+                Dislike {counts.dislikes}
+              </button>
+            </>
+          ) : (
+            <p>
+              👍 {counts.likes} · 👎 {counts.dislikes} <Link to="/login">Sign in to react</Link>
+            </p>
+          )}
+        </div>
+        {reactionError && <p role="alert">{reactionError}</p>}
+        <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       </div>
-      {reactionError && <p role="alert">{reactionError}</p>}
-      <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       <CommentSection videoId={value.id} />
     </article>
+  );
+}
+
+// Likes and dislikes stay in the reaction controls below, so they are not repeated here.
+// The comment count is left out too: it comes from the video detail fetched once on
+// load, so it would go stale the moment someone posts in the discussion right below.
+function VideoMetaRow({ video }: { video: VideoDetail }) {
+  const items: ReactNode[] = [];
+  if (typeof video.viewsCount === 'number')
+    items.push(
+      <li key="views" className="video-meta-item">
+        {video.viewsCount} {video.viewsCount === 1 ? 'view' : 'views'}
+      </li>
+    );
+  if (video.category)
+    items.push(
+      <li key="category" className="video-meta-item video-meta-category">
+        {video.category}
+      </li>
+    );
+  if (items.length === 0) return null;
+  return (
+    <ul className="video-meta-row" aria-label="Video details">
+      {items}
+    </ul>
+  );
+}
+
+function VideoDescription({ videoId, text }: { videoId: number; text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+  const collapsible = text.length > DESCRIPTION_CHARACTER_LIMIT || text.split('\n').length > DESCRIPTION_LINE_LIMIT;
+  const descriptionId = `video-description-${videoId}`;
+  const clamped = collapsible && !expanded;
+
+  return (
+    <div className="video-description">
+      <p
+        id={descriptionId}
+        className={`video-player-description${clamped ? ' video-player-description--clamped' : ''}`}
+      >
+        {text}
+      </p>
+      {collapsible && (
+        <button
+          type="button"
+          className="video-description-toggle"
+          aria-expanded={expanded}
+          aria-controls={descriptionId}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
   );
 }
 

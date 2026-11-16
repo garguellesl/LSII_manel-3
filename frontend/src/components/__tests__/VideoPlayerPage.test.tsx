@@ -128,11 +128,14 @@ describe('VideoPlayerPage', () => {
     jest.clearAllMocks();
   });
 
-  it('shows a loading state while the video is being fetched', () => {
+  it('shows a loading skeleton while the video is being fetched', () => {
     mockedAxios.get.mockReturnValue(new Promise(() => {}));
     renderPlayer();
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    const skeleton = screen.getByRole('status');
+    expect(skeleton).toHaveTextContent('Loading video');
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByLabelText('Uptown Funk')).not.toBeInTheDocument();
     expect(mockedAxios.get).toHaveBeenCalledWith('other/videos/7');
   });
 
@@ -232,5 +235,139 @@ describe('VideoPlayerPage', () => {
     expect(await screen.findByText('house')).toBeInTheDocument();
     expect(mockedVideoClient.updateTags).toHaveBeenCalledWith(7, ['funk', 'pop', 'house']);
     expect(mockedAxios.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows views and category in the metadata row, without repeating reaction or comment counts', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      status: 200,
+      data: { ...videoDetail, viewsCount: 1204, commentsCount: 3, category: 'Gaming', likesCount: 5, dislikesCount: 1 },
+    });
+    renderPlayer();
+
+    const details = await screen.findByRole('list', { name: 'Video details' });
+    expect(details).toHaveTextContent('1204 views');
+    expect(details).toHaveTextContent('Gaming');
+    // The comment count comes from the detail fetched once on load, so it would go
+    // stale as soon as someone posts in the discussion rendered right below.
+    expect(details).not.toHaveTextContent(/comment/i);
+    expect(details).not.toHaveTextContent(/like/i);
+    expect(screen.getByText(/👍 5 · 👎 1/)).toBeInTheDocument();
+  });
+
+  it('uses the singular for exactly one view', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { ...videoDetail, viewsCount: 1 } });
+    renderPlayer();
+
+    const details = await screen.findByRole('list', { name: 'Video details' });
+    expect(details).toHaveTextContent('1 view');
+    expect(details).not.toHaveTextContent('1 views');
+  });
+
+  it('omits metadata the detail does not provide', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer();
+
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    expect(screen.queryByRole('list', { name: 'Video details' })).not.toBeInTheDocument();
+  });
+
+  it('presents the creator with an initial avatar and hides the block without a creator', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    const { unmount } = renderPlayer();
+
+    expect(await screen.findByText('Uploaded by')).toBeInTheDocument();
+    expect(screen.getByText('Mark Ronson')).toBeInTheDocument();
+    expect(screen.getByText('M')).toHaveClass('user-avatar');
+    unmount();
+
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { ...videoDetail, user: '' } });
+    renderPlayer();
+    await screen.findByRole('heading', { level: 1, name: 'Uptown Funk' });
+    expect(screen.queryByText('Uploaded by')).not.toBeInTheDocument();
+  });
+
+  it('collapses a long description behind a toggle and keeps a long title readable', async () => {
+    const description = 'A very long description that keeps going. '.repeat(20);
+    const title = 'Uptown'.repeat(40);
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { ...videoDetail, title, description } });
+    renderPlayer();
+
+    const toggle = await screen.findByRole('button', { name: 'Show more' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    const paragraph = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+    expect(paragraph).toHaveClass('video-player-description--clamped');
+    expect(paragraph).toHaveTextContent('A very long description that keeps going.');
+
+    fireEvent.click(toggle);
+
+    const expanded = screen.getByRole('button', { name: 'Show less' });
+    expect(expanded).toHaveAttribute('aria-expanded', 'true');
+    expect(paragraph).not.toHaveClass('video-player-description--clamped');
+    expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument();
+    expect(screen.getByLabelText(`Discussion for video ${videoDetail.id}`)).toBeInTheDocument();
+  });
+
+  it('shows a short description without a toggle', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer();
+
+    expect(await screen.findByText('Official video')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument();
+  });
+
+  it('plays a video whose thumbnail is missing', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { ...videoDetail, thumbnailUrl: null } });
+    renderPlayer();
+
+    const player = await screen.findByLabelText('Uptown Funk');
+    expect(player).not.toHaveAttribute('poster');
+    expect(player).toHaveAttribute('src', 'development/7.mp4');
+    expect(screen.getByText('funk')).toBeInTheDocument();
+  });
+
+  it('reports a media file failure separately from a request failure and retries playback', async () => {
+    const load = jest.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    mockedAxios.get.mockResolvedValueOnce({ status: 200, data: videoDetail });
+    renderPlayer();
+
+    const player = await screen.findByLabelText('Uptown Funk');
+    fireEvent.error(player);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('This video could not be played. The file may be unavailable.');
+    expect(screen.queryByText(/Error fetching video/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Video not found.')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Uptown Funk' })).toBeInTheDocument();
+    expect(screen.getByText('funk')).toBeInTheDocument();
+    expect(screen.getByLabelText(`Discussion for video ${videoDetail.id}`)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry playback' }));
+
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    load.mockRestore();
+  });
+
+  it('keeps the page controls focusable for keyboard use', async () => {
+    const description = 'A very long description that keeps going. '.repeat(20);
+    mockedAxios.get.mockResolvedValue({ status: 200, data: { ...videoDetail, description } });
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
+
+    const toggle = await screen.findByRole('button', { name: 'Show more' });
+    const controls = [
+      screen.getByRole('link', { name: /back to videos/i }),
+      toggle,
+      screen.getByRole('button', { name: /^Like/ }),
+      screen.getByRole('button', { name: /^Dislike/ }),
+    ];
+    for (const control of controls) {
+      control.focus();
+      expect(control).toHaveFocus();
+      expect(control).not.toHaveAttribute('tabindex', '-1');
+    }
+    toggle.focus();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveTextContent('Show less');
   });
 });

@@ -188,3 +188,22 @@ Base de subida 29c7179 y main 9c67085. El usuario elige feature/sprint3-video-up
 - Ajustar los dos fixtures de subida con 13 argumentos a 14 (0 dislikes). Mantener los usos de 11 argumentos como regresión real; probar defaults, valores no cero y JSON completo. Servicio PostgreSQL: dos likes, un dislike, tres entradas de historial y metadata UPLOAD/Gaming, para detectar intercambio de contadores o pérdida de campos.
 - Mantener V5__video_reactions.sql idéntica a main. Renumerar la migración de subida aún no integrada a V6, conservando exactamente su SQL; verificar instalación vacía y actualización de V5-reacciones con filas/like previo. Actualizar el test que enumera versiones a 1..6. No se alteran datos ni historial de la instalación local.
 - La integración trae los cambios existentes de main en frontend/servicio/tests; verificar Maven clean verify con Java 21/Docker/PostgreSQL aislados y frontend build/Jest/lint. E2E de subida/reacciones si el entorno aislado está disponible. No afirmar CI remoto ni resolver el PR remoto sin commit/push autorizados.
+
+## Ejecución acotada RF-5 (2026-11-16)
+
+[Diseño y evidencia del reproductor](player.md), rama `feature/sprint3-player-page`.
+Solo frontend: `VideoPlayerPage`, el tipo de `useVideo` y la sección del player en
+`App.css`. Una sola columna de contenido con la conversación debajo a ancho de
+contenido, en lugar de la columna lateral que sugería la idea inicial de dos
+columnas: las respuestas anidadas profundas necesitan ese ancho. La fila de
+metadatos muestra vistas y categoría; likes y dislikes siguen únicamente en la
+fila de reacciones de RF-10, y el número de comentarios se omite porque viene
+del detalle cargado una sola vez y quedaría desactualizado frente a la
+conversación justo debajo. Sin fecha: `VideoDetail` no publica ninguna y no se
+amplía el DTO, así que queda pendiente de decisión de contrato. Se añade `onError` del `<video>` con mensaje propio y reintento, y
+esqueleto de carga; el error de comentarios ya se distinguía de "sin comentarios".
+`toMediaUrl` ya admite `null` en el código actual, al contrario de lo que indica
+el contexto técnico anterior de este plan; aquí solo se comprueba en el player.
+No se modifican contratos de API, backend, comentarios ni reacciones, y RF-2/T12,
+RF-3/T13-T14 y RF-7/T21-T22 conservan su estado con puntos de integración
+señalados en el código.
