@@ -3,6 +3,10 @@
 Spec: [spec.md](spec.md) | Plan: [plan.md](plan.md)
 Alcance autorizado: implementación local de RF-4 (AC1–AC10) y RF-10 (reacciones de vídeo), incluidas API, UI y pruebas. El resto del sprint continúa propuesto.
 
+Actualización 2026-11-16: autorizada e implementada la ejecución acotada de RF-5
+(T18), solo presentación y estados del reproductor; ver [player.md](player.md).
+No amplía RF-2, RF-3 ni RF-7.
+
 Actualización 2026-11-12: autorizado el plan acotado de RF-4; ejecución de T3,
 T15-T17 y escenarios pertinentes de T24, sin declarar completas tareas globales
 del sprint. Ver [handoff](../../docs/ai/tasks/sprint3-comments-replies-likes.md).
@@ -80,10 +84,12 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T15, T16.
   - Hecho cuando: UI permita leer, publicar, responder a varios niveles, editar/borrar propios y like/unlike; tombstones, orden, errores, estados y ramas profundas usables con teclado/móvil tengan cobertura con mocks.
   - Evidencia: pruebas de hook/componentes, build/lint frontend y `e2e/tests/comments.spec.ts`; 14/14 E2E pasaron antes del último ajuste de estilos. El reintento con los estilos finales quedó sin infraestructura Docker.
-- [ ] T18 - Mejorar contexto, layout y fallos del reproductor (RF-5, RF-2, RF-3)
-  - Depende de: T12, T14, T17.
+- [x] T18 - Mejorar contexto, layout y fallos del reproductor (RF-5)
+  - Depende de: T17. T12/T14 se resuelven dejando puntos de integración: la edición de metadatos (RF-2/T12) conserva su ruta propia y el creador no depende del perfil editable (RF-3/T13-T14), ambos todavía pendientes.
   - Hecho cuando: player muestre categoría/creador/metadatos correctos, `toMediaUrl` soporte ausencia de miniatura, detecte medio no disponible y preserve navegación/controles; textos largos y teclado/móvil se verifiquen.
-  - Evidencia: pendiente.
+  - Evidencia: [player.md](player.md). Layout de una columna con la conversación debajo, fila de metadatos (vistas, categoría), creador con avatar de inicial, descripción plegable, esqueleto de carga y aviso propio de fallo del archivo con reintento. Frontend build/Jest/lint correctos (30 suites, 195 pruebas) y Playwright 28/28 contra el stack aislado `protube-player-check`, incluidos escritorio, 375/320 px, teclado y MP4 abortado.
+  - Corrección de jerarquía visual (2026-11-16, segunda ronda): captura real detectó tamaños de fuente inconsistentes y enlaces en azul por defecto, causados por `.App-header { font-size: calc(10px + 2vmin) }` heredado por cualquier elemento del player sin `font-size` propio. Arreglo solo CSS: escala tipográfica/espaciado local en `.video-player-page` (con *fallback* en cada `var(--pt-player-*)`, también en `comments.css`), CSS del player consolidado en una sola sección (se elimina la `.video-player` duplicada), tarjeta de descripción con el toggle dentro como enlace pequeño, píldora de reacciones del visitante con solo los contadores atenuados (sin `opacity` en toda la píldora, para no apagar el enlace "Sign in to react"), y conversación alineada al mismo ancho que el vídeo. Sin cambios de comportamiento/contrato/selectores/roles/textos. Evidencia: `npm run build`, `npm run test -- --coverage --watchAll=false --ci` (30 suites, 195 pruebas, idéntico recuento), `npm run lint`, capturas Playwright en escritorio/móvil y oscuro/claro revisadas manualmente, y Playwright completo 28/28 contra `protube-player-check` reconstruido. Detalle en [player.md](player.md).
+  - Corrección relacionada, fuera de T18 (RF-10, 2026-11-16, misma causa raíz): los contadores públicos `👍 n · 👎 m` de las tarjetas del catálogo (`VideoCard.tsx`) también heredaban el `font-size` en vmin de `.App-header` y se partían en dos líneas. Arreglo CSS-only con selector por atributo (`.video-card p[aria-label='Video reactions']`), sin tocar `VideoCard.tsx` ni sus clases/markup/`aria-label`: tamaño `var(--pt-player-font-meta, 0.875rem)` con *fallback* (las tarjetas están fuera de `.video-player-page`, así que es el *fallback* el que realmente aplica), color `var(--pt-muted)` y `white-space: nowrap`. `VideoCard.test.tsx` sin cambios y pasa igual. Verificado con capturas Playwright del catálogo a 1280 y 375 px (leídas manualmente) y Playwright completo 28/28 (una ejecución previa tuvo 1 fallo intermitente en `catalog-playback.spec.ts`, no relacionado con esta tarjeta, que pasó solo y en la repetición completa). Detalle en [player.md](player.md).
 - [ ] T19 - Consulta SQL de etiquetas combinadas con texto (RF-6)
   - Depende de: T8.
   - Hecho cuando: repositorio aplique OR entre nombres de etiquetas y AND con texto, sin duplicados, paginando/contando en PostgreSQL y conservando relevancia; pruebas cubran normalización, etiqueta desconocida, vacíos y páginas sucesivas.
@@ -143,7 +149,7 @@ Comandos y escenarios son previstos. Referencias a archivos que ya existen ident
 | RF-2 | T11-T12/T24: extender `VideoServiceTest`/`VideosControllerTest`, editor y flujo de búsqueda tras editar | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-3 | T13-T14/T24: perfil/save/cancel, límites y propagación de avatar/nombre | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-4 | T3/T15-T17/T24 (alcance RF-4): jerarquía, tombstone, permisos y concurrencia likes/borrado | backend `mvn -Pprod clean verify`; Jest frontend; Playwright E2E | Backend 127 tests y cobertura aprobada; frontend 144 tests/23 suites; E2E 14/14 en ejecución anterior. Reintento final bloqueado porque Docker Desktop estaba apagado. |
-| RF-5 | Solo integración responsive de discusión en player; T18 y RF-5 global siguen pendientes | `npm run build`; `npm run test -- --coverage --watchAll=false --ci`; `npm run lint`; Playwright | Build/lint correctos; tests frontend arriba; E2E móvil pasó en ejecución anterior. |
+| RF-5 | T18: presentación, estados (carga, inexistente, fallo de petición, fallo del archivo y comentarios fallidos) y teclado/móvil del player | `npm run build`; `npm run test -- --coverage --watchAll=false --ci`; `npm run lint` en frontend; `npx playwright test --workers=2` en e2e | 2026-11-16: build y lint correctos; 30 suites/195 pruebas; cobertura statements 95,69 %, ramas 90,61 %, funciones 95,75 %, líneas 97,28 %; E2E 28/28 con 4 recorridos nuevos de player. AC1-AC5 cubiertos en presentación y estados; la reproducción efectiva de RF-7 (T22) sigue pendiente. |
 | RF-6 | T19-T20/T24: SQL OR/AND, distinct/count, UI de limpiar filtros y respuestas obsoletas | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-7 | T4/T21-T23/T24: contador concurrente, UUID, playing/reapertura, panel y propietario | `mvn clean verify` en backend; tests frontend; `npm test` en e2e | No ejecutado |
 | RF-8 | T3 acotada: migración de comentarios/likes e integridad en PostgreSQL | `mvn -Pprod clean verify` en backend; Compose E2E aislado | Migración e integridad cubiertas; 127 tests pasan. El resto de RF-8 sigue pendiente. |
@@ -197,3 +203,68 @@ Evidencia final local 2026-11-13 (Europe/Madrid):
 - Comprobaciones finales: sin marcadores en código ni entradas de conflicto en índice; enlaces locales y diff comprobados. Cambio original del usuario en la rama de apariencia conservado.
 
 Limitación real: consulta de solo lectura al PostgreSQL local detecta V5__video_upload_metadata.sql ya aplicada. Ese historial local alternativo necesita una transición revisada antes de usar el código combinado; esta tarea no cambia datos, ejecuta repair/clean ni modifica su historial. Las pruebas de actualización V5→V6 parten de la V5 de reacciones de main. Merge preparado localmente sin commit/push; el PR remoto no se declara actualizado. No reemplaza resultados históricos ni significa cierre completo del sprint.
+
+## Ejecución acotada del reproductor (2026-11-16)
+
+Alcance y decisiones en [player.md](player.md); cubre T18 (RF-5) sin tocar
+backend, contratos de API ni la lógica de comentarios/reacciones. Rama
+`feature/sprint3-player-page`, sin commit, push ni merge.
+Handoff: [sprint3-player-page](../../docs/ai/tasks/sprint3-player-page.md).
+Prompt: [registro](../../prompts/19-player-page.md).
+
+- [x] P1 - Presentación del player: una sola columna de contenido con la
+  conversación debajo a ancho de contenido, fila de metadatos con vistas
+  (singular/plural) y categoría (sin likes/dislikes, que siguen solo en la fila
+  de reacciones de RF-10, y sin número de comentarios, que vendría del detalle
+  cargado una sola vez y quedaría desactualizado frente a la conversación de
+  abajo), bloque de creador con avatar de inicial reutilizando `UserAvatar` y
+  descripción plegable con `aria-expanded`.
+- [x] P2 - Estados distinguibles: esqueleto de carga `role="status"`,
+  vídeo inexistente, fallo de petición, fallo del archivo de vídeo (`onError`
+  con mensaje propio y `Retry playback`) y fallo de comentarios separado de
+  "sin comentarios".
+- [x] P3 - Accesibilidad y responsive: `:focus-visible` para todos los controles
+  de la página, recorrido de teclado y 375/320 px sin desbordamiento.
+- [x] P4 - Pruebas y verificación: Jest/RTL con API simulada por estado,
+  Playwright de escritorio/móvil/teclado/medio roto y suite completa sin
+  regresiones.
+
+Evidencia ejecutada 2026-11-16 (Europe/Madrid):
+
+| Comprobación | Comando | Resultado |
+| --- | --- | --- |
+| Build | `npm run build` en `frontend/` | Correcto, sin errores de TypeScript |
+| Jest/RTL | `npm run test -- --coverage --watchAll=false --ci` en `frontend/` | 30 suites, 195 pruebas y 1 snapshot pasan; cobertura statements 95,69 %, ramas 90,61 %, funciones 95,75 %, líneas 97,28 % (gates de 75 % cumplidos) |
+| Lint | `npm run lint` en `frontend/` | Correcto tras formatear los archivos tocados |
+| E2E aislado | Compose `-p protube-player-check` con `e2e/compose.override.yml` y `e2e/e2e.env`, luego `npx playwright test --workers=2` | 28/28 pasan (24 existentes y 4 nuevos de `tests/player-page.spec.ts`). Dos aserciones propias fallaron en la primera ejecución por selectores ambiguos y pasaron tras acotarlos; no hubo fallos de comportamiento. Entorno y sus dos volúmenes retirados al terminar; no se usaron la BD ni el almacén de desarrollo |
+| TypeScript E2E | `npx tsc --noEmit --types @playwright/test` en `e2e/` | El spec nuevo no añade errores; persisten los avisos previos por falta de `@types/node` en `e2e/` |
+
+Pendientes y seguimiento que esta tarea no resuelve:
+
+- **Fecha en la fila de metadatos:** `VideoDetail` no publica ninguna fecha
+  aunque `Video` tenga `created_at`. Decidido con el usuario no ampliar el DTO;
+  requiere una decisión de contrato antes de mostrarla.
+- **UI con idiomas mezclados:** los textos nuevos están en inglés, como
+  comentarios, etiquetas y catálogo, mientras las acciones de propietario y
+  `ProfilePage` siguen en castellano. El equipo debe decidir si se unifica el
+  idioma o se introduce i18n; no se renombran cadenas de otras tareas.
+- **Documentación desactualizada detectada:** `plan.md` y
+  `e2e/README.md` afirman que `toMediaUrl` falla con `thumbnailUrl: null`. El
+  código actual ya devuelve `undefined` y tiene prueba propia; ahora también se
+  comprueba en el player y en E2E con un vídeo sin miniatura. No se editan esos
+  textos históricos en esta tarea.
+- **RF-5 global:** depende todavía de T22 (reproducción efectiva de RF-7) y de
+  T12/T14 para los controles de edición y perfil.
+- **Causa raíz global sin arreglar:** `.App-header { font-size: calc(10px + 2vmin) }`
+  (`frontend/src/App.css`) es la base de todo el layout de la aplicación, no
+  solo del player; cualquier elemento sin `font-size` propio en *cualquier*
+  página hereda ese valor dependiente del viewport. Esta tarea ha corregido dos
+  síntomas puntuales de la misma causa (la fila de metadatos/reacciones del
+  player, dentro de `.video-player-page`, y los contadores públicos de las
+  tarjetas del catálogo, fuera de ella, con selectores dedicados en cada caso),
+  pero no toca `.App-header` en sí: cualquier otro elemento sin `font-size`
+  propio en catálogo, autenticación o perfil puede seguir mostrando el mismo
+  problema sin haberse revisado. Un arreglo global (por ejemplo, fijar un
+  `font-size` de cuerpo razonable en `.App-header` o en `html`/`body`, y
+  auditar qué páginas dependían implícitamente del valor en vmin) queda fuera
+  de alcance de T18 y debería abordarse en un PR aparte.

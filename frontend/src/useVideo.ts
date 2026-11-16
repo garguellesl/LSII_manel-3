@@ -17,6 +17,8 @@ export type VideoDetail = {
   tags: string[];
   likesCount?: number;
   dislikesCount?: number;
+  viewsCount?: number;
+  commentsCount?: number;
 };
 
 export function useVideo(id: string | undefined) {

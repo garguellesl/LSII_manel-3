@@ -6,7 +6,8 @@
 }
 
 .comment-section h2 {
-  font-size: 1.4rem;
+  font-size: var(--pt-player-font-heading, 1.125rem);
+  font-weight: 600;
 }
 .comment-list {
   margin-block-start: 1.5rem;
