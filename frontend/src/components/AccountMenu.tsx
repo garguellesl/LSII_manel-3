@@ -33,6 +33,9 @@ export function AccountMenu() {
       )}
       {auth.status === 'authenticated' && auth.user && (
         <>
+          <Link className="account-link" to="/videos/new">
+            Registrar vídeo existente
+          </Link>
           <Link className="account-link account-link--primary" to="/upload">
             Subir vídeo
           </Link>

@@ -297,6 +297,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
         UserResponse other = account();
         Long id = video(actor);
         Token token = csrf(login(actor));
+        Token guest = csrf(null);
         MvcResult result = mvc.perform(post("/api/videos/" + id + "/comments")
                         .session(token.session()).header(token.header(), token.value()).contentType("application/json")
                         .content(mapper.writeValueAsString(Map.of("text", "Mine", "userId", other.id()))))
@@ -333,6 +334,15 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/users/" + other.id() + "/watch-history").session(stranger.session()))
                 .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(delete("/api/videos/" + id).session(stranger.session())
+                        .header(stranger.header(), stranger.value()))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/videos/" + id).session(guest.session()).header(guest.header(), guest.value()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/videos/" + id).session(token.session()))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/videos/" + id).session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isNoContent());
     }
 
     @Test

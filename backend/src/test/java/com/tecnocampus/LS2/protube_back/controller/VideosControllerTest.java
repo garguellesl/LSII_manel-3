@@ -258,6 +258,21 @@ class VideosControllerTest {
     }
 
     @Test
+    void updateVideoRejectsBlankTitle() throws Exception {
+        mockMvc.perform(patch("/api/videos/7").principal(() -> "3").contentType("application/json")
+                        .content("{\"title\":\"   \"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(videoService);
+    }
+
+    @Test
+    void deleteVideoDelegatesActorAndReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/videos/7").principal(() -> "3"))
+                .andExpect(status().isNoContent());
+        org.mockito.Mockito.verify(videoService).deleteVideo(7L, 3L);
+    }
+
+    @Test
     void likeVideoReturnsLikeState() throws Exception {
         when(videoService.likeVideo(7L, 3L)).thenReturn(new com.tecnocampus.LS2.protube_back.model.LikeResponse(
                 7L, 3L, true, 1

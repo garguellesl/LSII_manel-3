@@ -14,7 +14,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 jest.mock('../../utils/videoClient', () => ({
   ...jest.requireActual('../../utils/videoClient'),
-  videoClient: { updateTags: jest.fn() },
+  videoClient: { updateTags: jest.fn(), deleteVideo: jest.fn(), updateMetadata: jest.fn(), createMetadata: jest.fn() },
 }));
 const mockedVideoClient = videoClient as jest.Mocked<typeof videoClient>;
 
@@ -66,6 +66,24 @@ const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status } });
 
 describe('VideoPlayerPage', () => {
+  it('offers deletion only to the owner and navigates away after confirmation', async () => {
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
+    mockedVideoClient.deleteVideo.mockResolvedValue(undefined);
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar vídeo' }));
+    await waitFor(() => expect(mockedVideoClient.deleteVideo).toHaveBeenCalledWith(7));
+    expect(await screen.findByText('Home page')).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
+  it('does not expose owner actions to a visitor', async () => {
+    mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
+    renderPlayer('/videos/7');
+    await screen.findByRole('heading', { name: 'Uptown Funk' });
+    expect(screen.queryByRole('button', { name: 'Eliminar vídeo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Editar datos del vídeo' })).not.toBeInTheDocument();
+  });
   it('keeps a late save isolated after switching videos, including when returning to the original video', async () => {
     let finishSave!: (value: typeof videoDetail) => void;
     mockedVideoClient.updateTags.mockReturnValueOnce(

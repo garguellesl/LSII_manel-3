@@ -49,6 +49,45 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void deletingOwnedVideoCascadesRelationsButRetainsSharedTagRows() {
+        Long owner = registerUser("delete-video@example.com", "delete-video").id();
+        var video = videoService.createVideo(new CreateVideoRequest(
+                "Delete me", "", "delete-me.mp4", null, 0, owner, List.of("shared-delete-tag")));
+        Long tagId = jdbc.queryForObject("select id from tags where name='shared-delete-tag'", Long.class);
+        Long root = jdbc.queryForObject("insert into comments(video_id,user_id,text) values (?, ?, ?) returning id",
+                Long.class, video.id(), owner, "root");
+        jdbc.update("insert into comments(video_id,user_id,text,parent_id) values (?, ?, ?, ?)",
+                video.id(), owner, "reply", root);
+        jdbc.update("insert into comment_likes(comment_id,user_id) select id, ? from comments where video_id = ?", owner, video.id());
+        jdbc.update("insert into video_likes(video_id,user_id) values (?, ?)", video.id(), owner);
+        jdbc.update("insert into watch_history(user_id,video_id,progress_seconds) values (?, ?, ?)", owner, video.id(), 4);
+
+        videoService.deleteVideo(video.id(), owner);
+        videoRepository.flush();
+
+        assertEquals(0L, jdbc.queryForObject("select count(*) from videos where id=?", Long.class, video.id()));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from video_tags where video_id=?", Long.class, video.id()));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from comments where video_id=?", Long.class, video.id()));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from comment_likes where user_id=?", Long.class, owner));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from video_likes where video_id=?", Long.class, video.id()));
+        assertEquals(0L, jdbc.queryForObject("select count(*) from watch_history where video_id=?", Long.class, video.id()));
+        assertEquals(1L, jdbc.queryForObject("select count(*) from tags where id=?", Long.class, tagId));
+    }
+
+    @Test
+    void deletingVideoRequiresOwnerAndExistingVideo() {
+        Long owner = registerUser("delete-owner@example.com", "delete-owner").id();
+        Long other = registerUser("delete-other@example.com", "delete-other").id();
+        var video = videoService.createVideo(new CreateVideoRequest("Owned", "", "owned-delete.mp4", null, 0, owner, List.of()));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> videoService.deleteVideo(video.id(), other));
+        assertTrue(videoRepository.existsById(video.id()));
+        assertThrows(ResourceNotFoundException.class, () -> videoService.deleteVideo(999999L, owner));
+        videoService.deleteVideo(video.id(), owner);
+        assertTrue(!videoRepository.existsById(video.id()));
+    }
+
+    @Test
     void tagSearchUsesOrAndRanksDistinctFiltersBeforeTextAndStableId() {
         Long owner = registerUser("tag-search@example.com", "tag-search").id();
         var manyRockTags = videoService.createVideo(new CreateVideoRequest("Match", "", "rock-only.mp4", null, 0,

@@ -99,10 +99,10 @@ public class VideoUploadService implements ApplicationRunner {
 
     public VideoDetail registerExisting(CreateVideoRequest request, Long actorId) {
         try {
-            validator.videoDuration(storage.existingFile(request.mediaPath()));
+            double durationSeconds = validator.videoDuration(storage.existingFile(request.mediaPath()));
             if (request.thumbnailPath() != null && !request.thumbnailPath().isBlank()) storage.existingFile(request.thumbnailPath());
             return videoService.createVideo(new CreateVideoRequest(request.title(), request.description(), request.mediaPath(),
-                    request.thumbnailPath(), request.durationSeconds(), actorId, request.tags()));
+                    request.thumbnailPath(), durationSeconds, actorId, request.tags()));
         } catch (IOException exception) {
             throw new UploadException("Could not access the media store", exception);
         }
