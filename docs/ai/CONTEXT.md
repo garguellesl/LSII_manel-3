@@ -100,3 +100,13 @@ On local branch `feature/sprint-2-metadata-feature-expansion-`, Sprint 2 T14/T16
 ## Appearance PR #29 integration (2026-11-13)
 
 party--ClairObscur-buttons now incorporates feature/sprint3-video-upload 77452ef, including reactions/main 9c67085, combined VideoDetail and V5-reactions/V6-upload. Both previous context updates are retained. The appearance change adds themed presentation for video reaction buttons (selected/inactive/hover/focus/pending) without changing their handlers. E2E confirms selection and playback remain intact across theme changes, with 44 px controls at 320 px. Local validation: build/lint, 176 frontend tests and 23 E2E pass; backend tree matches the previously verified integration. PR #29 is the publication target; remote CI status is tracked there. Party mode remains disabled and the local alternative V5 database is not changed.
+
+
+## Upload file-picker correction (2026-11-17)
+
+Local change on feature/fix-upload-file-picker from main 2984ad5. UploadVideoPage retains the last confirmed user id while AuthProvider revalidates on window focus, following ProfilePage's existing pattern. UploadForm remains mounted with a key by account id; metadata, tag filter and File inputs survive the check for the same account. Its fieldset/submission are disabled during checking. Anonymous/error removes the form and a different id starts a fresh draft. Initial route protection and global AuthProvider behavior are unchanged. No draft persistence across navigation/reload is added. Evidence: specs/sprint-3/tasks.md UP-F1..UP-F3 (233 frontend tests, build/lint and 30 isolated E2E pass); the local running app was updated and checked, without remote publication or database/history changes.
+
+
+## Fragmented MP4 upload validation (2026-11-17)
+
+Local change from 1208e34 on feature/fix-upload-file-picker. MediaFileValidator now accepts complete fragmented MP4 with zero movie-header duration, deriving timing from track timescales and tfdt/trun with trex/tfhd defaults. Sample-table reads are bounded and run byte ranges must lie in mdat; malformed/incomplete fragments, unknown tracks, missing video samples and arithmetic overflow still return 415. Classic MP4 and upload limits/MIME/auth/storage remain unchanged. This is structural validation, without transcoding or universal codec support. Synthetic unit/HTTP regressions and the user-supplied file in isolated storage passed; Maven verify/coverage and 30 E2E passed. The local running app was updated, its database/history preserved and temporary private media removed. Evidence: specs/sprint-3/tasks.md MP-F1..MP-F3; no remote publication claimed.

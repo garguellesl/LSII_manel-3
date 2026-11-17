@@ -268,3 +268,56 @@ Pendientes y seguimiento que esta tarea no resuelve:
   `font-size` de cuerpo razonable en `.App-header` o en `html`/`body`, y
   auditar qué páginas dependían implícitamente del valor en vmin) queda fuera
   de alcance de T18 y debería abordarse en un PR aparte.
+
+
+## Corrección de reinicio al seleccionar archivo (2026-11-17)
+
+RF-1/US-06; plan acotado al final de plan.md. La evidencia histórica permanece referida a sus commits.
+
+- [x] UP-F1: reproducir con AuthProvider real y APIs mock la pérdida al volver del selector; terminado con fallo previo verificable y causa documentada.
+- [x] UP-F2: conservar formulario/archivos durante revalidación de la misma identidad y bloquear publicación; terminado con regresiones para éxito, cancelación, cambio de cuenta, caducidad/error y envío de archivos originales.
+- [x] UP-F3: ejecutar build/Jest/cobertura/lint y E2E aislado, revisar diff y entregar; terminado con resultados reales y handoff/prompt actualizados, sin modificar BD/medios privados.
+
+
+Evidencia UP-F1: Jest enfocado (coverage=false solo durante diagnóstico), UploadVideoPage.test.tsx: antes del arreglo 1 falla y 9 pasan. El fallo esperado es ausencia de Título; el DOM contiene únicamente Comprobando sesión tras window.focus con /users/me pendiente. Clientes de API mock, AuthProvider real. Confirma desmontaje y no depende del archivo concreto del usuario.
+
+
+### Evidencia final UP-F2/UP-F3 (2026-11-17, Europe/Madrid)
+
+| Verificación | Resultado real |
+| --- | --- |
+| Regresión roja previa | 1 fallo esperado y 9 pasan en UploadVideoPage.test: window.focus con sesión diferida sustituía todo el formulario por Comprobando sesión |
+| Regresión enfocada tras arreglo | UploadVideoPage + Authentication: 2 suites, 31 casos pasan. Se conserva borrador completo, selección/filtro de etiquetas y los dos objetos File; bloqueo de submit durante comprobación; cancelación sin cambio de archivo; envío de originales; limpieza por otra cuenta/caducidad/error y reintento |
+| Frontend requerido | npm run build, npm run test -- --coverage --watchAll=false --ci y npm run lint: código 0; 34 suites, 233 pruebas y 1 snapshot pasan, gates de cobertura conservados |
+| Producción/E2E | Docker build de la versión corregida; Compose aislado protube-upload-picker-check (base y volúmenes propios), con compose.yaml + e2e/compose.override.yml + override solo de nombre/imagen y e2e/e2e.env. npx playwright test --workers=2: 30/30 pasan. Nuevos recorridos: foco antes/después del cambio de archivo, vídeo MP4 con espacios + miniatura PNG + publicación/reproducción real y logout del servidor seguido de foco/redirección |
+| Fallo de preparación E2E inicial | 29 pasan y 1 falla al registrar medio existente porque se omitió el montaje e2e/test-media del override actual. Se añadió ese override al comando de despliegue aislado, sin cambiar producto ni aceptación; suite completa posterior 30/30 correcta |
+| ProTube local | Reproducción con assets reales y API interceptada: antes de actualizar se pierden título/categoría/File; después se conservan durante y tras foco. Cero escrituras de prueba en la BD local. Captura completa revisada fuera del repo |
+| Aplicación local | Contenedor app actualizado con la imagen comprobada; configuración Compose coincide, 87 entradas backend comparadas (normalizando saltos de línea de properties y hashes de bundles del HTML), sin cambios funcionales de backend/migraciones. App healthy; contenedor PostgreSQL/id/inicio y montajes de medios intactos. Imagen previa conservada como vuelta atrás. El reinicio invalida sesiones en memoria: puede requerir login |
+
+Alcance local final cumplido. Sin cambios AuthProvider/backend/API/migraciones/dependencias ni acceso al vídeo privado. El ejemplo con nombre largo usa bytes del MP4 de muestra. No se afirma Maven verify nuevo ni CI remoto; no se hace commit/push/PR/merge de esta corrección. Documentos y diff revisados; el entorno aislado se retira conservando el ProTube local corregido. Siguiente paso del equipo: revisión y publicación de la rama cuando se autorice.
+
+
+## Corrección de rechazo de MP4 fragmentado (2026-11-17)
+
+- [x] MP-F1 (RF-1): reproducir el rechazo de mvhd=0 y confirmar metadatos/reproducción del archivo señalado; hecho con fallo previo reproducible y causa verificada.
+- [x] MP-F2 (RF-1): leer timing y validar datos de fragmentos conservando controles existentes; hecho con tests de éxito, defaults/versiones y errores estructurales, integración de publicación/limpieza.
+- [x] MP-F3 (RF-1/9): Maven verify/cobertura, imagen, regresiones y archivo real aislado; aplicar corrección local y entregar resultados/archivos/pendientes. Sin modificar datos o historial de BD ni versionar el vídeo privado.
+
+
+MP-F1: Chromium local reproduce el archivo original y reporta 46,944308 s/480x360; análisis de solo lectura confirma moov/mvex y 12 pares moof/mdat con mvhd/mdhd=0. Test rojo previo: mvn -Dtest=FragmentedMp4ValidationTest test, 11 casos, 6 errores esperados UploadException (éxitos fragmentados) y 5 pasan (rechazos); sin omisiones. No se copia el vídeo al repositorio.
+
+
+### Evidencia final MP-F2/MP-F3 (2026-11-17, Europe/Madrid)
+
+| Comprobación | Resultado real |
+| --- | --- |
+| Unitarios enfocados | 16 casos correctos de FragmentedMp4ValidationTest y MediaFileValidatorTest. El comando enfocado termina rechazado por el check global de JaCoCo al no ejecutar las demás suites; no se rebajan gates. El verify completo posterior los satisface |
+| Backend obligatorio | Java 21/Maven 3.9.12, mvn clean verify: BUILD SUCCESS, 191 casos (190 pasan, 1 de enlaces simbólicos omitido por Windows), 0 fallos/errores. PostgreSQL Testcontainers aislado; JaCoCo pasa todos los umbrales; MediaFileValidator cubre 238/240 líneas, BoxInput 11/11 |
+| Integración HTTP persistente | VideoUploadIntegrationTest: 5/5 pasan, incluido MP4 fragmentado con mvhd=0 ->201/duración 2/bytes idénticos; truncado ->415 sin nueva fila pública ni pending. Permisos y contrato existente conservados |
+| Imagen y regresiones | Docker build producción satisfactorio; Compose protube-fragmented-check propio con DB/store/puertos de localhost, configuración E2E actual. npx playwright test --workers=2: 30/30 pasan, incluido formulario/foco, subida convencional, reproducción, perfil, metadatos, comentarios y temas |
+| Archivo exacto del usuario | Prueba no versionada con ese archivo, sin conversión, dentro del despliegue aislado: POST 201, 2458203 bytes, duración del DTO 46,94430839002268 s. Chromium reproduce a 480x360 y reporta 46,944308 s. Hash de descarga igual al original; hash del original antes/después idéntico |
+| Aplicación local | Comparación de paquete/configuración: solo cambian las 7 clases del validador (principal/privadas), resto backend/dependencias igual. Imagen comprobada aplicada a upload-app-1; app healthy, mismo contenedor/inicio PostgreSQL y mismos montajes de medios. Imagen previa conservada para reversión; sin cambios de esquema/historial |
+| Smoke posterior | tooling/docker/smoke_test.py ->PASS (React/assets/API/detalle/ruta/media/Range/ausentes). Navegador sobre la UI local con APIs interceptadas confirma borrador/File conservados; cero escrituras de test a la BD local |
+| Limpieza y privacidad | Retirado solo protube-fragmented-check con sus dos volúmenes, eliminando la copia de prueba del vídeo; etiqueta temporal retirada. Original de Descargas intacto, sin bytes/capturas del vídeo en Git ni servicios externos. ProTube local y ambas parejas de datos existentes conservadas |
+
+Clases Java: modificada MediaFileValidator y ampliada VideoUploadIntegrationTest; nuevas clases de prueba FragmentedMp4ValidationTest y FragmentedMp4Fixture. No cambian frontend, dependencias, DTO/API o migraciones. Se reutilizan las verificaciones frontend del código 1208e34, sin presentarlas como ejecuciones nuevas; la imagen sí recompila producción y se ejecutó E2E nuevo. Sin commit/push/CI remoto de este arreglo; PR #33 sigue en el alcance publicado anterior. Revisión/publicación del equipo pendientes; comportamiento solicitado corregido y aplicado localmente.

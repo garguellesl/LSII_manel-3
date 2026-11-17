@@ -32,3 +32,21 @@ Se preservaron .run/Production.run.xml y el volumen original lsii_manel-3_postgr
   - Configuración final: org.codehaus.mojo:exec-maven-plugin:3.6.4:exec; exec.executable=docker; exec.args=compose -f ../compose.yaml up --build -d --wait. Sin cambios en POM, properties ni clases Java adicionales. ProtubeBackApplication conserva sus variables.
   - Verificación de XML/enlaces y git diff --check satisfactoria. Se reutilizan las pruebas Java/React de la fase anterior porque no cambia su código. Se probó el comando exacto guardado; no se automatizó el clic en IntelliJ. Una sesión de IntelliJ que conserve el goal antiguo debe recargar la configuración del disco.
 - RF-4 validado localmente; RF-1 a RF-3 conservan su evidencia.
+
+
+## Recuperación del proyecto local Production (2026-11-17)
+
+- [x] L-P1 (RF-4): diagnosticar unhealthy leyendo logs, montajes e historial SQL de solo lectura. Resultado: lsii_manel-3_postgres_data conserva V1-V4 y la antigua V5 de subida, distinta de V5-reacciones del código. upload_postgres_data y upload_uploaded_media del último arranque funcional siguen presentes; no se modificó el historial.
+- [x] L-P2 (RF-4): fijar el proyecto correcto solo en entorno local ignorado y verificar config desde raíz/backend; recuperar upload conservando los volúmenes de ambos proyectos. Hecho cuando app/db estén healthy con Flyway validado.
+- [x] L-P3 (RF-4): ejecutar el mismo arranque Maven Production y smoke API/React/medios, registrar evidencia y pendientes. Sin tests nuevos Java/React porque no cambian código ni contratos.
+
+
+Evidencia final L-P2/L-P3, 2026-11-17 Europe/Madrid:
+
+- .env local contiene únicamente la selección COMPOSE_PROJECT_NAME=upload y comentario; ignorado mediante .git/info/exclude local. docker compose config desde raíz y backend resuelve upload_postgres_data y upload_uploaded_media. No se cambian compose.yaml ni .run/Production.run.xml.
+- Se retiraron contenedores/red del proyecto fallido lsii_manel-3 con down sin -v. Sus dos volúmenes permanecen conservados; no se alteraron sus migraciones ni su historial. No se ejecutó repair, clean, baseline ni borrado de bases/medios.
+- Se ejecutó Production con el goal y las propiedades exactos del XML, perfil prod, Maven instalado 3.9.12 y Java 21. El ejecutable no estaba en PATH y se usó su instalación existente. Resultado: código 0, BUILD SUCCESS en 20,117 s; upload-app-1 y postgres_db healthy. La construcción reutiliza caché válida; no se omite ni desactiva la validación de arranque.
+- Flyway valida las 8 migraciones y encuentra el esquema en versión 8, sin aplicar migraciones nuevas. Consulta de solo lectura confirma V5-reacciones, V6-subida, V7-perfil y V8-reproducciones con success. Montajes finales comprobados: las dos fuentes upload existentes.
+- python tooling/docker/smoke_test.py http://localhost:8080: PASS para React/assets/API/catálogo/detalle/ruta directa/miniatura/Range de vídeo y recursos ausentes.
+- Navegador sobre los assets realmente servidos con APIs interceptadas: borrador y archivo conservados durante y después del foco; cero escrituras de test a la BD local. El arreglo de subida de 1208e34 permanece vigente. No se afirma nueva suite Java/React ni CI remota para este ajuste de entorno.
+- Diff y exclusión local comprobados. Próximo paso para el usuario: ejecutar Production normalmente desde esta copia de trabajo. La base antigua sigue disponible si se solicita más adelante una transición específica; no se ha reparado ni sustituido.

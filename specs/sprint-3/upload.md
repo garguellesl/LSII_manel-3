@@ -45,3 +45,8 @@ Validación local final 2026-11-13, Europe/Madrid. Rama feature/sprint3-video-up
 Los logs temporales de ejecución no se versionan. Los nuevos tests persistentes reproducen las comprobaciones unitarias, PostgreSQL y E2E. Los binarios de muestra no se añaden ni modifican. No se afirma staging, revisión de equipo ni cierre de todo el sprint.
 
 Decisiones/límites: una instancia escritora por store; MP4 se verifica estructuralmente, no se transcodifica ni se garantiza cualquier codec; miniaturas decodificables hasta 25 megapíxeles además del límite 5 MiB. JSON legado valida archivos existentes y no admite rutas gestionadas. Ante BD indisponible se conserva manifiesto para la recuperación en el siguiente arranque; no se borran archivos con commit ambiguo.
+
+
+## Seguimiento: MP4 fragmentados (2026-11-17)
+
+La corrección del rechazo de mvhd=0, su diseño y sus resultados están en [plan.md](plan.md), [spec.md](spec.md) y [tasks.md](tasks.md), MP-F1..MP-F3. Mantiene esta API y los límites originales; amplía la lectura estructural al timing de fragmentos completos. El archivo señalado se verificó en almacenamiento aislado con bytes conservados y reproducción real, sin incorporarlo a fixtures. La implementación local está aplicada; revisión/publicación remota pendientes.
