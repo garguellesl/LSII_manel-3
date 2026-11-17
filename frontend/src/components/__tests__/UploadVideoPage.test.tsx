@@ -27,6 +27,7 @@ const auth: AuthValue = {
   signIn: jest.fn(),
   signUp: jest.fn(),
   signOut: jest.fn(),
+  updateUser: jest.fn(),
 };
 const video = new File(['video'], 'video.mp4', { type: 'video/mp4' });
 const renderPage = (state: AuthValue = auth) =>
@@ -123,6 +124,31 @@ describe('UploadVideoPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Subir otro vídeo' }));
     expect(screen.getByLabelText('Título')).toHaveValue('');
+  });
+
+  it('offers tags in a dropdown that can be filtered by typing, keeping earlier selections', async () => {
+    client.options.mockResolvedValue({ categories: ['Music'], tags: ['rock', 'Pop', 'jazz'] });
+    renderPage();
+    const dropdown = await screen.findByText('Seleccionar etiquetas');
+    expect(dropdown.closest('details')).not.toHaveAttribute('open');
+    fireEvent.click(screen.getByLabelText('rock'));
+
+    const search = screen.getByLabelText('Buscar etiqueta');
+    fireEvent.change(search, { target: { value: ' pO ' } });
+    expect(screen.getByLabelText('Pop')).toBeInTheDocument();
+    expect(screen.queryByLabelText('rock')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('jazz')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Pop'));
+    expect(screen.getByText('2 seleccionadas: rock, Pop')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'metal' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Ninguna etiqueta coincide con la búsqueda.');
+    // Pressing Enter in the filter does not submit the upload.
+    expect(fireEvent.keyDown(search, { key: 'Enter' })).toBe(false);
+    fireEvent.change(search, { target: { value: '' } });
+    expect(screen.getByLabelText('rock')).toBeChecked();
+    fireEvent.click(screen.getByLabelText('rock'));
+    expect(screen.getByText('1 seleccionada: Pop')).toBeInTheDocument();
   });
 
   it('sends selected tags and thumbnail and lets the user retry after a server validation error', async () => {

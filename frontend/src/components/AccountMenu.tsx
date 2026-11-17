@@ -40,8 +40,8 @@ export function AccountMenu() {
             Subir vídeo
           </Link>
           <Link className="account-link account-profile" to="/profile" aria-label="Mi perfil">
-            <UserAvatar name={auth.user.accountName} />
-            <span className="account-name">{auth.user.accountName}</span>
+            <UserAvatar name={auth.user.accountName} src={auth.user.avatarUrl} />
+            <span className="account-name">{auth.user.displayName || auth.user.accountName}</span>
           </Link>
           <button className="account-link" type="button" onClick={() => void logout()}>
             Cerrar sesión

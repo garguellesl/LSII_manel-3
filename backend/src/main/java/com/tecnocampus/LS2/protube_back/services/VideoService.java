@@ -7,6 +7,7 @@ import com.tecnocampus.LS2.protube_back.entities.VideoLike;
 import com.tecnocampus.LS2.protube_back.entities.WatchHistory;
 import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.LikeResponse;
+import com.tecnocampus.LS2.protube_back.model.PublicAuthor;
 import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoAnalyticsResponse;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
@@ -18,6 +19,7 @@ import com.tecnocampus.LS2.protube_back.repositories.CommentRepository;
 import com.tecnocampus.LS2.protube_back.repositories.TagRepository;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoLikeRepository;
+import com.tecnocampus.LS2.protube_back.repositories.VideoPlayRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import com.tecnocampus.LS2.protube_back.repositories.WatchHistoryRepository;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import java.util.Objects;
 import org.springframework.security.access.AccessDeniedException;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class VideoService {
@@ -43,10 +46,13 @@ public class VideoService {
     private final CommentRepository commentRepository;
     private final VideoLikeRepository videoLikeRepository;
     private final WatchHistoryRepository watchHistoryRepository;
+    private final VideoPlayRepository videoPlayRepository;
 
     public VideoService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                         TagRepository tagRepository, CommentRepository commentRepository,
-                        VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository) {
+                        VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository,
+                        VideoPlayRepository videoPlayRepository) {
+        this.videoPlayRepository = videoPlayRepository;
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
         this.tagRepository = tagRepository;
@@ -160,6 +166,21 @@ public class VideoService {
                 videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.DISLIKE));
     }
 
+    /**
+     * Counts one play per opening of the player page. The client-generated id makes retries and
+     * concurrent duplicates harmless. A signed-in viewer also gets one personal history entry
+     * for that same opening; visitors are counted without storing any identity.
+     */
+    @Transactional
+    public void recordPlay(Long videoId, UUID playId, Long actorId) {
+        Video video = findVideo(videoId);
+        boolean counted = videoPlayRepository.insertIfAbsent(playId, videoId) == 1;
+        if (counted && actorId != null) {
+            userAccountRepository.findById(actorId)
+                    .ifPresent(user -> watchHistoryRepository.save(new WatchHistory(user, video, 0)));
+        }
+    }
+
     @Transactional
     public WatchHistoryResponse recordWatch(Long videoId, WatchHistoryRequest request) {
         WatchHistory watchHistory = watchHistoryRepository.save(
@@ -189,7 +210,7 @@ public class VideoService {
                 .map(video -> new VideoAnalyticsResponse(
                         video.getId(),
                         video.getTitle(),
-                        watchHistoryRepository.countByVideoId(video.getId()),
+                        videoPlayRepository.countByVideoId(video.getId()),
                         videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                         commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId())
                 ))
@@ -211,7 +232,7 @@ public class VideoService {
                 tagNames(video),
                 videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                watchHistoryRepository.countByVideoId(video.getId()),
+                videoPlayRepository.countByVideoId(video.getId()),
                 videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE)
         );
     }
@@ -228,10 +249,12 @@ public class VideoService {
                 tagNames(video),
                 videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
                 commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                watchHistoryRepository.countByVideoId(video.getId()),
+                videoPlayRepository.countByVideoId(video.getId()),
                 videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE),
                 video.getCategory(),
-                video.getSource()
+                video.getSource(),
+                PublicAuthor.of(video.getOwner().getId(), video.getOwner().getPublicName(),
+                        video.getOwner().getAvatarPath())
         );
     }
 

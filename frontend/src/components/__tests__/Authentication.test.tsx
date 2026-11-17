@@ -8,7 +8,10 @@ jest.mock('../../utils/authClient', () => ({
   ...jest.requireActual('../../utils/authClient'),
   authClient: { currentUser: jest.fn(), login: jest.fn(), register: jest.fn(), logout: jest.fn() },
 }));
-jest.mock('../../utils/userClient', () => ({ userClient: { analytics: jest.fn(), watchHistory: jest.fn() } }));
+jest.mock('../../utils/userClient', () => ({
+  ...jest.requireActual('../../utils/userClient'),
+  userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn() },
+}));
 jest.mock('../../useUploadOptions', () => ({
   useUploadOptions: () => ({ status: 'success', categories: ['Music'], tags: [], retry: jest.fn() }),
 }));
@@ -23,6 +26,9 @@ const user = {
   firstName: 'First',
   lastName: 'Last',
   createdAt: '2026-10-28T10:00:00',
+  displayName: 'user',
+  description: null,
+  avatarUrl: null,
 };
 const renderPage = (path = '/') =>
   render(

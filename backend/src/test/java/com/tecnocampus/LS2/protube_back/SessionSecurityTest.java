@@ -278,6 +278,87 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void ownProfileEditsRequireSessionAndCsrfAndNeverChangeCredentialsOrOtherAccounts() throws Exception {
+        UserResponse actor = account();
+        UserResponse other = account();
+        Token token = csrf(login(actor));
+        Token guest = csrf(null);
+        var profile = new org.springframework.mock.web.MockMultipartFile("profile", "", "application/json",
+                mapper.writeValueAsBytes(Map.of("displayName", "  Ada L.  ", "description", "Hola",
+                        "id", other.id(), "email", "stolen@example.test", "accountName", "stolen")));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/users/me").file(profile)
+                        .session(guest.session()).header(guest.header(), guest.value()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/users/me").file(profile)
+                        .session(token.session()))
+                .andExpect(status().isForbidden());
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/users/me").file(profile)
+                        .session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(actor.id()))
+                .andExpect(jsonPath("$.displayName").value("Ada L.")).andExpect(jsonPath("$.description").value("Hola"))
+                .andExpect(jsonPath("$.email").value(actor.email()))
+                .andExpect(jsonPath("$.accountName").value(actor.accountName()))
+                .andExpect(jsonPath("$.avatarUrl").doesNotExist());
+        mvc.perform(get("/api/users/me").session(token.session()))
+                .andExpect(jsonPath("$.displayName").value("Ada L."));
+        assertNull(jdbc.queryForObject("select display_name from app_users where id=?", String.class, other.id()));
+
+        // The public name follows the account wherever it is represented; a blank name falls back.
+        Long id = video(actor);
+        mvc.perform(get("/api/videos/" + id)).andExpect(jsonPath("$.author.displayName").value("Ada L."))
+                .andExpect(jsonPath("$.author.email").doesNotExist());
+        var tooLong = new org.springframework.mock.web.MockMultipartFile("profile", "", "application/json",
+                mapper.writeValueAsBytes(Map.of("displayName", "x".repeat(101))));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/users/me").file(tooLong)
+                        .session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isBadRequest());
+        var cleared = new org.springframework.mock.web.MockMultipartFile("profile", "", "application/json",
+                mapper.writeValueAsBytes(Map.of("displayName", " ")));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/users/me").file(cleared)
+                        .session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.displayName").value(actor.accountName()))
+                .andExpect(jsonPath("$.description").value("Hola"));
+    }
+
+    @Test
+    void playsArePublicIdempotentPerOpeningAndFeedOnlyTheOwnersAnalytics() throws Exception {
+        UserResponse owner = account();
+        UserResponse viewer = account();
+        Long id = video(owner);
+        Token guest = csrf(null);
+        Token signedIn = csrf(login(viewer));
+        String opening = mapper.writeValueAsString(Map.of("playId", UUID.randomUUID().toString()));
+        mvc.perform(post("/api/videos/" + id + "/plays").contentType("application/json").content(opening))
+                .andExpect(status().isForbidden());
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(post("/api/videos/" + id + "/plays").session(guest.session()).header(guest.header(), guest.value())
+                            .contentType("application/json").content(opening))
+                    .andExpect(status().isNoContent());
+        }
+        mvc.perform(post("/api/videos/" + id + "/plays").session(signedIn.session())
+                        .header(signedIn.header(), signedIn.value()).contentType("application/json")
+                        .content(mapper.writeValueAsString(Map.of("playId", UUID.randomUUID().toString()))))
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/videos/" + id + "/plays").session(guest.session()).header(guest.header(), guest.value())
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/videos/999999/plays").session(guest.session()).header(guest.header(), guest.value())
+                        .contentType("application/json").content(opening))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(get("/api/videos/" + id)).andExpect(jsonPath("$.viewsCount").value(2));
+        mvc.perform(get("/api/users/" + viewer.id() + "/watch-history").session(signedIn.session()))
+                .andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/users/" + owner.id() + "/analytics").session(signedIn.session()))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/users/" + viewer.id() + "/analytics").session(signedIn.session()))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(get("/api/users/" + owner.id() + "/analytics").session(login(owner)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].viewsCount").value(2));
+    }
+
+    @Test
     void spoofedOwnerCannotPublishMissingMedia() throws Exception {
         UserResponse actor = account();
         UserResponse other = account();

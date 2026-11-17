@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getEnv } from './Env';
 import { mutate } from '../apiClient';
+import { apiDate } from './apiDate';
 
 export type User = {
   id: number;
@@ -9,7 +10,17 @@ export type User = {
   firstName: string;
   lastName: string;
   createdAt: string;
+  // Public identity: displayName falls back to accountName on the server.
+  displayName: string;
+  description: string | null;
+  avatarUrl: string | null;
 };
+
+type ApiUser = Omit<User, 'createdAt'> & { createdAt: string | number[] };
+
+export function normalizeUser(user: ApiUser): User {
+  return { ...user, createdAt: apiDate(user.createdAt) };
+}
 
 export type LoginInput = { email: string; password: string };
 export type RegisterInput = LoginInput & { accountName: string; firstName: string; lastName: string };
@@ -41,8 +52,8 @@ function responseError(error: unknown, fallback: string): AuthError {
 export const authClient = {
   async currentUser(): Promise<User | null> {
     try {
-      const response = await axios.get<User>(`${getEnv().API_BASE_URL}/users/me`, { withCredentials: true });
-      return response.data;
+      const response = await axios.get<ApiUser>(`${getEnv().API_BASE_URL}/users/me`, { withCredentials: true });
+      return normalizeUser(response.data);
     } catch (error) {
       const failure = responseError(error, 'No se ha podido comprobar tu sesión. Inténtalo de nuevo.');
       if (failure.status === 401) return null;
@@ -51,14 +62,14 @@ export const authClient = {
   },
   async login(input: LoginInput): Promise<User> {
     try {
-      return await mutate<User>('/auth/login', input);
+      return normalizeUser(await mutate<ApiUser>('/auth/login', input));
     } catch (error) {
       throw responseError(error, 'No se ha podido iniciar sesión. Comprueba los datos e inténtalo de nuevo.');
     }
   },
   async register(input: RegisterInput): Promise<User> {
     try {
-      return await mutate<User>('/auth/register', input);
+      return normalizeUser(await mutate<ApiUser>('/auth/register', input));
     } catch (error) {
       throw responseError(error, 'Revisa los campos del formulario e inténtalo de nuevo.');
     }

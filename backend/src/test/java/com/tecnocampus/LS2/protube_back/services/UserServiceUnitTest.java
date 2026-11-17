@@ -17,7 +17,8 @@ class UserServiceUnitTest {
         var encoder = mock(PasswordEncoder.class);
         when(encoder.encode(any())).thenReturn("encoded");
         when(repository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("unique violation"));
-        var service = new UserService(repository, encoder, new com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings(new org.springframework.mock.env.MockEnvironment()));
+        var service = new UserService(repository, encoder, new com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings(new org.springframework.mock.env.MockEnvironment()),
+                mock(MediaStorageService.class), mock(MediaFileValidator.class));
         assertThrows(DuplicateResourceException.class, () -> service.register(
                 new RegisterRequest("race@example.test", "race", "First", "Last", "password123")));
     }
@@ -26,7 +27,8 @@ class UserServiceUnitTest {
     void reservedImportIdentityCannotBeRegisteredOrUsedForAuthentication() {
         var repository = mock(UserAccountRepository.class);
         var encoder = mock(PasswordEncoder.class);
-        var service = new UserService(repository, encoder, new com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings(new org.springframework.mock.env.MockEnvironment()));
+        var service = new UserService(repository, encoder, new com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings(new org.springframework.mock.env.MockEnvironment()),
+                mock(MediaStorageService.class), mock(MediaFileValidator.class));
         assertThrows(IllegalArgumentException.class, () -> service.register(new RegisterRequest(
                 VideoImportService.IMPORT_USER_EMAIL, "ordinary", "First", "Last", "password123")));
         assertThrows(IllegalArgumentException.class, () -> service.register(new RegisterRequest(

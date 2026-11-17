@@ -72,5 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <AuthContext.Provider value={{ ...state, refresh, signIn, signUp, signOut }}>{children}</AuthContext.Provider>;
+  const updateUser = useCallback((user: User) => {
+    // Invalidate in-flight session checks so an older response cannot restore the previous profile.
+    ++version.current;
+    setState((current) => (current.status === 'authenticated' ? { ...current, user } : current));
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ ...state, refresh, signIn, signUp, signOut, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

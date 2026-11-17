@@ -12,6 +12,7 @@ export type AuthValue = AuthState & {
   signIn: (input: LoginInput) => Promise<void>;
   signUp: (input: RegisterInput) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: User) => void;
 };
 
 export const AuthContext = createContext<AuthValue | null>(null);

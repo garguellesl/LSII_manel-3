@@ -117,7 +117,7 @@ function CommentItem({ comment, depth, hasReplies, collapsed, toggle, authentica
       style={{ marginInlineStart: `${Math.min(depth, 3) * 0.75}rem` }}
     >
       <header className="comment-header">
-        <UserAvatar name={name} size="small" />
+        <UserAvatar name={name} src={comment.author.avatarUrl} size="small" />
         <strong>{name}</strong>
         <time dateTime={comment.createdAt}>{new Date(comment.createdAt).toLocaleString()}</time>
         {active && comment.updatedAt !== comment.createdAt && <small>Edited</small>}

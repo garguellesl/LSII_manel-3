@@ -78,6 +78,49 @@ public class MediaStorageService {
         finish(id);
     }
 
+    // Avatars are single files: staged privately, validated by the caller, then moved
+    // under a generated name. Nothing here depends on the uploaded file name.
+    public Path stageAvatar(MultipartFile file) throws IOException {
+        Path pending = safe(uploads().resolve(".pending"));
+        Files.createDirectories(pending);
+        Path target = safe(pending.resolve("avatar-" + UUID.randomUUID() + ".tmp"));
+        try (var input = file.getInputStream(); var output = Files.newOutputStream(target)) {
+            byte[] buffer = new byte[64 * 1024];
+            long total = 0;
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                total += count;
+                if (total > MediaFileValidator.AVATAR_LIMIT) throw new UploadException(413, "Avatar exceeds 2 MiB");
+                output.write(buffer, 0, count);
+            }
+            if (total == 0) throw new UploadException(400, "Avatar must not be empty");
+        } catch (IOException | RuntimeException exception) {
+            Files.deleteIfExists(target);
+            throw exception;
+        }
+        return target;
+    }
+
+    public String publishAvatar(Path staged, String extension) throws IOException {
+        if (!List.of("jpg", "png").contains(extension)) throw new IllegalArgumentException("Invalid image extension");
+        Path avatars = safe(uploads().resolve("avatars"));
+        Files.createDirectories(avatars);
+        String name = UUID.randomUUID() + "." + extension;
+        Files.move(safe(staged), safe(avatars.resolve(name)), StandardCopyOption.ATOMIC_MOVE);
+        return "uploads/avatars/" + name;
+    }
+
+    public void discardStagedAvatar(Path staged) throws IOException {
+        Path verified = safe(staged);
+        if (verified.getFileName().toString().matches("avatar-[0-9a-f-]{36}\\.tmp")) Files.deleteIfExists(verified);
+    }
+
+    // Only generated avatar files are ever removed; any other stored path is ignored.
+    public void deleteAvatar(String relative) throws IOException {
+        if (relative == null || !relative.matches("uploads/avatars/[0-9a-f-]{36}\\.(jpg|png)")) return;
+        Files.deleteIfExists(safe(root().resolve(relative)));
+    }
+
     public List<UUID> pendingIds() throws IOException {
         String configured = environment.getProperty("pro_tube.store.dir");
         if (configured == null || configured.isBlank() || !Files.isDirectory(Path.of(configured))) return List.of();

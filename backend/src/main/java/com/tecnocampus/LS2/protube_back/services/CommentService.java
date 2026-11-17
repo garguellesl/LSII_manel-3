@@ -123,7 +123,7 @@ public class CommentService {
         boolean deleted = comment.isDeleted();
         return new CommentResponse(comment.getId(), comment.getVideo().getId(), user.getId(), user.getAccountName(),
                 deleted ? "Comment deleted" : comment.getText(), comment.getCreatedAt(), comment.getParentId(),
-                deleted, comment.getUpdatedAt(), new PublicAuthor(user.getId(), user.getAccountName(), null),
+                deleted, comment.getUpdatedAt(), PublicAuthor.of(user.getId(), user.getPublicName(), user.getAvatarPath()),
                 deleted ? 0 : count, !deleted && liked, !deleted && Objects.equals(user.getId(), actorId));
     }
 }

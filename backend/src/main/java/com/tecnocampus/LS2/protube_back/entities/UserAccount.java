@@ -36,6 +36,15 @@ public class UserAccount {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "display_name", length = 100)
+    private String displayName;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "avatar_path", length = 500)
+    private String avatarPath;
+
     protected UserAccount() {
     }
 
@@ -88,5 +97,31 @@ public class UserAccount {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void updateProfile(String displayName, String description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    public void changeAvatar(String avatarPath) {
+        this.avatarPath = avatarPath;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    // Name shown wherever the account is represented publicly.
+    public String getPublicName() {
+        return displayName == null || displayName.isBlank() ? accountName : displayName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getAvatarPath() {
+        return avatarPath;
     }
 }
