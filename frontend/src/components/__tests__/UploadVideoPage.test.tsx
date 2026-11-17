@@ -1,15 +1,21 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { UploadVideoPage } from '../UploadVideoPage';
+import { AuthProvider } from '../AuthProvider';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthValue } from '../../auth/AuthContext';
-import { AuthError } from '../../utils/authClient';
+import { AuthError, authClient } from '../../utils/authClient';
 import { uploadClient } from '../../utils/uploadClient';
 
 jest.mock('../../utils/uploadClient', () => ({
   ...jest.requireActual('../../utils/uploadClient'),
   uploadClient: { options: jest.fn(), upload: jest.fn() },
 }));
+jest.mock('../../utils/authClient', () => ({
+  ...jest.requireActual('../../utils/authClient'),
+  authClient: { currentUser: jest.fn() },
+}));
+const session = authClient as jest.Mocked<typeof authClient>;
 const client = uploadClient as jest.Mocked<typeof uploadClient>;
 const user = {
   id: 3,
@@ -41,6 +47,17 @@ const renderPage = (state: AuthValue = auth) =>
       </AuthContext.Provider>
     </MemoryRouter>
   );
+const renderWithSession = () =>
+  render(
+    <MemoryRouter initialEntries={['/upload']}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/upload" element={<UploadVideoPage />} />
+          <Route path="/login" element={<h1>Login destination</h1>} />
+        </Routes>
+      </AuthProvider>
+    </MemoryRouter>
+  );
 const fill = async () => {
   await screen.findByRole('option', { name: 'Music' });
   fireEvent.change(screen.getByLabelText('Título'), { target: { value: ' Title ' } });
@@ -52,6 +69,7 @@ describe('UploadVideoPage', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     client.options.mockResolvedValue({ categories: ['Music'], tags: [] });
+    session.currentUser.mockResolvedValue(user);
   });
 
   it('protects the route and distinguishes session checking and errors', () => {
@@ -65,6 +83,83 @@ describe('UploadVideoPage', () => {
     renderPage({ ...auth, status: 'anonymous', user: null });
     expect(screen.getByRole('heading', { name: 'Login destination' })).toBeInTheDocument();
     expect(client.options).not.toHaveBeenCalled();
+  });
+
+  it('keeps the complete upload draft and files when the picker returns focus or is cancelled', async () => {
+    client.options.mockResolvedValue({ categories: ['Music'], tags: ['rock'] });
+    client.upload.mockRejectedValue(new Error('network'));
+    renderWithSession();
+    await fill();
+    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: 'My description' } });
+    fireEvent.click(screen.getByText('Seleccionar etiquetas'));
+    fireEvent.change(screen.getByLabelText('Buscar etiqueta'), { target: { value: 'roc' } });
+    fireEvent.click(screen.getByLabelText('rock'));
+    const image = new File(['image'], 'thumbnail.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Miniatura (opcional)'), { target: { files: [image] } });
+
+    let confirm!: (value: typeof user | null) => void;
+    session.currentUser.mockReturnValueOnce(new Promise((resolve) => (confirm = resolve)));
+    fireEvent(window, new Event('blur'));
+    fireEvent(window, new Event('focus'));
+
+    expect(screen.getByLabelText('Título')).toHaveValue(' Title ');
+    expect(screen.getByLabelText('Descripción')).toHaveValue('My description');
+    expect(screen.getByLabelText('Categoría')).toHaveValue('Music');
+    expect(screen.getByLabelText('rock')).toBeChecked();
+    expect(screen.getByLabelText('Buscar etiqueta')).toHaveValue('roc');
+    expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files?.[0]).toBe(video);
+    expect((screen.getByLabelText('Miniatura (opcional)') as HTMLInputElement).files?.[0]).toBe(image);
+    expect(screen.getByRole('button', { name: 'Publicar vídeo' })).toBeDisabled();
+    fireEvent.submit(screen.getByRole('form', { name: 'Subir vídeo' }));
+    expect(client.upload).not.toHaveBeenCalled();
+
+    await act(async () => confirm({ ...user }));
+    expect(screen.getByRole('button', { name: 'Publicar vídeo' })).toBeEnabled();
+    // Cancelling a picker returns focus without emitting a change to the input.
+    await act(async () => fireEvent(window, new Event('focus')));
+    expect(screen.getByLabelText('Título')).toHaveValue(' Title ');
+    expect(screen.getByLabelText('Descripción')).toHaveValue('My description');
+    expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files?.[0]).toBe(video);
+    expect((screen.getByLabelText('Miniatura (opcional)') as HTMLInputElement).files?.[0]).toBe(image);
+    expect(client.options).toHaveBeenCalledTimes(1);
+    fireEvent.submit(screen.getByRole('form', { name: 'Subir vídeo' }));
+    await screen.findByRole('alert');
+    expect(client.upload).toHaveBeenCalledWith(
+      { title: 'Title', description: 'My description', category: 'Music', tags: ['rock'] },
+      video,
+      image,
+      expect.any(Function)
+    );
+  });
+
+  it('discards the previous upload draft and files when focus confirms a different account', async () => {
+    renderWithSession();
+    await fill();
+    session.currentUser.mockResolvedValue({ ...user, id: 9, accountName: 'other' });
+    await act(async () => fireEvent(window, new Event('focus')));
+    await screen.findByRole('option', { name: 'Music' });
+    expect(screen.getByLabelText('Título')).toHaveValue('');
+    expect(screen.getByLabelText('Categoría')).toHaveValue('');
+    expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files).toHaveLength(0);
+  });
+
+  it.each(['expired', 'unavailable'])('removes the draft if the session becomes %s on focus', async (result) => {
+    renderWithSession();
+    await fill();
+    if (result === 'expired') session.currentUser.mockResolvedValueOnce(null);
+    else session.currentUser.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => fireEvent(window, new Event('focus')));
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument();
+    expect(client.upload).not.toHaveBeenCalled();
+    if (result === 'expired') {
+      expect(screen.getByRole('heading', { name: 'Login destination' })).toBeInTheDocument();
+    } else {
+      expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido comprobar tu sesión');
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar sesión' }));
+      await screen.findByRole('option', { name: 'Music' });
+      expect(screen.getByLabelText('Título')).toHaveValue('');
+      expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files).toHaveLength(0);
+    }
   });
 
   it('shows option loading, errors, retry and the empty tag state', async () => {

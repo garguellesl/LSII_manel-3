@@ -207,3 +207,14 @@ el contexto técnico anterior de este plan; aquí solo se comprueba en el player
 No se modifican contratos de API, backend, comentarios ni reacciones, y RF-2/T12,
 RF-3/T13-T14 y RF-7/T21-T22 conservan su estado con puntos de integración
 señalados en el código.
+
+
+## Corrección RF-1: conservar subida al cerrar el selector (2026-11-17)
+
+Baseline inspeccionada: main 2984ad5; rama feature/fix-upload-file-picker. AuthProvider revalida /users/me al recibir window.focus y publica loading/user=null antes de responder. UploadVideoPage sustituye entonces UploadForm por un estado de carga, perdiendo sus nodos de formulario y su estado File. ProfilePage ya conserva una identidad confirmada durante loading para evitar la misma pérdida al elegir avatar.
+
+- Reutilizar ese patrón localmente en UploadVideoPage, conservando solo el id de la última cuenta confirmada durante loading. Mantener UploadForm montado con key por id: mismo id conserva borrador y archivos; id distinto reinicia. anonymous/error descartan la identidad confirmada y mantienen redirección/fallback. No modificar AuthProvider ni contratos compartidos.
+- Pasar checkingSession al formulario: indicar comprobación, deshabilitar su fieldset y rechazar submit mientras dure, sin reiniciar transferencia ni estado local. Conservar flujos de opciones, validación, progreso/éxito/reintento y el selector buscable de etiquetas incorporados en main.
+- Antes del arreglo, prueba Jest con AuthProvider real y clientes mock: escribir todos los campos, seleccionar archivos, simular retorno de foco con respuesta de sesión diferida y demostrar la pérdida del formulario. Tras el arreglo comprobar retención durante/después, otro foco sin cambiar archivos (cancelación), cambio de cuenta, caducidad/error y publicación del File original. Mantener pruebas de protección y reinicio tras éxito.
+- E2E con despliegue aislado: abrir selector interceptado por Playwright, elegir un MP4 real con nombre con espacios, disparar el evento focus que emite el diálogo nativo y retrasar la revalidación para comprobar el estado intermedio; elegir miniatura, conservar campos, enviar y reproducir. Comprobar también cancelación lógica (foco sin cambio) y sesión caducada. No leer/copiar el vídeo privado de Descargas ni alterar la BD de desarrollo.
+- Ejecutar build, Jest con cobertura, lint y suite E2E completa con el código nuevo; backend sin cambios, no afirmar Maven nuevo. Actualizar tareas/handoff con evidencia real. Sin dependencias ni publicación remota de esta corrección salvo nueva autorización.

@@ -9,22 +9,28 @@ import type { VideoDetail } from '../useVideo';
 
 export function UploadVideoPage() {
   const auth = useAuth();
+  // Like the profile editor, keep the confirmed account's form mounted while
+  // focus returning from a file picker triggers a session check.
+  const [confirmedUserId, setConfirmedUserId] = useState<number | null>(null);
+  if (auth.status === 'authenticated' && auth.user && auth.user.id !== confirmedUserId)
+    setConfirmedUserId(auth.user.id);
+  if ((auth.status === 'anonymous' || auth.status === 'error') && confirmedUserId !== null) setConfirmedUserId(null);
+  const userId = auth.status === 'authenticated' ? auth.user?.id : auth.status === 'loading' ? confirmedUserId : null;
+  if (userId != null) return <UploadForm key={userId} checkingSession={auth.status === 'loading'} />;
   if (auth.status === 'loading') return <p role="status">Comprobando sesión…</p>;
   if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: '/upload' }} />;
-  if (auth.status === 'error' || !auth.user)
-    return (
-      <main className="auth-card">
-        <h1>Subir vídeo</h1>
-        <p role="alert">No se ha podido comprobar tu sesión.</p>
-        <button type="button" onClick={() => void auth.refresh()}>
-          Reintentar sesión
-        </button>
-      </main>
-    );
-  return <UploadForm />;
+  return (
+    <main className="auth-card">
+      <h1>Subir vídeo</h1>
+      <p role="alert">No se ha podido comprobar tu sesión.</p>
+      <button type="button" onClick={() => void auth.refresh()}>
+        Reintentar sesión
+      </button>
+    </main>
+  );
 }
 
-function UploadForm() {
+function UploadForm({ checkingSession }: { checkingSession: boolean }) {
   const options = useUploadOptions();
   const [video, setVideo] = useState<File>();
   const [thumbnail, setThumbnail] = useState<File>();
@@ -41,7 +47,7 @@ function UploadForm() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submitting.current) return;
+    if (submitting.current || checkingSession) return;
     const form = new FormData(event.currentTarget);
     const metadata = {
       title: String(form.get('title') || '').trim(),
@@ -102,8 +108,9 @@ function UploadForm() {
           </button>
         </div>
       )}
-      <form aria-label="Subir vídeo" onSubmit={(event) => void submit(event)} aria-busy={pending}>
-        <fieldset disabled={pending || options.status !== 'success'}>
+      <form aria-label="Subir vídeo" onSubmit={(event) => void submit(event)} aria-busy={pending || checkingSession}>
+        {checkingSession && <p role="status">Comprobando sesión…</p>}
+        <fieldset disabled={pending || checkingSession || options.status !== 'success'}>
           <div className="auth-field">
             <label htmlFor="upload-title">Título</label>
             <input id="upload-title" name="title" required maxLength={255} aria-invalid={Boolean(fields.title)} />

@@ -191,3 +191,10 @@ Petición: resolver el PR de feature/sprint3-video-upload con main y actualizar 
 - I-RF3: Cuando se instale o actualice desde main, las migraciones de reacciones y subida deberán poder aplicarse juntas sin duplicar versión, conservando IDs, relaciones y datos. La V5 de reacciones ya incluida en main no se modifica; la migración de subida pendiente de integrar se publica como V6 con el mismo SQL. No se edita ni repara automáticamente ninguna BD existente.
 
 Las BD locales que ya hubieran aplicado la V5 alternativa de subida requieren una transición de historial revisada por su responsable antes de arrancar con ambas ramas. No ejecutar clean ni repair indiscriminado ni modificar bases ajenas desde esta tarea.
+
+
+## Corrección acotada RF-1: selector de archivos (2026-11-17)
+
+Cuando una persona autenticada vuelva del selector de vídeo o miniatura, o recupere el foco de la ventana, el sistema deberá conservar el título, descripción, categoría, etiquetas y archivos seleccionados si se confirma la misma cuenta. Cancelar el selector tampoco reiniciará el borrador. Durante la revalidación de sesión se mantendrá el formulario visible y no se permitirá publicar. Una sesión anónima/caducada, un error de comprobación o un cambio de identidad retirará el borrador anterior según las protecciones existentes. La carga inicial sin sesión confirmada seguirá mostrando comprobación y el acceso anónimo seguirá redirigiendo a login.
+
+Alcance: corrección del formulario RF-1/US-06, sin cambiar formatos, límites, API, almacenamiento, autenticación del servidor ni persistir el borrador en disco/localStorage. Cancelación comprobada como retorno de foco sin cambio de archivos; no se añade restauración tras recarga o navegación voluntaria.

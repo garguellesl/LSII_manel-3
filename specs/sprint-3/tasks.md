@@ -268,3 +268,30 @@ Pendientes y seguimiento que esta tarea no resuelve:
   `font-size` de cuerpo razonable en `.App-header` o en `html`/`body`, y
   auditar qué páginas dependían implícitamente del valor en vmin) queda fuera
   de alcance de T18 y debería abordarse en un PR aparte.
+
+
+## Corrección de reinicio al seleccionar archivo (2026-11-17)
+
+RF-1/US-06; plan acotado al final de plan.md. La evidencia histórica permanece referida a sus commits.
+
+- [x] UP-F1: reproducir con AuthProvider real y APIs mock la pérdida al volver del selector; terminado con fallo previo verificable y causa documentada.
+- [x] UP-F2: conservar formulario/archivos durante revalidación de la misma identidad y bloquear publicación; terminado con regresiones para éxito, cancelación, cambio de cuenta, caducidad/error y envío de archivos originales.
+- [x] UP-F3: ejecutar build/Jest/cobertura/lint y E2E aislado, revisar diff y entregar; terminado con resultados reales y handoff/prompt actualizados, sin modificar BD/medios privados.
+
+
+Evidencia UP-F1: Jest enfocado (coverage=false solo durante diagnóstico), UploadVideoPage.test.tsx: antes del arreglo 1 falla y 9 pasan. El fallo esperado es ausencia de Título; el DOM contiene únicamente Comprobando sesión tras window.focus con /users/me pendiente. Clientes de API mock, AuthProvider real. Confirma desmontaje y no depende del archivo concreto del usuario.
+
+
+### Evidencia final UP-F2/UP-F3 (2026-11-17, Europe/Madrid)
+
+| Verificación | Resultado real |
+| --- | --- |
+| Regresión roja previa | 1 fallo esperado y 9 pasan en UploadVideoPage.test: window.focus con sesión diferida sustituía todo el formulario por Comprobando sesión |
+| Regresión enfocada tras arreglo | UploadVideoPage + Authentication: 2 suites, 31 casos pasan. Se conserva borrador completo, selección/filtro de etiquetas y los dos objetos File; bloqueo de submit durante comprobación; cancelación sin cambio de archivo; envío de originales; limpieza por otra cuenta/caducidad/error y reintento |
+| Frontend requerido | npm run build, npm run test -- --coverage --watchAll=false --ci y npm run lint: código 0; 34 suites, 233 pruebas y 1 snapshot pasan, gates de cobertura conservados |
+| Producción/E2E | Docker build de la versión corregida; Compose aislado protube-upload-picker-check (base y volúmenes propios), con compose.yaml + e2e/compose.override.yml + override solo de nombre/imagen y e2e/e2e.env. npx playwright test --workers=2: 30/30 pasan. Nuevos recorridos: foco antes/después del cambio de archivo, vídeo MP4 con espacios + miniatura PNG + publicación/reproducción real y logout del servidor seguido de foco/redirección |
+| Fallo de preparación E2E inicial | 29 pasan y 1 falla al registrar medio existente porque se omitió el montaje e2e/test-media del override actual. Se añadió ese override al comando de despliegue aislado, sin cambiar producto ni aceptación; suite completa posterior 30/30 correcta |
+| ProTube local | Reproducción con assets reales y API interceptada: antes de actualizar se pierden título/categoría/File; después se conservan durante y tras foco. Cero escrituras de prueba en la BD local. Captura completa revisada fuera del repo |
+| Aplicación local | Contenedor app actualizado con la imagen comprobada; configuración Compose coincide, 87 entradas backend comparadas (normalizando saltos de línea de properties y hashes de bundles del HTML), sin cambios funcionales de backend/migraciones. App healthy; contenedor PostgreSQL/id/inicio y montajes de medios intactos. Imagen previa conservada como vuelta atrás. El reinicio invalida sesiones en memoria: puede requerir login |
+
+Alcance local final cumplido. Sin cambios AuthProvider/backend/API/migraciones/dependencias ni acceso al vídeo privado. El ejemplo con nombre largo usa bytes del MP4 de muestra. No se afirma Maven verify nuevo ni CI remoto; no se hace commit/push/PR/merge de esta corrección. Documentos y diff revisados; el entorno aislado se retira conservando el ProTube local corregido. Siguiente paso del equipo: revisión y publicación de la rama cuando se autorice.
