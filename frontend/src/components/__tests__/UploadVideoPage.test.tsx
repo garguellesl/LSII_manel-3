@@ -27,6 +27,7 @@ const auth: AuthValue = {
   signIn: jest.fn(),
   signUp: jest.fn(),
   signOut: jest.fn(),
+  updateUser: jest.fn(),
 };
 const video = new File(['video'], 'video.mp4', { type: 'video/mp4' });
 const renderPage = (state: AuthValue = auth) =>

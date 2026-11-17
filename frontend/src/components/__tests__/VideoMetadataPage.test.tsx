@@ -35,6 +35,7 @@ const auth: AuthValue = {
   signIn: jest.fn(),
   signUp: jest.fn(),
   signOut: jest.fn(),
+  updateUser: jest.fn(),
 };
 const detail = {
   id: 7,

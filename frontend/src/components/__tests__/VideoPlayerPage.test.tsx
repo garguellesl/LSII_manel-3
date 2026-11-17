@@ -37,6 +37,7 @@ const buildAuth = (overrides: Partial<AuthValue> = {}): AuthValue => ({
   signIn: jest.fn(),
   signUp: jest.fn(),
   signOut: jest.fn(),
+  updateUser: jest.fn(),
   ...overrides,
 });
 
@@ -47,6 +48,9 @@ const owner = {
   firstName: 'Mark',
   lastName: 'Ronson',
   createdAt: '2026-01-01T00:00:00',
+  displayName: 'Mark Ronson',
+  description: null,
+  avatarUrl: null,
 };
 const otherUser = { ...owner, id: 2, accountName: 'Someone Else' };
 
