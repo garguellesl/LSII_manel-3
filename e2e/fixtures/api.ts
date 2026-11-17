@@ -27,9 +27,14 @@ export type VideoDetail = {
   description: string;
   duration: number;
   thumbnailUrl: string | null;
+  category: string | null;
   videoUrl: string;
   tags: string[];
 };
+
+// A minimal, valid 1x1 PNG, inlined as text (no binary asset is added to the repo).
+const MINIMAL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 async function csrfHeader(api: APIRequestContext): Promise<Record<string, string>> {
   const response = await api.get('/api/auth/csrf');
@@ -53,18 +58,21 @@ export async function registerUser(api: APIRequestContext, user: NewUser): Promi
 /** Upload a real sample into the isolated writable store; tags use the existing owner editor API. */
 export async function createOwnVideo(
   api: APIRequestContext,
-  options: { title: string; description: string; tags?: string[] }
+  options: { title: string; description: string; tags?: string[]; category?: string; thumbnail?: boolean }
 ): Promise<VideoDetail> {
-  const response = await api.post('/api/videos', {
-    headers: await csrfHeader(api),
-    multipart: {
-      metadata: {
-        name: 'metadata.json', mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify({ title: options.title, description: options.description, category: 'Other', tags: [] })),
-      },
-      video: { name: 'sample.mp4', mimeType: 'video/mp4', buffer: readFileSync(new URL('../../videos/25.mp4', import.meta.url)) },
+  const multipart: Record<string, { name: string; mimeType: string; buffer: Buffer }> = {
+    metadata: {
+      name: 'metadata.json', mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        title: options.title, description: options.description, category: options.category ?? 'Other', tags: [],
+      })),
     },
-  });
+    video: { name: 'sample.mp4', mimeType: 'video/mp4', buffer: readFileSync(new URL('../../videos/25.mp4', import.meta.url)) },
+  };
+  if (options.thumbnail) {
+    multipart.thumbnail = { name: 'thumbnail.png', mimeType: 'image/png', buffer: Buffer.from(MINIMAL_PNG_BASE64, 'base64') };
+  }
+  const response = await api.post('/api/videos', { headers: await csrfHeader(api), multipart });
   if (!response.ok()) throw new Error(`POST /api/videos failed with ${response.status()}: ${await response.text()}`);
   const video = (await response.json()) as VideoDetail;
   if (!options.tags?.length) return video;

@@ -10,6 +10,7 @@ import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.security.Principal;
@@ -64,6 +67,16 @@ public class VideosController {
             @Valid @RequestBody UpdateVideoRequest request, Principal principal
     ) {
         return ResponseEntity.ok(videoService.updateVideo(id, request, Long.valueOf(principal.getName())));
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<VideoDetail> updateVideoWithThumbnail(
+            @PathVariable Long id,
+            @Valid @RequestPart("metadata") UpdateVideoRequest metadata,
+            @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(videoService.updateVideo(id, metadata, Long.valueOf(principal.getName()), thumbnail));
     }
 
     @DeleteMapping("/{id}")

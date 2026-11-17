@@ -48,10 +48,15 @@ export const videoClient = {
   },
   async updateMetadata(
     videoId: number,
-    input: { title: string; description: string; tags: string[] }
+    input: { title: string; description: string; tags: string[]; category?: string },
+    thumbnail?: File
   ): Promise<VideoDetail> {
     try {
-      return await mutate<VideoDetail>(`/videos/${videoId}`, input, 'patch');
+      if (!thumbnail) return await mutate<VideoDetail>(`/videos/${videoId}`, input, 'patch');
+      const data = new FormData();
+      data.append('metadata', new Blob([JSON.stringify(input)], { type: 'application/json' }));
+      data.append('thumbnail', thumbnail);
+      return await mutate<VideoDetail>(`/videos/${videoId}`, data, 'patch');
     } catch (error) {
       throw videoError(error, 'Could not save the video details. Please try again.');
     }

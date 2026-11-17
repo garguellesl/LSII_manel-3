@@ -96,6 +96,46 @@ class MediaStorageServiceTest {
         }
     }
 
+    @Test void thumbnailsUseGeneratedNamesAndOnlyGeneratedThumbnailFilesCanBeDeleted() throws Exception {
+        var storage = storage();
+        Path keep = Files.writeString(store.resolve("original.mp4"), "keep");
+        Path staged = storage.stageThumbnail(UploadFixtures.image("png"));
+        assertTrue(staged.startsWith(store.toRealPath().resolve("uploads/.pending")));
+        assertThrows(IllegalArgumentException.class, () -> storage.publishThumbnail(staged, "../bad"));
+        String published = storage.publishThumbnail(staged, "png");
+        assertTrue(published.matches("uploads/thumbnails/[0-9a-f-]{36}\\.png"));
+        assertFalse(Files.exists(staged));
+        assertTrue(storage.pendingIds().isEmpty());
+
+        // An upload-time or imported thumbnail must never match this flow's generated pattern.
+        UUID uploadId = storage.begin();
+        storage.write(uploadId, UploadFixtures.video(), false);
+        storage.write(uploadId, UploadFixtures.image("jpg"), true);
+        storage.nameThumbnail(uploadId, "jpg");
+        storage.publish(uploadId);
+        storage.finish(uploadId);
+        String uploadThumbnail = storage.thumbnailPath(uploadId, "jpg");
+        for (String path : new String[]{"original.mp4", "../original.mp4", uploadThumbnail,
+                "uploads/thumbnails/../../original.mp4", ""}) {
+            storage.deleteThumbnail(path);
+        }
+        storage.deleteThumbnail(null);
+        assertEquals("keep", Files.readString(keep));
+        assertTrue(Files.exists(store.resolve(uploadThumbnail)));
+        storage.deleteThumbnail(published);
+        assertFalse(Files.exists(store.resolve(published)));
+
+        assertEquals(400, assertThrows(UploadException.class,
+                () -> storage.stageThumbnail(new MockMultipartFile("thumbnail", new byte[0]))).getStatus());
+        assertEquals(413, assertThrows(UploadException.class, () -> storage.stageThumbnail(
+                new MockMultipartFile("thumbnail", new byte[(int) MediaFileValidator.THUMBNAIL_LIMIT + 1]))).getStatus());
+        Path discarded = storage.stageThumbnail(UploadFixtures.image("jpg"));
+        storage.discardStagedThumbnail(discarded);
+        try (var pending = Files.list(store.resolve("uploads/.pending"))) {
+            assertEquals(0, pending.count());
+        }
+    }
+
     @Test void refusesSymlinkedUploadDirectories() throws Exception {
         Path outside = Files.createDirectory(store.resolve("outside"));
         try { Files.createSymbolicLink(store.resolve("uploads"), outside); }

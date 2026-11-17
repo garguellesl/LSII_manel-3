@@ -25,7 +25,13 @@ import com.tecnocampus.LS2.protube_back.repositories.WatchHistoryRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -40,6 +46,8 @@ import java.util.UUID;
 @Service
 public class VideoService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(VideoService.class);
+
     private final VideoRepository videoRepository;
     private final UserAccountRepository userAccountRepository;
     private final TagRepository tagRepository;
@@ -47,11 +55,14 @@ public class VideoService {
     private final VideoLikeRepository videoLikeRepository;
     private final WatchHistoryRepository watchHistoryRepository;
     private final VideoPlayRepository videoPlayRepository;
+    private final MediaStorageService storage;
+    private final MediaFileValidator mediaFileValidator;
 
     public VideoService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                         TagRepository tagRepository, CommentRepository commentRepository,
                         VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository,
-                        VideoPlayRepository videoPlayRepository) {
+                        VideoPlayRepository videoPlayRepository, MediaStorageService storage,
+                        MediaFileValidator mediaFileValidator) {
         this.videoPlayRepository = videoPlayRepository;
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
@@ -59,6 +70,8 @@ public class VideoService {
         this.commentRepository = commentRepository;
         this.videoLikeRepository = videoLikeRepository;
         this.watchHistoryRepository = watchHistoryRepository;
+        this.storage = storage;
+        this.mediaFileValidator = mediaFileValidator;
     }
 
     @Transactional(readOnly = true)
@@ -116,14 +129,102 @@ public class VideoService {
 
     @Transactional
     public VideoDetail updateVideo(Long id, UpdateVideoRequest request, Long actorId) {
+        return updateVideo(id, request, actorId, null);
+    }
+
+    /**
+     * Same contract as the JSON-only overload, plus an optional thumbnail replacement. A
+     * replacement is staged and published, like a profile avatar, before the entity is touched,
+     * so an invalid thumbnail leaves title/description/tags/category untouched too. The
+     * previous thumbnail is removed only after commit, and only if it was itself written by a
+     * prior call to this method (never an upload-time or imported file); a rollback removes the
+     * newly published file instead. See services/MediaStorageService#deleteThumbnail.
+     */
+    @Transactional
+    public VideoDetail updateVideo(Long id, UpdateVideoRequest request, Long actorId, MultipartFile thumbnail) {
+        boolean replaceThumbnail = thumbnail != null && !thumbnail.isEmpty();
+        if (replaceThumbnail) mediaFileValidator.validateUpload(thumbnail, true);
         Video video = findDetailedVideo(id);
         requireSameUser(video.getOwner().getId(), actorId);
+        String category = resolveCategory(request.category(), video.getCategory());
+        Set<Tag> tags = request.tags() == null ? null : resolveTags(request.tags());
+        String published = replaceThumbnail ? storeThumbnail(thumbnail) : null;
         video.updateMetadata(
                 blankToNull(request.title()),
                 request.description() == null ? null : request.description().trim(),
-                request.tags() == null ? null : resolveTags(request.tags())
+                tags,
+                category
         );
+        if (replaceThumbnail) {
+            String previous = video.getThumbnailPath();
+            video.replaceThumbnail(published);
+            afterTransaction(() -> storage.deleteThumbnail(previous), () -> storage.deleteThumbnail(published));
+        }
         return toDetail(video);
+    }
+
+    // null/blank always means "leave the category as is"; it is validated against the shared
+    // catalog only when the caller actually requests a different, non-blank value, so a video's
+    // existing category (including a legacy one outside the catalog) is never rejected merely
+    // because it was resubmitted unchanged, and a category can never be cleared once set.
+    private String resolveCategory(String requested, String current) {
+        if (requested == null || requested.isBlank()) return null;
+        String trimmed = requested.trim();
+        if (trimmed.equals(current)) return null;
+        if (!VideoUploadService.CATEGORIES.contains(trimmed)) {
+            throw new UploadException(400, "Select a valid category");
+        }
+        return trimmed;
+    }
+
+    private String storeThumbnail(MultipartFile thumbnail) {
+        Path staged = null;
+        try {
+            staged = storage.stageThumbnail(thumbnail);
+            String extension = mediaFileValidator.imageExtension(staged);
+            String expectedMime = extension.equals("png") ? "image/png" : "image/jpeg";
+            if (!expectedMime.equals(thumbnail.getContentType())) {
+                throw new UploadException(415, "Thumbnail content does not match its format");
+            }
+            return storage.publishThumbnail(staged, extension);
+        } catch (IOException | RuntimeException exception) {
+            if (staged != null) {
+                try {
+                    storage.discardStagedThumbnail(staged);
+                } catch (IOException cleanup) {
+                    LOG.warn("Could not remove a staged thumbnail", cleanup);
+                }
+            }
+            if (exception instanceof UploadException upload) throw upload;
+            throw new UploadException("Could not save the thumbnail. Please try again.", exception);
+        }
+    }
+
+    private void afterTransaction(FileCleanup onCommit, FileCleanup onRollback) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            cleanUp(onCommit);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                cleanUp(status == STATUS_COMMITTED ? onCommit : onRollback);
+            }
+        });
+    }
+
+    private void cleanUp(FileCleanup cleanup) {
+        try {
+            cleanup.run();
+        } catch (IOException | RuntimeException exception) {
+            // The video is already consistent; an orphaned thumbnail file must not fail the request.
+            LOG.warn("Could not remove an unused video thumbnail file", exception);
+        }
+    }
+
+    @FunctionalInterface
+    private interface FileCleanup {
+        void run() throws IOException;
     }
 
     @Transactional

@@ -149,6 +149,15 @@ public class Video {
     }
 
     public void updateMetadata(String title, String description, Set<Tag> tags) {
+        updateMetadata(title, description, tags, null);
+    }
+
+    /**
+     * Category is never cleared by an edit: a blank or null value always means "leave the
+     * current category as is" (unset for a not-yet-categorized legacy video, or the existing
+     * one otherwise), never "remove it".
+     */
+    public void updateMetadata(String title, String description, Set<Tag> tags, String category) {
         if (title != null) {
             this.title = title;
         }
@@ -159,5 +168,12 @@ public class Video {
             this.tags = new LinkedHashSet<>(tags);
             this.tagsInitialized = true;
         }
+        if (category != null && !category.isBlank()) {
+            this.category = category.trim();
+        }
+    }
+
+    public void replaceThumbnail(String thumbnailPath) {
+        this.thumbnailPath = thumbnailPath;
     }
 }

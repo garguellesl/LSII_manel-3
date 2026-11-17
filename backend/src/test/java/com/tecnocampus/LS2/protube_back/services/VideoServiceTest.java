@@ -301,6 +301,80 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void updateVideoRequiresOwnerAndExistingVideo() {
+        Long owner = registerUser("update-owner@example.com", "update-owner").id();
+        Long other = registerUser("update-other@example.com", "update-other").id();
+        Long videoId = createVideo(owner, "update-owner.mp4").id();
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> videoService.updateVideo(videoId, new UpdateVideoRequest("Hijacked", null, null), other));
+        assertEquals("Title", videoService.getVideo(videoId).orElseThrow().title());
+        assertThrows(ResourceNotFoundException.class,
+                () -> videoService.updateVideo(999999L, new UpdateVideoRequest("New", null, null), owner));
+    }
+
+    @Test
+    void categoryOmittedOrBlankOnUpdateKeepsCurrentValueIncludingALegacyOneNotInTheCatalog() {
+        Long owner = registerUser("category-keep@example.com", "category-keep").id();
+        // Inserted directly, never loaded as a JPA entity before the update: a raw SQL write on an
+        // id already cached by the persistence context would otherwise leave that cached instance stale.
+        Long legacyId = jdbc.queryForObject("""
+                INSERT INTO videos (title, description, media_path, owner_user_id, category)
+                VALUES ('Title', 'Description', 'category-keep-legacy.mp4', ?, 'Retro Wave') RETURNING id
+                """, Long.class, owner);
+
+        var omitted = videoService.updateVideo(legacyId, new UpdateVideoRequest("New title", null, null, null), owner);
+        assertEquals("Retro Wave", omitted.category());
+        var blank = videoService.updateVideo(legacyId, new UpdateVideoRequest(null, null, null, "  "), owner);
+        assertEquals("Retro Wave", blank.category());
+        // Resubmitting the exact same, already-stored value is a no-op too, not a validation error.
+        var sameValue = videoService.updateVideo(legacyId, new UpdateVideoRequest(null, null, null, "Retro Wave"), owner);
+        assertEquals("Retro Wave", sameValue.category());
+
+        Long neverCategorizedId = createVideo(owner, "category-keep-none.mp4").id();
+        var stillNone = videoService.updateVideo(neverCategorizedId, new UpdateVideoRequest(null, null, null, null), owner);
+        assertNull(stillNone.category());
+    }
+
+    @Test
+    void categoryChangeToAnUnknownValueIsRejectedAndLeavesTitleDescriptionTagsCategoryUnchanged() {
+        Long owner = registerUser("category-invalid@example.com", "category-invalid").id();
+        Long videoId = createVideoWithTags(owner, "category-invalid.mp4", List.of("kept")).id();
+        videoRepository.findById(videoId).orElseThrow().markUploaded("Gaming");
+
+        assertThrows(UploadException.class, () -> videoService.updateVideo(videoId,
+                new UpdateVideoRequest("New title", "New description", List.of("new"), "Not A Category"), owner));
+
+        var unchanged = videoService.getVideo(videoId).orElseThrow();
+        assertEquals("Title", unchanged.title());
+        assertEquals("Description", unchanged.description());
+        assertEquals(List.of("kept"), unchanged.tags());
+        assertEquals("Gaming", unchanged.category());
+    }
+
+    @Test
+    void categoryChangeToAValidDifferentValueIsApplied() {
+        Long owner = registerUser("category-change@example.com", "category-change").id();
+        Long videoId = createVideo(owner, "category-change.mp4").id();
+        videoRepository.findById(videoId).orElseThrow().markUploaded("Gaming");
+
+        var updated = videoService.updateVideo(videoId, new UpdateVideoRequest(null, null, null, "Music"), owner);
+
+        assertEquals("Music", updated.category());
+    }
+
+    @Test
+    void categoryCanNeverBeClearedByAnUpdate() {
+        Long owner = registerUser("category-no-clear@example.com", "category-no-clear").id();
+        Long videoId = createVideo(owner, "category-no-clear.mp4").id();
+        videoRepository.findById(videoId).orElseThrow().markUploaded("Gaming");
+
+        var blanked = videoService.updateVideo(videoId, new UpdateVideoRequest(null, null, null, ""), owner);
+        assertEquals("Gaming", blanked.category());
+        var nulled = videoService.updateVideo(videoId, new UpdateVideoRequest(null, null, null, null), owner);
+        assertEquals("Gaming", nulled.category());
+    }
+
+    @Test
     void twoVideosSharingATagRemainIndependentWhenEditingOne() {
         Long ownerOneId = registerUser("shared-tag-one@example.com", "shared-tag-one").id();
         Long ownerTwoId = registerUser("shared-tag-two@example.com", "shared-tag-two").id();

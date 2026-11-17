@@ -1438,19 +1438,77 @@
   }
 }
 
+/* Video metadata editor (RF-2/T11-T12): own scoped type/spacing scale, same
+   pattern as .video-player-page below, kept in its own section so neither
+   page's rules are rewritten by the other. The root no longer relies on the
+   shared .auth-card class, so its own sizing/spacing/colors are defined here. */
+.video-metadata-page {
+  --pt-edit-font-title: 1.625rem;
+  --pt-edit-font-body: 1rem;
+  --pt-edit-font-meta: 0.875rem;
+  --pt-edit-space-xs: 0.375rem;
+  --pt-edit-space-sm: 0.75rem;
+  --pt-edit-space-md: 1rem;
+  --pt-edit-space-lg: 1.5rem;
+  width: min(92%, 30rem);
+  margin: 1rem auto 3rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--pt-border-subtle);
+  border-radius: 1.5rem;
+  background: var(--pt-surface);
+  text-align: left;
+  font-size: var(--pt-edit-font-body, 1rem);
+}
+
+.video-metadata-page h1 {
+  margin-bottom: var(--pt-edit-space-xs, 0.375rem);
+  font-size: var(--pt-edit-font-title, 1.625rem);
+  font-weight: 700;
+}
+
+.video-metadata-page p,
+.video-metadata-page small {
+  color: var(--pt-secondary);
+  font-size: var(--pt-edit-font-meta, 0.875rem);
+}
+
+.video-metadata-page [role='alert'] {
+  color: var(--pt-danger);
+}
+
+.video-metadata-page a {
+  color: var(--pt-accent);
+  font-weight: 600;
+}
+
 .video-metadata-page form {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--pt-edit-space-sm, 0.75rem);
 }
 
 .video-metadata-page textarea,
-.video-metadata-page input {
+.video-metadata-page input,
+.video-metadata-page select {
   width: 100%;
   max-width: 100%;
 }
 
 .video-metadata-page .upload-tags-options input {
   width: auto;
+}
+
+.video-metadata-page .metadata-thumbnail-preview {
+  max-width: 100%;
+  max-height: 10rem;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  margin-bottom: var(--pt-edit-space-xs, 0.375rem);
+}
+
+/* Every control on this page keeps a visible focus ring, matching the player. */
+.video-metadata-page :focus-visible {
+  outline: 3px solid var(--pt-accent);
+  outline-offset: 3px;
 }
 
 /* Video player page (RF-5/T18): one consolidated section instead of rules

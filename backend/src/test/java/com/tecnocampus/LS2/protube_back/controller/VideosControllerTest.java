@@ -1,14 +1,19 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
+import com.tecnocampus.LS2.protube_back.model.UpdateVideoRequest;
 import com.tecnocampus.LS2.protube_back.model.VideoDetail;
 import com.tecnocampus.LS2.protube_back.model.VideoSummary;
+import com.tecnocampus.LS2.protube_back.services.UploadException;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -17,12 +22,16 @@ import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import java.util.Optional;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -282,6 +291,79 @@ class VideosControllerTest {
                         .content("{\"title\":\"   \"}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(videoService);
+    }
+
+    @Test
+    void jsonPatchStillWorksUnchangedWithTheNewCategoryFieldAdded() throws Exception {
+        when(videoService.updateVideo(eq(7L), any(), eq(3L))).thenReturn(new VideoDetail(
+                7L, "Seventh", "Author", "New description", 79.5,
+                "/media/7.webp", "/media/7.mp4", List.of("db"), 0, 0, 0, 0, "Music", "UPLOAD"
+        ));
+
+        mockMvc.perform(patch("/api/videos/7")
+                        .principal(() -> "3").contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "description", "New description",
+                                "tags", List.of("db"),
+                                "category", "Music"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("New description"))
+                .andExpect(jsonPath("$.category").value("Music"));
+
+        var request = ArgumentCaptor.forClass(UpdateVideoRequest.class);
+        verify(videoService).updateVideo(eq(7L), request.capture(), eq(3L));
+        assertEquals("Music", request.getValue().category());
+    }
+
+    private MockMultipartFile metadata(String json) {
+        return new MockMultipartFile("metadata", "", "application/json", json.getBytes());
+    }
+
+    @Test
+    void updateVideoWithThumbnailMultipartReturns200() throws Exception {
+        when(videoService.updateVideo(eq(7L), any(), eq(3L), any())).thenReturn(new VideoDetail(
+                7L, "Seventh", "Author", "Description", 79.5,
+                "/media/uploads/thumbnails/a.png", "/media/7.mp4", List.of(), 0, 0, 0, 0, "Music", "LEGACY"
+        ));
+        var thumbnail = new MockMultipartFile("thumbnail", "new.png", "image/png", new byte[]{1});
+
+        mockMvc.perform(multipart(HttpMethod.PATCH, "/api/videos/7")
+                        .file(metadata("{\"category\":\"Music\"}")).file(thumbnail).principal(() -> "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category").value("Music"))
+                .andExpect(jsonPath("$.thumbnailUrl").value("/media/uploads/thumbnails/a.png"));
+
+        var request = ArgumentCaptor.forClass(UpdateVideoRequest.class);
+        verify(videoService).updateVideo(eq(7L), request.capture(), eq(3L), eq(thumbnail));
+        assertEquals("Music", request.getValue().category());
+    }
+
+    @Test
+    void thumbnailIsOptionalOnTheMultipartPatch() throws Exception {
+        when(videoService.updateVideo(eq(7L), any(), eq(3L), isNull())).thenReturn(new VideoDetail(
+                7L, "Seventh", "Author", "Description", 79.5,
+                null, "/media/7.mp4", List.of(), 0, 0, 0
+        ));
+
+        mockMvc.perform(multipart(HttpMethod.PATCH, "/api/videos/7")
+                        .file(metadata("{\"title\":\"Seventh\"}")).principal(() -> "3"))
+                .andExpect(status().isOk());
+
+        verify(videoService).updateVideo(eq(7L), any(), eq(3L), isNull());
+    }
+
+    @Test
+    void updateVideoWithThumbnailReportsRejectedFilesWithTheirStatusAndMessage() throws Exception {
+        when(videoService.updateVideo(eq(7L), any(), eq(3L), any()))
+                .thenThrow(new UploadException(413, "Thumbnail exceeds 5 MiB"))
+                .thenThrow(new UploadException(415, "Thumbnail must be JPG or PNG"));
+        var thumbnail = new MockMultipartFile("thumbnail", "big.gif", "image/gif", new byte[]{1});
+
+        mockMvc.perform(multipart(HttpMethod.PATCH, "/api/videos/7").file(metadata("{}")).file(thumbnail).principal(() -> "3"))
+                .andExpect(status().isPayloadTooLarge()).andExpect(jsonPath("$.error").value("Thumbnail exceeds 5 MiB"));
+        mockMvc.perform(multipart(HttpMethod.PATCH, "/api/videos/7").file(metadata("{}")).file(thumbnail).principal(() -> "3"))
+                .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test

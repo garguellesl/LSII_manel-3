@@ -90,6 +90,30 @@ describe('videoClient', () => {
       headers: { 'X-CSRF-TOKEN': 'test-token' },
     });
   });
+
+  it('PATCHes metadata with a category as plain JSON when no thumbnail is attached', async () => {
+    http.get.mockResolvedValue({ data: csrf });
+    http.patch.mockResolvedValue({ data: { id: 12, title: 'Updated', category: 'Music' } });
+    await videoClient.updateMetadata(12, { title: 'Updated', description: 'Description', tags: [], category: 'Music' });
+    expect(http.patch).toHaveBeenCalledWith(
+      'other/videos/12',
+      { title: 'Updated', description: 'Description', tags: [], category: 'Music' },
+      { withCredentials: true, headers: { 'X-CSRF-TOKEN': 'test-token' } }
+    );
+  });
+
+  it('PATCHes metadata and a thumbnail as multipart form data, still with CSRF', async () => {
+    http.get.mockResolvedValue({ data: csrf });
+    http.patch.mockResolvedValue({ data: { id: 12, title: 'Updated' } });
+    const thumbnail = new File(['x'], 'cover.png', { type: 'image/png' });
+    await videoClient.updateMetadata(12, { title: 'Updated', description: 'Description', tags: [] }, thumbnail);
+    expect(http.patch).toHaveBeenCalledTimes(1);
+    const [url, body, config] = http.patch.mock.calls[0];
+    expect(url).toBe('other/videos/12');
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('thumbnail')).toBe(thumbnail);
+    expect(config).toEqual({ withCredentials: true, headers: { 'X-CSRF-TOKEN': 'test-token' } });
+  });
 });
 
 describe('play reporting', () => {

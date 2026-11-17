@@ -56,14 +56,14 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
   - Depende de: T8, T9.
   - Hecho cuando: ruta protegida ofrezca todos los campos, validación, progreso y estado de procesamiento, éxito con acceso al vídeo y errores recuperables; componentes con API simulada cubran miniatura ausente y acceso visitante.
   - Evidencia: pendiente.
-- [ ] T11 - API de edición de metadatos propios (RF-2, RF-8, RF-9)
+- [x] T11 - API de edición de metadatos propios (RF-2, RF-8, RF-9)
   - Depende de: T2, T6, T8.
   - Hecho cuando: PATCH JSON actual siga funcionando y multipart permita miniatura; propiedad backend, campos omitidos y categorías preservadas estén probados; título inválido/rollback mantengan datos e imagen; hash/ruta de MP4 no cambien.
-  - Evidencia: pendiente.
-- [ ] T12 - Editor precargado de metadatos (RF-2, RF-5)
+  - Evidencia: `mvn clean verify` completo con PostgreSQL/Testcontainers — BUILD SUCCESS, 205 pruebas, 0 fallos, 1 omitida (preexistente), JaCoCo cumplido. Incluye `VideoServiceTest`, `VideoThumbnailEditIntegrationTest` y `SessionSecurityTest` nuevos/ampliados. Ver [edit.md](edit.md).
+- [x] T12 - Editor precargado de metadatos (RF-2, RF-5)
   - Depende de: T11.
   - Hecho cuando: ruta y controles por ID/permiso, campos, imagen y guardado reflejen cambios en detalle/catalog/search tras refrescar; se mantenga edición libre de etiquetas existente y errores no borren el borrador.
-  - Evidencia: pendiente.
+  - Evidencia: build/lint/Jest en verde (242 pruebas); E2E aislado completo 31/31 (toda la suite, no solo edición); comprobación visual real en navegador a 1280/375 px en ambos modos. Ver [edit.md](edit.md).
 - [ ] T13 - API de perfil y representaciones públicas (RF-3, RF-8, RF-9)
   - Depende de: T2, T6.
   - Hecho cuando: PATCH me actualice nombre visible/descripción/avatar con validación y rollback; DTO de creador/comentarista no exponga email ni represente autores externos como cuentas; credenciales no editables y propiedad del principal probadas.
@@ -321,3 +321,7 @@ MP-F1: Chromium local reproduce el archivo original y reporta 46,944308 s/480x36
 | Limpieza y privacidad | Retirado solo protube-fragmented-check con sus dos volúmenes, eliminando la copia de prueba del vídeo; etiqueta temporal retirada. Original de Descargas intacto, sin bytes/capturas del vídeo en Git ni servicios externos. ProTube local y ambas parejas de datos existentes conservadas |
 
 Clases Java: modificada MediaFileValidator y ampliada VideoUploadIntegrationTest; nuevas clases de prueba FragmentedMp4ValidationTest y FragmentedMp4Fixture. No cambian frontend, dependencias, DTO/API o migraciones. Se reutilizan las verificaciones frontend del código 1208e34, sin presentarlas como ejecuciones nuevas; la imagen sí recompila producción y se ejecutó E2E nuevo. Sin commit/push/CI remoto de este arreglo; PR #33 sigue en el alcance publicado anterior. Revisión/publicación del equipo pendientes; comportamiento solicitado corregido y aplicado localmente.
+
+## Ejecución acotada de edición (RF-2, T11/T12, 2026-11-17/18)
+
+Alcance y evidencia completos en [edit.md](edit.md); handoff en `docs/ai/tasks/sprint3-video-edit-thumbnail-category.md`. Añade categoría y miniatura al editor de metadatos (lo único que faltaba de RF-2 tras el Sprint 2 y el resto de Sprint 3 ya en `main`), reutilizando el patrón de sustitución de avatar de perfil para la miniatura. Evidencia final, Docker Desktop iniciado por el usuario a mitad de la tarea: `mvn clean verify` completo con PostgreSQL/Testcontainers — 205 pruebas, 0 fallos, 1 omitida (preexistente), JaCoCo cumplido; frontend build/lint/Jest en verde (242 pruebas, cobertura 95,62 % statements); E2E aislado completo — **31/31**, toda la suite, no solo los specs de edición; comprobación visual real en navegador a 1280/375 px en ambos modos del editor. Durante la verificación se corrigieron dos defectos reales encontrados por las propias pruebas (no asumidos de antemano): un test con lectura de caché JPA obsoleta tras una escritura SQL directa, y una ruta de `IndexController` que no reenviaba `/videos/{id}/edit` a React (devolvía 404 en navegación directa). T11 y T12 quedan completas con esta evidencia; el resto del sprint conserva su estado.

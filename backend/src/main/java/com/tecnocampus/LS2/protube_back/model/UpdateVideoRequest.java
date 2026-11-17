@@ -8,6 +8,10 @@ import java.util.List;
 public record UpdateVideoRequest(
         @Pattern(regexp = "(?s).*\\S.*", message = "must not be blank") @Size(max = 255) String title,
         String description,
-        List<String> tags
+        List<String> tags,
+        @Size(max = 40) String category
 ) {
+    public UpdateVideoRequest(String title, String description, List<String> tags) {
+        this(title, description, tags, null);
+    }
 }

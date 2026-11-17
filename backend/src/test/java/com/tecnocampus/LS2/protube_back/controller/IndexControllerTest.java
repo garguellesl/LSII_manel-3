@@ -36,6 +36,13 @@ class IndexControllerTest {
     }
 
     @Test
+    void directVideoEditNavigationServesReactApplication() throws Exception {
+        mockMvc.perform(get("/videos/7/edit"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    @Test
     void unknownApiAndMediaPathsAreNotForwardedToReact() throws Exception {
         mockMvc.perform(get("/api/unknown").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1"))).andExpect(status().isNotFound());
         mockMvc.perform(get("/media/missing.mp4")).andExpect(status().isNotFound());

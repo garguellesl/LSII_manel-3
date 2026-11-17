@@ -29,21 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 class SessionSecurityTest extends PostgreSqlIntegrationTest {
-    private final MockMvc mvc;
-    private final ObjectMapper mapper;
-    private final UserService users;
-    private final VideoService videos;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
-
-    @Autowired
-    SessionSecurityTest(MockMvc mvc, ObjectMapper mapper, UserService users, VideoService videos,
-                        org.springframework.jdbc.core.JdbcTemplate jdbc) {
-        this.mvc = mvc;
-        this.mapper = mapper;
-        this.users = users;
-        this.videos = videos;
-        this.jdbc = jdbc;
-    }
+    // Field injection, same as VideoUploadIntegrationTest/VideoUploadControllerTest: IntelliJ's
+    // static Spring inspection cannot trace the MockMvc bean @AutoConfigureMockMvc registers at
+    // test-context bootstrap time when it is constructor-injected, but resolves it fine here.
+    @Autowired MockMvc mvc;
+    @Autowired ObjectMapper mapper;
+    @Autowired UserService users;
+    @Autowired VideoService videos;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @Test
     void tagAssociationsCanBeCreatedReplacedAndRemovedWithoutDeletingSharedValues() throws Exception {
@@ -278,6 +271,32 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void multipartVideoUpdatesRequireOwnerSessionAndCsrfJustLikeTheJsonPatch() throws Exception {
+        UserResponse owner = account();
+        Long id = video(owner);
+        // No thumbnail part attached here: this test only exercises the multipart PATCH's
+        // security chain, not file storage; see VideoThumbnailEditIntegrationTest for that.
+        var metadata = new org.springframework.mock.web.MockMultipartFile("metadata", "", "application/json",
+                "{\"title\":\"Changed by multipart\"}".getBytes());
+        Token guest = csrf(null);
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/videos/" + id).file(metadata)
+                        .session(guest.session()).header(guest.header(), guest.value()))
+                .andExpect(status().isUnauthorized());
+        Token stranger = csrf(login(account()));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/videos/" + id).file(metadata)
+                        .session(stranger.session()).header(stranger.header(), stranger.value()))
+                .andExpect(status().isForbidden());
+        Token token = csrf(login(owner));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/videos/" + id).file(metadata)
+                        .session(token.session()))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PATCH, "/api/videos/" + id).file(metadata)
+                        .session(token.session()).header(token.header(), token.value()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Changed by multipart"));
+        assertEquals(owner.id(), jdbc.queryForObject("select owner_user_id from videos where id=?", Long.class, id));
+    }
+
+    @Test
     void ownProfileEditsRequireSessionAndCsrfAndNeverChangeCredentialsOrOtherAccounts() throws Exception {
         UserResponse actor = account();
         UserResponse other = account();
@@ -398,7 +417,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
         mvc.perform(delete("/api/comments/" + comment).session(token.session()).header(token.header(), token.value()))
                 .andExpect(status().isNoContent());
         mvc.perform(post("/api/videos/" + id + "/likes").session(token.session()).header(token.header(), token.value())
-                        .contentType("application/json").content("{\"userId\":" + other.id() + "}"))
+                        .contentType("application/json").content(mapper.writeValueAsString(Map.of("userId", other.id()))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.liked").value(true))
                 .andExpect(jsonPath("$.userId").doesNotExist());
         mvc.perform(post("/api/videos/" + id + "/dislikes").session(token.session()).header(token.header(), token.value()))
@@ -450,7 +469,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                     .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_INVALID"));
         }
         mvc.perform(post(item + "/likes").session(stranger.session()).header(stranger.header(), stranger.value())
-                        .contentType("application/json").content("{\"userId\":" + author.id() + "}"))
+                        .contentType("application/json").content(mapper.writeValueAsString(Map.of("userId", author.id()))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.likesCount").value(1));
         mvc.perform(delete(item + "/likes").session(own.session()).header(own.header(), own.value()).param("userId", other.id().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.likesCount").value(1));
@@ -464,7 +483,7 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
                     .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("COMMENT_DELETED"));
         }
         mvc.perform(post(collection).session(stranger.session()).header(stranger.header(), stranger.value())
-                        .contentType("application/json").content("{\"text\":\"reply\",\"parentId\":" + id + "}"))
+                        .contentType("application/json").content(mapper.writeValueAsString(Map.of("text", "reply", "parentId", id))))
                 .andExpect(status().isConflict());
     }
 }
