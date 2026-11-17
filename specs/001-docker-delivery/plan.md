@@ -34,3 +34,12 @@ Actualizar .run/Production.run.xml: mantener el tipo Maven y el perfil prod; eje
 Verificar XML y ejecutar exactamente sus goals/propiedades tras detener los servicios (conservar volumen), sin variables ENV_PROTUBE_* en el proceso de prueba. Comprobar BUILD SUCCESS, ambos servicios healthy y el smoke HTTP existente. Verificar git diff --check y ausencia de cambios Java adicionales. No repetir las suites Java/React de código que no cambia. Documentar que Maven finaliza y los servicios quedan detached; para parar usar docker compose stop.
 
 Referencia técnica: https://www.mojohaus.org/exec-maven-plugin/exec-mojo.html (exec.executable, exec.args; versión comprobada 2026-10-28).
+
+
+## Recuperación local al cambiar de copia de trabajo (2026-11-17)
+
+Petición: revisar el fallo unhealthy del arranque Production tras el arreglo de subida. Baseline 1208e34 en feature/fix-upload-file-picker, árbol limpio. El log real de Spring indica mismatch V5: el proyecto automático lsii_manel-3 usa su volumen histórico con V5 de subida (-175451594), mientras el código usa V5-reacciones (-232424930) y V6-subida. No es un fallo del build ni del healthcheck. La aplicación funcionaba previamente en el proyecto upload con su pareja independiente de volúmenes PostgreSQL/medios, todavía presentes y sin contenedores activos.
+
+Para este ordenador, conservar ambos conjuntos y recuperar el último entorno funcional: fijar COMPOSE_PROJECT_NAME=upload en .env local no versionado (exclusión local de Git), comprobar el nombre resultante desde raíz y backend y las rutas de los volúmenes antes de arrancar. Detener/retirar solo los contenedores/red del proyecto fallido con down sin -v, iniciar el proyecto upload con el comando Production existente y verificar Flyway/health/API/UI. No reparar historia ni cambiar migraciones de la BD antigua; no crear una BD vacía sustituyendo datos. No introducir el nombre de volumen de este ordenador en configuración compartida ni añadir dependencias. Si los volúmenes recuperados no validan, parar sin repair y revisar el caso.
+
+RF-4 existente: se reutiliza el comando de .run/Production.run.xml, sin cambiar Java ni APIs. La comprobación del comando y smoke HTTP bastan para este ajuste local; no repetir suites de código sin cambios. Registrar resultado real y conservar el historial antiguo para una transición revisada futura si se solicita.

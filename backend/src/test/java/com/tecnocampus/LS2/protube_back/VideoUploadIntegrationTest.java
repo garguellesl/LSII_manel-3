@@ -5,6 +5,7 @@ import com.tecnocampus.LS2.protube_back.model.RegisterRequest;
 import com.tecnocampus.LS2.protube_back.services.*;
 import com.tecnocampus.LS2.protube_back.support.PostgreSqlIntegrationTest;
 import com.tecnocampus.LS2.protube_back.support.UploadFixtures;
+import com.tecnocampus.LS2.protube_back.support.FragmentedMp4Fixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -70,6 +71,27 @@ class VideoUploadIntegrationTest extends PostgreSqlIntegrationTest {
         mvc.perform(get("/upload")).andExpect(status().isOk()).andExpect(forwardedUrl("/index.html"));
         jdbc.update("delete from videos where id=?", id);
         jdbc.update("delete from app_users where id=?", owner);
+    }
+
+    @Test void publishesFragmentedMp4AndRejectsTruncationWithoutLeavingAPublicRowOrPendingFiles() throws Exception {
+        String name = "fragments-" + UUID.randomUUID();
+        var owner = users.register(new RegisterRequest(name + "@example.test", name, "First", "Last", "password123"));
+        byte[] bytes = new FragmentedMp4Fixture().bytes();
+        var response = mvc.perform(multipart("/api/videos").file(metadata("Fragmented upload", "[]"))
+                        .file(new MockMultipartFile("video", "fragmented movie.mp4", "video/mp4", bytes))
+                        .with(user(owner.id().toString())).with(csrf()))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.duration").value(2.0)).andReturn();
+        var video = mapper.readTree(response.getResponse().getContentAsString());
+        mvc.perform(get(video.path("videoUrl").asText())).andExpect(status().isOk()).andExpect(content().bytes(bytes));
+        long count = jdbc.queryForObject("select count(*) from videos", Long.class);
+        mvc.perform(multipart("/api/videos").file(metadata("Truncated upload", "[]"))
+                        .file(new MockMultipartFile("video", "truncated.mp4", "video/mp4", java.util.Arrays.copyOf(bytes, bytes.length - 1)))
+                        .with(user(owner.id().toString())).with(csrf()))
+                .andExpect(status().isUnsupportedMediaType());
+        assertEquals(count, jdbc.queryForObject("select count(*) from videos", Long.class));
+        assertTrue(storage.pendingIds().isEmpty());
+        jdbc.update("delete from videos where id=?", video.path("id").asLong());
+        jdbc.update("delete from app_users where id=?", owner.id());
     }
 
     @Test void validatesExistingTagsAndImagesAndDoesNotPublishFailures() throws Exception {

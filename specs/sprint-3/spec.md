@@ -198,3 +198,10 @@ Las BD locales que ya hubieran aplicado la V5 alternativa de subida requieren un
 Cuando una persona autenticada vuelva del selector de vídeo o miniatura, o recupere el foco de la ventana, el sistema deberá conservar el título, descripción, categoría, etiquetas y archivos seleccionados si se confirma la misma cuenta. Cancelar el selector tampoco reiniciará el borrador. Durante la revalidación de sesión se mantendrá el formulario visible y no se permitirá publicar. Una sesión anónima/caducada, un error de comprobación o un cambio de identidad retirará el borrador anterior según las protecciones existentes. La carga inicial sin sesión confirmada seguirá mostrando comprobación y el acceso anónimo seguirá redirigiendo a login.
 
 Alcance: corrección del formulario RF-1/US-06, sin cambiar formatos, límites, API, almacenamiento, autenticación del servidor ni persistir el borrador en disco/localStorage. Cancelación comprobada como retorno de foco sin cambio de archivos; no se añade restauración tras recarga o navegación voluntaria.
+
+
+## Corrección RF-1: MP4 fragmentados (2026-11-17)
+
+Cuando se suba un MP4 fragmentado completo con pista de vídeo y datos de muestras válidos, el sistema deberá aceptarlo aunque mvhd indique duración cero; calculará su duración a partir de las pistas y fragmentos. Mantendrá la aceptación de MP4 convencionales y los límites, MIME/extensión, permisos, almacenamiento y rechazos de archivos truncados, sin vídeo o sin muestras reales. No se aceptará un segmento de inicialización sin contenido multimedia. No se incorporan transcodificación ni garantía de todos los codecs.
+
+El archivo indicado por el usuario se inspeccionó localmente: ftyp/moov/mvex seguidos de moof/mdat, mvhd/mdhd con duración cero. El navegador lo reproduce y obtiene 46,944308 s. Su contenido no se versionará ni se enviará a servicios externos; se verificará en un despliegue local aislado.
