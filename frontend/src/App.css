@@ -899,6 +899,95 @@
   font-size: 0.9rem;
 }
 
+.analytics-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.analytics-title {
+  margin: 0.15rem 0 0.25rem;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 700;
+}
+
+.analytics-header .profile-panel-hint {
+  margin: 0;
+}
+
+.analytics-page .profile-panel + .profile-panel {
+  margin-top: 1.25rem;
+}
+
+.analytics-table-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+  /* Only sideways scrolling is intended; rounding must not add a vertical scrollbar. */
+  overflow-y: hidden;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 0.7rem 0.6rem;
+  border-bottom: 1px solid var(--pt-border-subtle);
+  color: var(--pt-text);
+  vertical-align: top;
+}
+
+.analytics-table thead th {
+  color: var(--pt-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.analytics-table tbody th {
+  min-width: 12rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.analytics-table tbody th a {
+  text-decoration: none;
+}
+
+.analytics-table tbody th a:hover {
+  text-decoration: underline;
+}
+
+.analytics-table tfoot th,
+.analytics-table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.analytics-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Share of the most played video: a visual cue only, the numbers are in the row. */
+.analytics-bar {
+  display: block;
+  height: 0.3rem;
+  min-width: 2px;
+  margin-top: 0.4rem;
+  border-radius: 999px;
+  background: var(--pt-accent);
+}
+
 @media (max-width: 720px) {
   .profile-hero-action {
     width: 100%;

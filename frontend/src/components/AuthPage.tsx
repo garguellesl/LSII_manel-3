@@ -54,7 +54,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   };
 
   if (auth.status === 'authenticated') {
-    return <Navigate to={['/profile', '/upload'].includes(location.state?.from) ? location.state.from : '/'} replace />;
+    return (
+      <Navigate
+        to={['/profile', '/upload', '/analytics'].includes(location.state?.from) ? location.state.from : '/'}
+        replace
+      />
+    );
   }
 
   const field = (name: string, label: string, autoComplete: string, type = 'text') => {

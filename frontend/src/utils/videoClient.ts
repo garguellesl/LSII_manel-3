@@ -9,7 +9,24 @@ function videoError(error: unknown, fallback: string): AuthError {
   return new AuthError(response?.data?.error || fallback, response?.data?.errors, response?.status);
 }
 
+// Identifies one opening of the player page. randomUUID needs a secure context, so
+// plain-HTTP deployments fall back to getRandomValues.
+export function newPlayId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') crypto.getRandomValues(bytes);
+  else for (let index = 0; index < bytes.length; index++) bytes[index] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export const videoClient = {
+  // Repeating the same playId is harmless: the server counts each opening once.
+  async recordPlay(videoId: number, playId: string): Promise<void> {
+    await mutate<void>(`/videos/${videoId}/plays`, { playId });
+  },
   async updateTags(videoId: number, tags: string[]): Promise<VideoDetail> {
     try {
       return await mutate<VideoDetail>(`/videos/${videoId}`, { tags }, 'patch');

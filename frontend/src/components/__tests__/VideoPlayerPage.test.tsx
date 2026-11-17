@@ -14,7 +14,13 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 jest.mock('../../utils/videoClient', () => ({
   ...jest.requireActual('../../utils/videoClient'),
-  videoClient: { updateTags: jest.fn(), deleteVideo: jest.fn(), updateMetadata: jest.fn(), createMetadata: jest.fn() },
+  videoClient: {
+    updateTags: jest.fn(),
+    deleteVideo: jest.fn(),
+    updateMetadata: jest.fn(),
+    createMetadata: jest.fn(),
+    recordPlay: jest.fn(),
+  },
 }));
 const mockedVideoClient = videoClient as jest.Mocked<typeof videoClient>;
 
@@ -70,6 +76,52 @@ const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status } });
 
 describe('VideoPlayerPage', () => {
+  it('reports one play per opening when playback really starts, retrying a failed report with the same id', async () => {
+    mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
+    mockedVideoClient.recordPlay.mockReset();
+    mockedVideoClient.recordPlay.mockRejectedValueOnce(new Error('Offline')).mockResolvedValue(undefined);
+    renderPlayer('/videos/7');
+    const media = await screen.findByLabelText('Uptown Funk');
+    // Opening the page without playback counts nothing.
+    expect(mockedVideoClient.recordPlay).not.toHaveBeenCalled();
+
+    fireEvent.playing(media);
+    fireEvent.playing(media);
+    expect(mockedVideoClient.recordPlay).toHaveBeenCalledTimes(1);
+    const [videoId, playId] = mockedVideoClient.recordPlay.mock.calls[0];
+    expect(videoId).toBe(7);
+    expect(playId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+
+    // The failed request is retried on the next playing event, as the same opening.
+    await waitFor(() => expect(mockedVideoClient.recordPlay.mock.results[0].type).toBe('return'));
+    await act(async () => {});
+    fireEvent.playing(media);
+    expect(mockedVideoClient.recordPlay).toHaveBeenCalledTimes(2);
+    expect(mockedVideoClient.recordPlay.mock.calls[1]).toEqual([7, playId]);
+    await act(async () => {});
+
+    // Pause/resume, seeking and replaying after the play was counted add nothing.
+    fireEvent.pause(media);
+    fireEvent.playing(media);
+    fireEvent.ended(media);
+    fireEvent.playing(media);
+    expect(mockedVideoClient.recordPlay).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the public name and avatar of the owning account while ownership keeps using the account name', async () => {
+    mockedAxios.get.mockResolvedValue({
+      status: 200,
+      data: { ...videoDetail, author: { id: 1, displayName: 'Mark R.', avatarUrl: '/media/uploads/avatars/a.png' } },
+    });
+    const { container } = renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
+    expect(await screen.findByText('Mark R.')).toBeInTheDocument();
+    expect(container.querySelector('.video-creator img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('/uploads/avatars/a.png')
+    );
+    expect(screen.getByRole('button', { name: 'Eliminar vídeo' })).toBeInTheDocument();
+  });
+
   it('offers deletion only to the owner and navigates away after confirmation', async () => {
     const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
     mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });

@@ -19,6 +19,8 @@ export type VideoDetail = {
   dislikesCount?: number;
   viewsCount?: number;
   commentsCount?: number;
+  // Public identity of the owning account; `user` stays the account name used for ownership.
+  author?: { id: number; displayName: string; avatarUrl: string | null } | null;
 };
 
 export function useVideo(id: string | undefined) {

@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
 import { CommentSection } from './CommentSection';
 import { UserAvatar } from './UserAvatar';
-import { videoClient } from '../utils/videoClient';
+import { newPlayId, videoClient } from '../utils/videoClient';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from '../utils/Env';
@@ -73,6 +73,24 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
   const [mediaFailed, setMediaFailed] = useState(false);
   const media = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  // One id per opening of this page (the player is keyed by video). The first time playback
+  // really starts it is reported once; pause/resume, seeking and replays reuse the same
+  // opening, and a failed request is retried with the same id on the next playing event.
+  const play = useRef<{ id: string; state: 'idle' | 'sending' | 'sent' }>({ id: '', state: 'idle' });
+  const reportPlay = () => {
+    const current = play.current;
+    if (current.state !== 'idle') return;
+    if (!current.id) current.id = newPlayId();
+    current.state = 'sending';
+    videoClient
+      .recordPlay(value.id, current.id)
+      .then(() => {
+        current.state = 'sent';
+      })
+      .catch(() => {
+        current.state = 'idle';
+      });
+  };
   useEffect(() => {
     if (auth.status === 'authenticated')
       axios
@@ -117,6 +135,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           src={toMediaUrl(value.videoUrl)}
           aria-label={value.title}
           onError={() => setMediaFailed(true)}
+          onPlaying={reportPlay}
         >
           Your browser does not support video playback.
         </video>
@@ -131,12 +150,12 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         <h1 className="video-player-title">{value.title}</h1>
         <VideoMetaRow video={value} />
         {value.user && (
-          // Creator identity comes from the public detail until RF-3 adds a profile
-          // DTO; replace value.user with displayName/avatarUrl there, not here.
+          // The public author carries the editable name and avatar; value.user remains the
+          // account name and keeps deciding ownership.
           <p className="video-creator">
-            <UserAvatar name={value.user} size="small" />
+            <UserAvatar name={value.user} src={value.author?.avatarUrl} size="small" />
             <span className="video-creator-label">Uploaded by</span>
-            <strong className="video-player-user">{value.user}</strong>
+            <strong className="video-player-user">{value.author?.displayName || value.user}</strong>
           </p>
         )}
         {editable && (

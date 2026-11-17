@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { AuthError } from '../authClient';
-import { videoClient } from '../videoClient';
+import { newPlayId, videoClient } from '../videoClient';
 
 jest.mock('axios');
 const http = axios as jest.Mocked<typeof axios>;
@@ -89,5 +89,35 @@ describe('videoClient', () => {
       withCredentials: true,
       headers: { 'X-CSRF-TOKEN': 'test-token' },
     });
+  });
+});
+
+describe('play reporting', () => {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  it('POSTs the opening id with the CSRF token and cookies', async () => {
+    http.get.mockReset();
+    http.post.mockReset();
+    http.get.mockResolvedValue({ data: csrf });
+    http.post.mockResolvedValue({ data: undefined });
+    await videoClient.recordPlay(7, 'opening-id');
+    expect(http.post).toHaveBeenCalledWith(
+      'other/videos/7/plays',
+      { playId: 'opening-id' },
+      { withCredentials: true, headers: { 'X-CSRF-TOKEN': 'test-token' } }
+    );
+  });
+
+  it('generates distinct UUIDs, also without crypto.randomUUID (plain HTTP)', () => {
+    expect(newPlayId()).toMatch(uuid);
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+    Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+    try {
+      const first = newPlayId();
+      expect(first).toMatch(uuid);
+      expect(newPlayId()).not.toBe(first);
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'crypto', original);
+    }
   });
 });
