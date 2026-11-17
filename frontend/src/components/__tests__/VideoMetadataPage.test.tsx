@@ -4,10 +4,12 @@ import type { AuthValue } from '../../auth/AuthContext';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from '../VideoMetadataPage';
 import { useVideo } from '../../useVideo';
+import { useAvailableTags } from '../../useAvailableTags';
 import { videoClient } from '../../utils/videoClient';
 import { AuthError } from '../../utils/authClient';
 
 jest.mock('../../useVideo', () => ({ useVideo: jest.fn() }));
+jest.mock('../../useAvailableTags', () => ({ useAvailableTags: jest.fn() }));
 jest.mock('../../utils/videoClient', () => ({
   videoClient: {
     createMetadata: jest.fn(),
@@ -18,6 +20,14 @@ jest.mock('../../utils/videoClient', () => ({
 }));
 
 const mockedUseVideo = useVideo as jest.MockedFunction<typeof useVideo>;
+const mockedTags = useAvailableTags as jest.MockedFunction<typeof useAvailableTags>;
+const tagsResult = (overrides: Partial<ReturnType<typeof useAvailableTags>> = {}) => ({
+  loading: false,
+  error: false,
+  tags: ['rock', 'Pop', 'jazz'],
+  reload: jest.fn(),
+  ...overrides,
+});
 const mockedClient = videoClient as jest.Mocked<typeof videoClient>;
 const owner = {
   id: 1,
@@ -65,6 +75,7 @@ function renderAt(path: string) {
 describe('Video metadata pages', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedTags.mockReturnValue(tagsResult());
   });
 
   it('registers an existing media file and navigates to its detail', async () => {
@@ -99,6 +110,52 @@ describe('Video metadata pages', () => {
       })
     );
     expect(await screen.findByText('Video detail')).toBeInTheDocument();
+  });
+
+  it('offers existing tags in a searchable dropdown that stays in sync with the text field', async () => {
+    mockedUseVideo.mockReturnValue({ loading: 'success', value: detail, message: '' });
+    mockedClient.updateMetadata.mockResolvedValue(detail);
+    renderAt('/videos/7/edit');
+    const text = screen.getByLabelText('Etiquetas, separadas por comas');
+    // The video's current tag is already ticked, whatever its letter case.
+    expect(screen.getByLabelText('Pop')).toBeChecked();
+    expect(screen.getByLabelText('rock')).not.toBeChecked();
+
+    const search = screen.getByLabelText('Buscar etiqueta');
+    fireEvent.change(search, { target: { value: 'RO' } });
+    expect(screen.queryByLabelText('jazz')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('rock'));
+    expect(text).toHaveValue('pop, rock');
+    fireEvent.change(search, { target: { value: 'metal' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Ninguna etiqueta coincide con la búsqueda.');
+    expect(fireEvent.keyDown(search, { key: 'Enter' })).toBe(false);
+
+    fireEvent.change(search, { target: { value: '' } });
+    fireEvent.click(screen.getByLabelText('Pop'));
+    expect(text).toHaveValue('rock');
+    // New tags can still be typed by hand.
+    fireEvent.change(text, { target: { value: 'rock, nueva' } });
+    expect(screen.getByLabelText('rock')).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() =>
+      expect(mockedClient.updateMetadata).toHaveBeenCalledWith(7, expect.objectContaining({ tags: ['rock', 'nueva'] }))
+    );
+  });
+
+  it('reports loading, failure with retry and an empty tag list inside the dropdown', () => {
+    const reload = jest.fn();
+    mockedTags.mockReturnValue(tagsResult({ loading: true, tags: [] }));
+    const { unmount } = renderAt('/videos/new');
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando etiquetas…');
+    unmount();
+    mockedTags.mockReturnValue(tagsResult({ error: true, tags: [], reload }));
+    const failed = renderAt('/videos/new');
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(reload).toHaveBeenCalledTimes(1);
+    failed.unmount();
+    mockedTags.mockReturnValue(tagsResult({ tags: [] }));
+    renderAt('/videos/new');
+    expect(screen.getByRole('status')).toHaveTextContent('Todavía no hay etiquetas');
   });
 
   it('does not expose the editor to a non-owner', () => {

@@ -1304,12 +1304,46 @@
   font: inherit;
 }
 .upload-tags {
+  margin: 1rem 0;
+}
+.upload-tags-dropdown {
+  border: 1px solid var(--pt-border);
+  border-radius: 0.6rem;
+  background: var(--pt-bg);
+}
+.upload-tags-dropdown summary {
+  padding: 0.7rem;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.upload-tags-dropdown summary:focus-visible {
+  outline: 3px solid var(--pt-accent);
+  outline-offset: 3px;
+}
+.upload-tags-dropdown > label,
+.upload-tags-dropdown > input {
+  display: block;
+  margin: 0 0.7rem;
+}
+.upload-tags-dropdown > input[type='search'] {
+  width: calc(100% - 1.4rem);
+  margin-top: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 0.4rem;
+  background: var(--pt-surface);
+  color: var(--pt-text);
+}
+.upload-tags-options {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
-  margin: 1rem 0;
   max-height: 14rem;
+  margin: 0.7rem;
   overflow-y: auto;
+}
+.upload-tags-options p {
+  margin: 0;
 }
 .upload-tags legend {
   font-size: 1rem;
@@ -1413,6 +1447,10 @@
 .video-metadata-page input {
   width: 100%;
   max-width: 100%;
+}
+
+.video-metadata-page .upload-tags-options input {
+  width: auto;
 }
 
 /* Video player page (RF-5/T18): one consolidated section instead of rules

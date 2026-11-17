@@ -29,12 +29,15 @@ function UploadForm() {
   const [video, setVideo] = useState<File>();
   const [thumbnail, setThumbnail] = useState<File>();
   const [selectedTags, setTags] = useState<string[]>([]);
+  const [tagQuery, setTagQuery] = useState('');
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<VideoDetail | null>(null);
+
+  const visibleTags = options.tags.filter((tag) => tag.toLowerCase().includes(tagQuery.trim().toLowerCase()));
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,6 +81,7 @@ function UploadForm() {
             setVideo(undefined);
             setThumbnail(undefined);
             setTags([]);
+            setTagQuery('');
           }}
         >
           Subir otro vídeo
@@ -130,21 +134,45 @@ function UploadForm() {
           <fieldset className="upload-tags">
             <legend>Etiquetas (opcional, hasta 40)</legend>
             {options.status === 'success' && options.tags.length === 0 && <p>No hay etiquetas disponibles.</p>}
-            {options.tags.map((tag) => (
-              <label key={tag}>
+            {options.tags.length > 0 && (
+              <details className="upload-tags-dropdown">
+                <summary>
+                  {selectedTags.length === 0
+                    ? 'Seleccionar etiquetas'
+                    : `${selectedTags.length} seleccionada${selectedTags.length === 1 ? '' : 's'}: ${selectedTags.join(', ')}`}
+                </summary>
+                <label htmlFor="upload-tag-search">Buscar etiqueta</label>
                 <input
-                  type="checkbox"
-                  checked={selectedTags.includes(tag)}
-                  disabled={!selectedTags.includes(tag) && selectedTags.length >= 40}
-                  onChange={(event) =>
-                    setTags(
-                      event.target.checked ? [...selectedTags, tag] : selectedTags.filter((value) => value !== tag)
-                    )
-                  }
-                />{' '}
-                {tag}
-              </label>
-            ))}
+                  id="upload-tag-search"
+                  type="search"
+                  value={tagQuery}
+                  placeholder="Escribe para filtrar"
+                  onChange={(event) => setTagQuery(event.target.value)}
+                  // Enter in the filter must not submit the whole upload form.
+                  onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
+                />
+                <div className="upload-tags-options">
+                  {visibleTags.length === 0 && <p role="status">Ninguna etiqueta coincide con la búsqueda.</p>}
+                  {visibleTags.map((tag) => (
+                    <label key={tag}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag)}
+                        disabled={!selectedTags.includes(tag) && selectedTags.length >= 40}
+                        onChange={(event) =>
+                          setTags(
+                            event.target.checked
+                              ? [...selectedTags, tag]
+                              : selectedTags.filter((value) => value !== tag)
+                          )
+                        }
+                      />{' '}
+                      {tag}
+                    </label>
+                  ))}
+                </div>
+              </details>
+            )}
           </fieldset>
           <div className="auth-field">
             <label htmlFor="upload-video">Archivo de vídeo</label>

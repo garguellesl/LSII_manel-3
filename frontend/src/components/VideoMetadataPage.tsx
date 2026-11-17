@@ -3,10 +3,17 @@ import type { FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useVideo } from '../useVideo';
+import { useAvailableTags } from '../useAvailableTags';
 import { AuthError } from '../utils/authClient';
 import { videoClient } from '../utils/videoClient';
 
 type Metadata = { title: string; description: string; tags: string };
+
+const parseTags = (text: string) =>
+  text
+    .split(/[\n,]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 
 export function NewVideoMetadataPage() {
   const auth = useAuth();
@@ -47,13 +54,23 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [tagQuery, setTagQuery] = useState('');
+  const available = useAvailableTags(true);
+  // The text field stays the source of truth (it also accepts new tags); the dropdown
+  // only adds or removes existing ones in it.
+  const chosen = parseTags(values.tags);
+  const isChosen = (tag: string) => chosen.some((value) => value.toLowerCase() === tag.toLowerCase());
+  const visibleTags = [...available.tags]
+    .sort((a, b) => a.localeCompare(b))
+    .filter((tag) => tag.toLowerCase().includes(tagQuery.trim().toLowerCase()));
+  const toggleTag = (tag: string) => {
+    const next = isChosen(tag) ? chosen.filter((value) => value.toLowerCase() !== tag.toLowerCase()) : [...chosen, tag];
+    setValues({ ...values, tags: next.join(', ') });
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const tags = values.tags
-      .split(/[\n,]/)
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    const tags = parseTags(values.tags);
     setError('');
     setFieldErrors({});
     if (!values.title.trim()) {
@@ -135,6 +152,40 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
           {fieldErrors.description && <span role="alert">{fieldErrors.description}</span>}
         </div>
         <div className="auth-field">
+          <details className="upload-tags-dropdown">
+            <summary>Elegir entre las etiquetas existentes</summary>
+            <label htmlFor="metadata-tag-search">Buscar etiqueta</label>
+            <input
+              id="metadata-tag-search"
+              type="search"
+              value={tagQuery}
+              placeholder="Escribe para filtrar"
+              onChange={(event) => setTagQuery(event.target.value)}
+              // Enter in the filter must not submit the whole form.
+              onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
+            />
+            <div className="upload-tags-options">
+              {available.loading ? (
+                <p role="status">Cargando etiquetas…</p>
+              ) : available.error ? (
+                <p role="status">
+                  No se han podido cargar las etiquetas.{' '}
+                  <button type="button" onClick={available.reload}>
+                    Reintentar
+                  </button>
+                </p>
+              ) : available.tags.length === 0 ? (
+                <p role="status">Todavía no hay etiquetas. Escribe las tuyas abajo.</p>
+              ) : (
+                visibleTags.length === 0 && <p role="status">Ninguna etiqueta coincide con la búsqueda.</p>
+              )}
+              {visibleTags.map((tag) => (
+                <label key={tag}>
+                  <input type="checkbox" checked={isChosen(tag)} onChange={() => toggleTag(tag)} /> {tag}
+                </label>
+              ))}
+            </div>
+          </details>
           <label htmlFor="metadata-tags">Etiquetas, separadas por comas</label>
           <textarea
             id="metadata-tags"
