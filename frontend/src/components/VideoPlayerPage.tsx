@@ -130,6 +130,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           ref={media}
           className="video-player-media"
           controls
+          playsInline
           autoPlay
           poster={toMediaUrl(value.thumbnailUrl)}
           src={toMediaUrl(value.videoUrl)}
@@ -181,36 +182,47 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
             {deleteError && <p role="alert">{deleteError}</p>}
           </div>
         )}
-        <VideoDescription videoId={value.id} text={value.description} />
-        <div className="video-reactions" aria-label="Video reactions">
-          {auth.status === 'authenticated' ? (
-            <>
-              <button
-                className="video-reaction-button"
-                type="button"
-                disabled={saving}
-                aria-pressed={reaction === 'LIKE'}
-                onClick={() => void react('likes')}
-              >
-                Like {counts.likes}
-              </button>
-              <button
-                className="video-reaction-button"
-                type="button"
-                disabled={saving}
-                aria-pressed={reaction === 'DISLIKE'}
-                onClick={() => void react('dislikes')}
-              >
-                Dislike {counts.dislikes}
-              </button>
-            </>
-          ) : (
-            <p>
-              👍 {counts.likes} · 👎 {counts.dislikes} <Link to="/login">Sign in to react</Link>
-            </p>
-          )}
+        <div className="video-reactions" role="group" aria-label="Video reactions" aria-busy={saving}>
+          {(['likes', 'dislikes'] as const).map((kind) => {
+            const label = kind === 'likes' ? 'Like' : 'Dislike';
+            const selected = reaction === (kind === 'likes' ? 'LIKE' : 'DISLIKE');
+            const icon = <span aria-hidden="true">{kind === 'likes' ? '👍' : '👎'}</span>;
+            return (
+              <div className="video-reaction-item" key={kind}>
+                {auth.status === 'authenticated' ? (
+                  <button
+                    className="video-reaction-button"
+                    type="button"
+                    disabled={saving}
+                    aria-label={`${label} ${counts[kind]}`}
+                    aria-pressed={selected}
+                    onClick={() => void react(kind)}
+                  >
+                    {icon}
+                    {selected && (
+                      <span className="video-reaction-check" aria-hidden="true">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <Link className="video-reaction-button" to="/login" aria-label={`Sign in to ${label.toLowerCase()}`}>
+                    {icon}
+                  </Link>
+                )}
+                <span className="video-reaction-count">
+                  {counts[kind]} {kind}
+                </span>
+              </div>
+            );
+          })}
+          {auth.status !== 'authenticated' && <Link to="/login">Sign in to react</Link>}
         </div>
+        <p className="video-reaction-status" role="status">
+          {saving ? 'Updating reaction…' : ''}
+        </p>
         {reactionError && <p role="alert">{reactionError}</p>}
+        <VideoDescription videoId={value.id} text={value.description} />
         <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       </div>
       <CommentSection videoId={value.id} />

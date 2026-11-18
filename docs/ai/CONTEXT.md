@@ -110,3 +110,7 @@ Local change on feature/fix-upload-file-picker from main 2984ad5. UploadVideoPag
 ## Fragmented MP4 upload validation (2026-11-17)
 
 Local change from 1208e34 on feature/fix-upload-file-picker. MediaFileValidator now accepts complete fragmented MP4 with zero movie-header duration, deriving timing from track timescales and tfdt/trun with trex/tfhd defaults. Sample-table reads are bounded and run byte ranges must lie in mdat; malformed/incomplete fragments, unknown tracks, missing video samples and arithmetic overflow still return 415. Classic MP4 and upload limits/MIME/auth/storage remain unchanged. This is structural validation, without transcoding or universal codec support. Synthetic unit/HTTP regressions and the user-supplied file in isolated storage passed; Maven verify/coverage and 30 E2E passed. The local running app was updated, its database/history preserved and temporary private media removed. Evidence: specs/sprint-3/tasks.md MP-F1..MP-F3; no remote publication claimed.
+
+## Scoped player accessibility (2026-11-18)
+
+Local change on feature/add_documentacion_sprint-4: reaction controls expose a named group, selected check/underline and pending status; visitor counts use text labels. Video uses playsInline and page-scoped touch/reflow styles. No reaction API or persistence changes. Validation and limits: specs/sprint-4/task.md scoped evidence; frontend build/lint and 234 tests passed, mocked Chromium width matrix passed. Not a merged/released claim.

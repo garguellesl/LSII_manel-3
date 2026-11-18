@@ -76,6 +76,24 @@ const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status } });
 
 describe('VideoPlayerPage', () => {
+  it('exposes a named reaction group and selected state without changing button names', async () => {
+    mockedAxios.get.mockImplementation((url: string) =>
+      Promise.resolve({ data: url.endsWith('/reaction') ? { liked: true, disliked: false } : videoDetail })
+    );
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
+    const like = await screen.findByRole('button', { name: 'Like 0' });
+    await waitFor(() => expect(like).toHaveAttribute('aria-pressed', 'true'));
+    expect(like).toHaveTextContent('✓');
+    expect(like).toHaveTextContent('👍');
+    expect(screen.getByText('0 likes')).toBeInTheDocument();
+    expect(
+      like.compareDocumentPosition(screen.getByText('Official video')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Dislike 0' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('group', { name: 'Video reactions' })).toHaveAttribute('aria-busy', 'false');
+    expect(screen.getByLabelText('Uptown Funk')).toHaveAttribute('playsinline');
+  });
+
   it('reports one play per opening when playback really starts, retrying a failed report with the same id', async () => {
     mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
     mockedVideoClient.recordPlay.mockReset();
@@ -307,7 +325,8 @@ describe('VideoPlayerPage', () => {
     // stale as soon as someone posts in the discussion rendered right below.
     expect(details).not.toHaveTextContent(/comment/i);
     expect(details).not.toHaveTextContent(/like/i);
-    expect(screen.getByText(/👍 5 · 👎 1/)).toBeInTheDocument();
+    expect(screen.getByText('5 likes')).toBeInTheDocument();
+    expect(screen.getByText('1 dislikes')).toBeInTheDocument();
   });
 
   it('uses the singular for exactly one view', async () => {
