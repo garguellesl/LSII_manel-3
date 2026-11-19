@@ -199,6 +199,13 @@ To only preview the production frontend bundle, without the backend: `cd fronten
 
 ### Using PostgreSQL
 
+For a shared hosted database, follow [Shared PostgreSQL with Supabase](docs/SHARED_DATABASE.md).
+The optional `compose.supabase.yaml` and **Production [Supabase]** configuration use that explicit
+destination; the regular Compose/Production/DEV commands below continue using the local database.
+On a teammate's first shared startup, a missing password is requested with hidden console input and saved
+in their ignored `.env.supabase`. If IntelliJ's Maven console cannot hide input, configure once from its
+Terminal with `java tooling/database/StartSupabase.java --configure`, then use **Production [Supabase]**.
+
 Both application profiles use PostgreSQL; H2 is not a dependency. From the repository root, set the application
 variables in your current shell or your uncommitted IDE configuration. For example, in PowerShell, use your
 chosen database/user and enter the password without printing it:
