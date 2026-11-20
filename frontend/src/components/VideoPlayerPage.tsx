@@ -182,6 +182,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
             {deleteError && <p role="alert">{deleteError}</p>}
           </div>
         )}
+        <VideoDescription videoId={value.id} text={value.description} />
         <div className="video-reactions" role="group" aria-label="Video reactions" aria-busy={saving}>
           {(['likes', 'dislikes'] as const).map((kind) => {
             const label = kind === 'likes' ? 'Like' : 'Dislike';
@@ -216,13 +217,19 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
               </div>
             );
           })}
-          {auth.status !== 'authenticated' && <Link to="/login">Sign in to react</Link>}
+          {auth.status !== 'authenticated' && (
+            <>
+              <span className="video-reaction-summary">
+                👍 {counts.likes} · 👎 {counts.dislikes}
+              </span>
+              <Link to="/login">Sign in to react</Link>
+            </>
+          )}
         </div>
         <p className="video-reaction-status" role="status">
           {saving ? 'Updating reaction…' : ''}
         </p>
         {reactionError && <p role="alert">{reactionError}</p>}
-        <VideoDescription videoId={value.id} text={value.description} />
         <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       </div>
       <CommentSection videoId={value.id} />

@@ -87,7 +87,7 @@ describe('VideoPlayerPage', () => {
     expect(like).toHaveTextContent('👍');
     expect(screen.getByText('0 likes')).toBeInTheDocument();
     expect(
-      like.compareDocumentPosition(screen.getByText('Official video')) & Node.DOCUMENT_POSITION_FOLLOWING
+      screen.getByText('Official video').compareDocumentPosition(like) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Dislike 0' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('group', { name: 'Video reactions' })).toHaveAttribute('aria-busy', 'false');
