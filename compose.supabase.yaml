@@ -1,0 +1,35 @@
+# Standalone alternative: docker compose --env-file .env.supabase -f compose.supabase.yaml up --build -d --wait
+# Use Session pooler (5432) from Supabase Connect. This file does not start a local database.
+services:
+  app:
+    extends:
+      file: compose.yaml
+      service: app
+    depends_on: !reset {}
+    environment:
+      ENV_PROTUBE_DB_HOST: "${SUPABASE_DB_HOST:?Set SUPABASE_DB_HOST from the Session pooler}"
+      ENV_PROTUBE_DB_PORT: "${SUPABASE_DB_PORT:-5432}"
+      ENV_PROTUBE_DB: "${SUPABASE_DB_NAME:-postgres}"
+      ENV_PROTUBE_DB_USER: "${SUPABASE_DB_USER:?Set SUPABASE_DB_USER from the Session pooler}"
+      ENV_PROTUBE_DB_PASS: "${SUPABASE_DB_PASSWORD:?Set SUPABASE_DB_PASSWORD locally}"
+      # Keep transport/search_path in JDBC options before the pool opens a connection.
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://${SUPABASE_DB_HOST:?Set SUPABASE_DB_HOST from the Session pooler}:${SUPABASE_DB_PORT:-5432}/${SUPABASE_DB_NAME:-postgres}?sslmode=require&currentSchema=protube"
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "3"
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "0"
+      SPRING_FLYWAY_DEFAULT_SCHEMA: protube
+      SPRING_FLYWAY_SCHEMAS: protube
+      # JSON preserves Hibernate's underscore in default_schema when binding map keys.
+      SPRING_APPLICATION_JSON: '{"spring":{"jpa":{"properties":{"hibernate.default_schema":"protube"}}}}'
+      # Do not provision a demonstration account in the team's shared database.
+      ENV_PROTUBE_DEMO_ADMIN_PASSWORD: ""
+    command: ["--pro_tube.load_initial_data=false"]
+    # Check database-backed readiness without loading/ranking a full page over the network.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/videos?page=0&size=1"]
+      interval: 30s
+      timeout: 15s
+      retries: 6
+      start_period: 30s
+
+volumes:
+  uploaded_media:
