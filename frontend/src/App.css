@@ -1767,3 +1767,109 @@
   outline: 3px solid var(--pt-accent);
   outline-offset: 3px;
 }
+
+/* Sprint 4: scoped reflow and touch targets for the video detail page. */
+.video-player-page .back-link,
+.video-reactions p a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.video-reactions p {
+  flex-wrap: wrap;
+  max-width: 100%;
+  border-radius: 16px;
+}
+.video-reaction-button {
+  min-width: 44px;
+  max-width: 100%;
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.video-reaction-button[aria-pressed='true'] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.video-reaction-status {
+  margin: 0;
+  font-size: var(--pt-player-font-meta);
+}
+.video-reaction-status:empty {
+  display: none;
+}
+.video-player-page .video-tag-remove {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.video-player-page .video-tag-chip,
+.video-player-page .video-tags-editor,
+.video-player-page .video-meta-item,
+.video-player-page .video-player-user {
+  min-width: 0;
+  max-width: 100%;
+}
+.video-player-page input,
+.video-player-page textarea {
+  min-width: 0;
+  max-width: 100%;
+  font-size: 1rem;
+}
+@media (max-width: 768px) {
+  .video-player-page {
+    width: calc(100% - 2rem);
+  }
+  .video-player-media {
+    display: block;
+    min-width: 0;
+  }
+  .video-reaction-button {
+    flex: 1 1 8rem;
+  }
+}
+
+/* Compact reaction controls keep counters outside their circular hit areas. */
+.video-reaction-item {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.video-reaction-item .video-reaction-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  flex: none;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  text-decoration: none;
+}
+.video-reaction-count {
+  font-size: var(--pt-player-font-meta);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.video-reaction-check {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: var(--pt-accent);
+  color: var(--pt-on-accent);
+  font-size: 0.7rem;
+}
