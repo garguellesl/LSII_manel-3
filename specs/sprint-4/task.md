@@ -43,7 +43,7 @@ Dependencies: none; implementation ownership is not yet assigned.
   - Estimate: 15–20 min. Depends on: T00.06.
   - Done when: Namespaces, fallback, widths, focus and screen-reader coverage are explicit.
   - Evidence: pending.
-
+ 
 ## P01 — Complete the Shared Cloud Database and Application Environment
 
 Requirement: RF-01 (all AC). Design: [P01](plan.md#p01). Integration dependencies: none.
