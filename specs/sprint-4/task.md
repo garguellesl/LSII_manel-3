@@ -1052,10 +1052,10 @@ Requirement: RF-16 (all AC). Design: [P16](plan.md#p16). Integration dependencie
 
 Requirement: RF-17 (all AC). Design: [P17](plan.md#p17). Integration dependencies: P00 dataset contract; P08/P09/P10/P13 final queries for final run.
 
-- [ ] T17.01 — Define benchmark dataset manifest.
+- [x] T17.01 — Define benchmark dataset manifest.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: Counts, distributions and deterministic seed are recorded.
-  - Evidence: pending.
+  - Evidence: [deterministic fixture](../../backend/src/test/resources/benchmark/catalogue-537.sql) and the [catalogue checkpoint](#scrum-58-catalogue-checkpoint). Dataset approved for this slice on 22 November.
 - [ ] T17.02 — Prepare one repeatable request workload.
   - Estimate: 15–20 min. Depends on: T17.01.
   - Done when: Catalogue/search/detail/library operations and concurrency are specified.
@@ -1116,6 +1116,47 @@ Requirement: RF-17 (all AC). Design: [P17](plan.md#p17). Integration dependencie
   - Estimate: 15–20 min. Depends on: T17.15.
   - Done when: p50/p95/errors/queries and filters/totals/privacy are reported honestly.
   - Evidence: pending.
+
+### SCRUM-58 catalogue checkpoint
+
+- RF-17.AC1/6/8 · The 537-video isolated dataset supersedes 1,000 for this slice. Neither the earlier 74-video sample nor single-user runs establish the concurrent p95.
+- RF-17.AC2/3/4 · Check a full page at sizes 1, 6 and 24, partial and empty pages, tags, deleted comments, reactions and plays. The full page should require at most six SQL statements.
+- RF-17.AC5/7 · Capture the existing page plan and compare workload and functional results on the same fixture. Track any unexecuted check here.
+
+#### Fixture, workload and reproduction
+
+Arithmetic seed 58 generates 537 videos owned by 64 synthetic accounts. Each fifth video has no tags and each other video has three of eight tags. The first 500 videos share 5,370 unique video/account reactions (every fourth is a dislike). The first 480 share 2,685 comments (every eleventh is soft-deleted). The first 520 share 1,074 play events. Sources: [SQL fixture](../../backend/src/test/resources/benchmark/catalogue-537.sql) and [isolated workload](../../backend/src/test/java/com/tecnocampus/LS2/protube_back/services/CatalogueBenchmarkIT.java).
+
+From the repository root, run `python tooling/database/compare_catalogue.py --output ../scrum58-comparison` with Java 21, Maven and Docker available. Choose a new output directory. The [comparison runner](../../tooling/database/compare_catalogue.py) extracts the baseline backend at `2ef450d`, copies the same workload and fixture into it, then runs `mvn -Dtest=CatalogueBenchmarkIT test` sequentially for both versions. It retains both logs and checks the response hashes, samples, SQL bound and p95 targets in every measured round. Its parser and rejection cases were exercised with synthetic logs. Each invocation starts its own PostgreSQL Testcontainer. The in-process client uses the actual HTTP endpoint on a random loopback port. Ten workers cycle through the first page, a title/tag search, page two, and a detail request. The run prints isolated service times and statement counts first, then stable response hashes and HTTP results per route. Exclude warm-up (round 0, 30 seconds). Compare rounds 1–3 (300 seconds each) and their error counts, p50/p95 and hashes. For each 24-card listing/search operation check the 1,000 ms budget and, when the baseline exceeds it, the 30% reduction. Fixed data and concurrent readers exercise read consistency. Concurrent writes, private collections, production network latency and post-idle startup require separate evidence.
+
+#### Shared Supabase sample before the change
+
+Three sequential rounds from the Windows host with the original application already running on port 8080. Public GET, one worker, `python tooling/database/catalogue_probe.py --tag "(official"` from the repo root. Snapshot: 74 videos, 1,296 tag links, one reaction, one comment and six plays. The version of the running container was not established. Each SHA-256 covers the canonical JSON response including ordered cards and tags. Mutable counters can change between runs, so compare them on a stable dataset.
+
+| Case | Cards | HTTP ms, three rounds | Median ms | SHA-256, stable over three rounds |
+|---|---:|---|---:|---|
+| page-1 | 1 | 392.6, 348.6, 352.5 | 352.5 | 7896d8cec775fcb878bee8d9101990c3872f931f335f1b9a0950c910990413b1 |
+| page-6 | 6 | 1337.7, 1367.9, 1365.3 | 1365.3 | 753969e3422f2bc961f417dcd51739535ba4d9db111911a7e3821fabdb53f804 |
+| page-24 | 24 | 5059.2, 5024.3, 5026.8 | 5026.8 | bfc7245734ef257ab76b19df1e65962b5e74845ee675553605cb0798ebb1154b |
+| next-page | 24 | 5014.4, 5038.7, 5017.0 | 5017.0 | 931e60481e2694cd692863764fa5396942b50e38dd3a7bbb4cca0927a5a4c282 |
+| filtered | 1 | 373.3, 375.7, 360.4 | 373.3 | a80a8194d0f49690ae8ade35e0bc155e2d90264c32a0677d09d43c322b8e39bd |
+| empty | 0 | 112.2, 107.9, 88.7 | 107.9 | bc4f4968e23278b427b75d8102add339a337b25f36a325af836e8ca23aec090b |
+
+All 18 requests returned 200. Earlier observation: 122 catalogue statements (120 video-specific) during a 5.088 s request, measured by shared pg_stat_statements deltas. For the equivalent unfiltered page selector, EXPLAIN (ANALYZE, BUFFERS) showed an index scan on videos_pkey, 24 rows, 14 shared hits and 0.125 ms execution. This is the page selector alone. PostgreSQL comparison on the same first 24 IDs found zero differences between grouped and individual tag/reaction/comment/play values. No new index is justified by this limited measurement.
+
+#### Read-only PostgreSQL check of the 537-video fixture
+
+Executed the fixture's seven SELECT expressions as in-memory query relations on PostgreSQL. Compared individual counts and sorted tag names against page-grouped results in both directions using EXCEPT ALL. All 537 IDs across 23 pages matched, including 5,370 distinct video/user reactions, 2,685 comments (245 soft-deleted) and 1,074 play events. This validates the SQL semantics independently of Spring. No rows were inserted into the shared application tables.
+
+#### Candidate verification
+
+| RF-17 criteria | Evidence | Status |
+|---|---|---|
+| AC2–4 | Two CatalogueSummaryTest cases passed with Surefire. They exercise mapping by ID, ordering, absent groups, zero counts and the empty-page path. Hibernate 6.5.2 translated all four JPQL reads with the PostgreSQL dialect. | Implemented. The end-to-end six-statement bound still needs CatalogueQueryCountTest. |
+| AC1, AC5, AC6, AC8 | Reproducible pre-change HTTP sample, shared read-only SQL cross-check and a deterministic isolated workload. | Candidate HTTP p50/p95 and reduction are pending. |
+| AC7 | Concurrent read workload compares each response with its warmed reference. | Pending isolated execution. |
+
+Java 21 compilation of all production and test sources succeeded with the Eclipse compiler. The default Maven clean verify failed in javac while resolving Windows file paths. Running Surefire on the compiled classes reached the tests. The initial full run recorded 192 tests, 86 errors and one skip. Testcontainers could not start PostgreSQL because Docker Engine access was denied in this session. Separate MediaStorageServiceTest cases also encountered Windows temporary-directory access errors. The two focused unit tests added afterward passed. An explicit CatalogueBenchmarkIT invocation stopped during container startup, before any timed samples. The integration gate and the benchmark remain open.
 
 ## P16 — Additional translation slices
 
@@ -1381,7 +1422,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-14 | T14.* + relevant QA | RoutePlaybackContinuity + SinglePlayId; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-15 | T15.* + relevant QA | KeyboardReaderJourney + VoiceFailures; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-16 | T16.* + relevant QA | LocaleParity + PreserveState; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
-| RF-17 | T17.* + relevant QA | RepeatableBenchmark + QueryCountBound; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-17 | T17.* + relevant QA | RepeatableBenchmark + QueryCountBound | [Catalogue checkpoint](#scrum-58-catalogue-checkpoint) | Partial. PostgreSQL integration and isolated before/after timing pending. |
 
 ## Documentation handoff and current verdict
 

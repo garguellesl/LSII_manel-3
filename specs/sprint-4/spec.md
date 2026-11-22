@@ -435,6 +435,8 @@ A user opens the catalogue, applies combined filters, changes sorting, paginates
 
 **Proposed benchmark, to agree before implementation:** Use 1,000 videos, 10,000 reactions and 5,000 comments with 10 concurrent virtual users. Run the same five-minute workload three times after warm-up. Target p95 HTTP latency at or below 1,000 ms for catalogue and filtered search pages of 24 videos, measured from a fixed documented client. For a baseline operation exceeding that budget, also target at least a 30% p95 reduction. Report cold-start behaviour separately and exclude MP4 transfer time from API measurements. These are proposed acceptance targets, not measured capabilities of the current deployment.
 
+**SCRUM-58 catalogue slice (22 November 2026).** The requested midpoint is 537 videos, 5,370 reactions and 2,685 comments on a dedicated test database. Retain the proposed warm workload (10 concurrent users, three five-minute runs), p95 ≤ 1,000 ms and ≥30% p95 reduction for an operation previously above budget. Compare equivalent responses for first, subsequent, last and empty pages, with and without filters. The existing 74-video Supabase catalogue is a separate observational sample. The reported click-to-first-frame below one second is a user estimate. Playback and collection changes are outside this slice.
+
 Query-plan analysis and index selection should follow measured workloads; see [Supabase: Query Optimization](https://supabase.com/docs/guides/database/query-optimization).
 
 ## Non-functional requirements and compatibility
