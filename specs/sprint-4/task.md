@@ -402,74 +402,91 @@ Requirement: RF-06 (all AC). Design: [P06](plan.md#p06). Integration dependencie
 
 Requirement: RF-07 (all AC). Design: [P07](plan.md#p07). Integration dependencies: P00 identity/contracts; P16 adapter.
 
-- [ ] T07.01 — Define subscription DTO and endpoint examples.
+The [SCRUM-48 handoff](../../docs/ai/tasks/scrum-48.md) records the affected areas and migration candidate. Validate the contract with MockMvc and isolated PostgreSQL, including concurrent duplicates, account isolation and a restart. Validate button states with mocked client tests and run the player → subscriptions → creator flow in Chromium.
+
+- [x] T07.01 — Define subscription DTO and endpoint examples.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: Own-list privacy and public creator fields are separated.
-  - Evidence: pending.
-- [ ] T07.02 — Write subscription table migration.
+  - Evidence: The examples in [P07](plan.md#p07) distinguish session state, private collection data and public creator data.
+- [x] T07.02 — Write subscription table migration.
   - Estimate: 15–20 min. Depends on: T07.01.
   - Done when: Unique subscriber/creator pair and foreign keys are present.
-  - Evidence: pending.
-- [ ] T07.03 — Map the subscription entity/repository.
+  - Evidence: `V9__creator_subscriptions.sql` adds the foreign keys, unique pair, self-check and indexes. PostgreSQL restart verifies the creator-deletion cascade.
+- [x] T07.03 — Map the subscription entity/repository.
   - Estimate: 15–20 min. Depends on: T07.02.
   - Done when: No controller accesses the repository directly.
-  - Evidence: pending.
-- [ ] T07.04 — Add self-subscription service rejection.
+  - Evidence: `CreatorSubscription`, `CreatorSubscriptionRepository` and the service use the existing controller/service/repository boundaries.
+- [x] T07.04 — Add self-subscription service rejection.
   - Estimate: 15–20 min. Depends on: T07.03.
   - Done when: Same actor and creator are rejected with 400.
-  - Evidence: pending.
-- [ ] T07.05 — Implement idempotent subscription insert.
+  - Evidence: `CreatorSubscriptionsIntegrationTest.authenticatesMutationsAndScopesListAndStateToTheCurrentPrincipal` verifies 400 for self-subscription.
+- [x] T07.05 — Implement idempotent subscription insert.
   - Estimate: 15–20 min. Depends on: T07.04.
   - Done when: Repeated PUT keeps one pair.
-  - Evidence: pending.
-- [ ] T07.06 — Implement idempotent subscription removal.
+  - Evidence: The integration tests verify repeated PUT and concurrent service calls keep one pair.
+- [x] T07.06 — Implement idempotent subscription removal.
   - Estimate: 15–20 min. Depends on: T07.05.
   - Done when: Repeated DELETE leaves no pair and returns no-content.
-  - Evidence: pending.
-- [ ] T07.07 — Implement own paginated subscription query.
+  - Evidence: The integration tests verify repeated DELETE returns 204 with no remaining pair.
+- [x] T07.07 — Implement own paginated subscription query.
   - Estimate: 15–20 min. Depends on: T07.06.
   - Done when: Identity comes from the principal and ordering is stable.
-  - Evidence: pending.
-- [ ] T07.08 — Add subscribe/remove controller mappings.
+  - Evidence: `simultaneousSubscribesLeaveOnePairAndAnOrderedPrivatePage` verifies stable ordering and totals across pages.
+- [x] T07.08 — Add subscribe/remove controller mappings.
   - Estimate: 15–20 min. Depends on: T07.07.
   - Done when: DTO/status/CSRF policy follows the agreed contract.
-  - Evidence: pending.
-- [ ] T07.09 — Add own-list and state controller mappings.
+  - Evidence: The HTTP integration test verifies POST-independent PUT/DELETE mappings, CSRF, 204, 400, 401, 403 and missing creator handling.
+- [x] T07.09 — Add own-list and state controller mappings.
   - Estimate: 15–20 min. Depends on: T07.08.
   - Done when: Unauthenticated callers receive 401 with otherwise valid request context.
-  - Evidence: pending.
-- [ ] T07.10 — Add subscription client methods.
+  - Evidence: The HTTP integration test verifies the principal, 401 and the private GET cache policy.
+- [x] T07.10 — Add subscription client methods.
   - Estimate: 15–20 min. Depends on: T07.09.
   - Done when: Requests reuse auth and API utilities.
-  - Evidence: pending.
-- [ ] T07.11 — Render subscribe button states.
+  - Evidence: `subscriptionClient` reuses the shared CSRF and credentialed request utilities. The production Chromium test exercises those requests.
+- [x] T07.11 — Render subscribe button states.
   - Estimate: 15–20 min. Depends on: T07.10.
   - Done when: Pending/error/selected labels are exposed accessibly.
-  - Evidence: pending.
-- [ ] T07.12 — Render My subscriptions list.
+  - Evidence: `CreatorSubscription.test.tsx` verifies initial loading, pending, selected/unselected state and recovery without a false success.
+- [x] T07.12 — Render My subscriptions list.
   - Estimate: 15–20 min. Depends on: T07.11.
   - Done when: Empty and populated responses use public creator links.
-  - Evidence: pending.
-- [ ] T07.13 — Add public creator summary retrieval.
+  - Evidence: `creator-subscriptions.spec.ts` verifies the populated collection, the correct creator link and the empty state after removal.
+- [x] T07.13 — Add public creator summary retrieval.
   - Estimate: 15–20 min. Depends on: T07.12.
   - Done when: DTO exposes no email or private collection data.
-  - Evidence: pending.
-- [ ] T07.14 — Add public creator video-list retrieval.
+  - Evidence: `publicCreatorShowsOnlyPublicFieldsAndItsOwnPaginatedVideos` verifies anonymous access, public biography and exclusion of private fields.
+- [x] T07.14 — Add public creator video-list retrieval.
   - Estimate: 15–20 min. Depends on: T07.13.
   - Done when: Only public video summaries are returned with pagination.
-  - Evidence: pending.
-- [ ] T07.15 — Add a creator navigation destination.
+  - Evidence: The public creator test verifies both bounded pages and excludes another creator’s video.
+- [x] T07.15 — Add a creator navigation destination.
   - Estimate: 15–20 min. Depends on: T07.14.
   - Done when: Subscription cards resolve to the correct creator content.
-  - Evidence: pending.
-- [ ] T07.16 — Test subscription uniqueness with PostgreSQL.
+  - Evidence: Playwright follows the creator link and checks the public video link and hard-reload routing.
+- [x] T07.16 — Test subscription uniqueness with PostgreSQL.
   - Estimate: 15–20 min. Depends on: T07.15.
   - Done when: Concurrent duplicate writes retain one relationship.
-  - Evidence: pending.
-- [ ] T07.17 — Test private-list account isolation.
+  - Evidence: Two concurrent calls through independent PostgreSQL transactions leave one pair.
+- [x] T07.17 — Test private-list account isolation.
   - Estimate: 15–20 min. Depends on: T07.16.
   - Done when: Another principal cannot retrieve the target user's private list.
-  - Evidence: pending.
+  - Evidence: The HTTP integration test verifies isolation across principals, ignored caller-supplied subscriber IDs and successful deletion of only the caller’s pair.
+
+### SCRUM-48 local validation
+
+| Criteria | Passing evidence |
+| --- | --- |
+| RF-07.AC1–AC3 | HTTP tests exercise create and remove, self-rejection and idempotence; PostgreSQL verifies concurrent uniqueness. |
+| RF-07.AC4 | Chromium verifies reload and a fresh sign-in. `PostgreSqlPersistenceTest` verifies persistence across dev and prod restarts. |
+| RF-07.AC5–AC6 | Chromium follows a private collection entry to the public creator’s videos; MockMvc checks two accounts and request scoping. |
+| RF-07.AC7–AC8 | Jest checks failed writes, selected and pending states, and Spanish, Catalan and English strings. Chromium opens the control by keyboard at 375 px. |
+
+- `mvn -B -o clean verify` passed with Java 21, Testcontainers and JaCoCo. 193 tests passed and the existing Windows symlink test was skipped.
+- `npm run build`, `npm run lint` and `npm run test -- --coverage --watchAll=false --ci --runInBand` passed. 236 Jest tests.
+- `npm test -- --workers=2` passed all 31 Chromium tests against isolated Compose.
+- The initial runs exposed shared test fixtures leaking into the catalogue suite and an ambiguous password locator. Transaction cleanup and exact matching resolve both test issues.
+- App-wide language selection remains part of P16. The subscription screens currently use the browser’s locale preference.
 
 ## P08 — Sort Search Results by Most Liked and Most Viewed
 
@@ -1371,7 +1388,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-04 | T04.* + relevant QA | FiveLineOverflow + RecommendationEligibility; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-05 | T05.* + relevant QA | ReactionTransitions + StaleResponse; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-06 | T06.* + relevant QA | ThreadResponsive + DraftFailure; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
-| RF-07 | T07.* + relevant QA | SubscriptionUniqueness + OwnListIsolation; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-07 | T07.* + relevant QA | Subscription uniqueness, private-list isolation, creator navigation and restart | [SCRUM-48 local validation](#scrum-48-local-validation) | Passed locally |
 | RF-08 | T08.* + relevant QA | CombinedPopularitySearch + MultiPageTies; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-09 | T09.* + relevant QA | PublicationSort + EditPreservesDate; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-10 | T10.* + relevant QA | LikedListIsolation + UnlikeRefresh; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |

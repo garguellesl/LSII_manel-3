@@ -185,6 +185,8 @@ A user subscribes from a creator's video or public profile, finds the creator in
 - **RF-07.AC7:** Failed actions do not display a false successful subscription state.
 - **RF-07.AC8:** Controls and list states are responsive, keyboard accessible and translated.
 
+The public creator page shows the public name, avatar, description and videos. An account can open its own public page without a subscribe control. The subscription list is accessible from the signed-in account menu.
+
 **Scope:** Email notifications, push notifications and a personalised subscription feed are not included unless added as separate requirements.
 
 ### RF-08 — Sort Search Results by Most Liked and Most Viewed

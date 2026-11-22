@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from './UserAvatar';
+import { subscriptionMessages } from '../utils/subscriptionMessages';
 
 export function AccountMenu() {
   const auth = useAuth();
@@ -42,6 +43,9 @@ export function AccountMenu() {
           <Link className="account-link account-profile" to="/profile" aria-label="Mi perfil">
             <UserAvatar name={auth.user.accountName} src={auth.user.avatarUrl} />
             <span className="account-name">{auth.user.displayName || auth.user.accountName}</span>
+          </Link>
+          <Link className="account-link" to="/subscriptions">
+            {subscriptionMessages().subscriptions}
           </Link>
           <button className="account-link" type="button" onClick={() => void logout()}>
             Cerrar sesión

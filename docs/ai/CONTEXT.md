@@ -46,6 +46,10 @@ These are implemented routes at the baseline, not a guarantee of authorization o
 | `/api/videos/{id}/watch-history` | POST | Not wired. |
 | `/api/users/{id}/watch-history`, `/api/users/{id}/analytics` | GET | Own profile page (read-only summary). |
 
+## Creator subscriptions
+
+SCRUM-48 adds session-scoped subscription state and a private paginated collection under `/api/users`, public creator detail and video pages under `/api/creators`, and Flyway V9. The account menu and the creator identity on a video link to the new screens. [SCRUM-48 handoff](tasks/scrum-48.md).
+
 ## Configuration and known gaps
 
 - Comments update (2026-11-12, working tree from `9ff56a4` on `feature/sprint3-comments-replies-likes`): RF-4 implemented through CommentService/CommentsController, V4, commentClient/useComments and CommentSection. Per-comment row locks serialize edits/deletion/likes and creation of replies against their parent; composite FK prevents cross-video parents. The client normalizes MVC LocalDateTime arrays, renders plain text, orders siblings by creation/ID, bounds indentation and collapses branches. Author display currently uses accountName and the existing initials avatar; editable profile remains RF-3. Session rechecks retain drafts with actions disabled; changing identity/video discards old state. Evidence and scope: [RF-4 tasks](../../specs/sprint-3/tasks.md#ejecución-rf-4-2026-11-12). This describes local implementation, not remote CI, merge or staging.

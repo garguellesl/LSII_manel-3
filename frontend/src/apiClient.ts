@@ -5,7 +5,7 @@ import { getEnv } from './utils/Env';
 export async function mutate<T>(
   path: string,
   body: unknown,
-  method: 'post' | 'patch' | 'delete' = 'post',
+  method: 'post' | 'put' | 'patch' | 'delete' = 'post',
   options: Pick<AxiosRequestConfig, 'onUploadProgress' | 'signal'> = {}
 ): Promise<T> {
   const base = getEnv().API_BASE_URL;
@@ -18,6 +18,6 @@ export async function mutate<T>(
   const response =
     method === 'delete'
       ? await axios.delete<T>(`${base}${path}`, config)
-      : await (method === 'patch' ? axios.patch<T> : axios.post<T>)(`${base}${path}`, body, config);
+      : await axios[method]<T>(`${base}${path}`, body, config);
   return response.data;
 }

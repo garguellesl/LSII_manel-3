@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/categories", "/api/videos", "/api/videos/*",
-                                "/api/videos/*/comments").permitAll()
+                                "/api/videos/*/comments", "/api/creators/*", "/api/creators/*/videos").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         // Visitors also generate plays (RF-7); the session CSRF token is still required.
                         .requestMatchers(HttpMethod.POST, "/api/videos/*/plays").permitAll()
@@ -86,7 +86,7 @@ public class SecurityConfig {
         cors.setAllowedOrigins(Arrays.stream(environment.getProperty("pro_tube.web.allowed-origins",
                         "http://localhost:5174").split(","))
                 .map(String::trim).filter(origin -> !origin.isEmpty()).toList());
-        cors.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
         cors.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
