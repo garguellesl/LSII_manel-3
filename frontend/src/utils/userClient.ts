@@ -21,6 +21,14 @@ export type WatchHistoryEntry = {
   watchedAt: string;
 };
 
+export type LikedVideosPage = {
+  content: { id: number; title: string; thumbnailUrl: string | null }[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+  totalElements: number;
+};
+
 export const AVATAR_LIMIT = 2 * 1024 * 1024;
 export const DISPLAY_NAME_LIMIT = 100;
 export const DESCRIPTION_LIMIT = 1000;
@@ -72,6 +80,14 @@ export const userClient = {
       { withCredentials: true, signal }
     );
     return response.data.map((entry) => ({ ...entry, watchedAt: apiDate(entry.watchedAt) }));
+  },
+  async likedVideos(page: number, signal: AbortSignal): Promise<LikedVideosPage> {
+    const response = await axios.get<LikedVideosPage>(`${getEnv().API_BASE_URL}/users/me/liked-videos`, {
+      withCredentials: true,
+      params: { page },
+      signal,
+    });
+    return response.data;
   },
   // Always edits the signed-in account: the server takes the identity from the session.
   async updateProfile(input: ProfileInput, avatar?: File): Promise<User> {

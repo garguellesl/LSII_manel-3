@@ -94,6 +94,34 @@ describe('VideoPlayerPage', () => {
     expect(screen.getByLabelText('Uptown Funk')).toHaveAttribute('playsinline');
   });
 
+  it.each([
+    ['Like', 'likes', true, false],
+    ['Dislike', 'dislikes', false, true],
+  ])('removes a selected %s using the existing DELETE endpoint', async (label, path, liked, disliked) => {
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (url.endsWith('/reaction')) return Promise.resolve({ data: { liked, disliked } });
+      if (url.endsWith('/auth/csrf')) return Promise.resolve({ data: { token: 'token', headerName: 'X-CSRF-TOKEN' } });
+      return Promise.resolve({ data: { ...videoDetail, likesCount: Number(liked), dislikesCount: Number(disliked) } });
+    });
+    mockedAxios.delete.mockResolvedValue({ data: { liked: false, disliked: false, likesCount: 0, dislikesCount: 0 } });
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
+
+    const active = await screen.findByRole('button', { name: `${label} 1`, exact: true });
+    await waitFor(() => expect(active).toHaveAttribute('aria-pressed', 'true'));
+    fireEvent.click(active);
+
+    await waitFor(() =>
+      expect(mockedAxios.delete).toHaveBeenCalledWith(`other/videos/7/${path}`, {
+        withCredentials: true,
+        headers: { 'X-CSRF-TOKEN': 'token' },
+      })
+    );
+    expect(await screen.findByRole('button', { name: `${label} 0`, exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+  });
+
   it('reports one play per opening when playback really starts, retrying a failed report with the same id', async () => {
     mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
     mockedVideoClient.recordPlay.mockReset();

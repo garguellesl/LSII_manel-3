@@ -573,46 +573,65 @@ Requirement: RF-09 (all AC). Design: [P09](plan.md#p09). Integration dependencie
 
 Requirement: RF-10 (all AC). Design: [P10](plan.md#p10). Integration dependencies: P05 reaction contract; P00 page DTO.
 
-- [ ] T10.01 — Audit reaction timestamp availability.
+SCRUM-51 implements P10 in its own branch. The existing reaction endpoints supply the P05 contract. This slice uses the catalogue page envelope with a small item payload and retains the existing `/profile` route. See the [coordination handoff](../../docs/ai/tasks/scrum-51.md) for scope and shared files.
+
+- [x] T10.01 — Audit reaction timestamp availability.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: Need for an additive timestamp migration is recorded.
-  - Evidence: pending.
-- [ ] T10.02 — Add reaction timestamp persistence if missing.
+  - Evidence: `V1__init_schema.sql` and `VideoLike.createdAt` already supply the timestamp. Prior reaction switches only updated the type.
+- [x] T10.02 — Add reaction timestamp persistence if missing.
   - Estimate: 15–20 min. Depends on: T10.01.
   - Done when: New likes have ordering data without changing reaction uniqueness.
-  - Evidence: pending.
-- [ ] T10.03 — Write own-liked-video paginated query.
+  - Evidence: `VideoLikeRepository.upsertReaction` retains uniqueness and records the transition to LIKE using the existing column. `SessionSecurityTest.likedVideosArePrivatePaginatedAndBasedOnCurrentPositiveReactions` verifies that retries preserve the order and new positive reactions move ahead of older ones.
+- [x] T10.03 — Write own-liked-video paginated query.
   - Estimate: 15–20 min. Depends on: T10.02.
   - Done when: Only active LIKE entries for the principal are returned.
-  - Evidence: pending.
-- [ ] T10.04 — Expose own-liked-video DTO endpoint.
+  - Evidence: `SessionSecurityTest` covers positive-only filtering, principal scoping, stable ties across pages, totals and an out-of-range page. `LikedVideosServiceTest` covers thumbnail and page mapping.
+- [x] T10.04 — Expose own-liked-video DTO endpoint.
   - Estimate: 15–20 min. Depends on: T10.03.
   - Done when: Response uses the shared page envelope.
-  - Evidence: pending.
-- [ ] T10.05 — Add liked-video client/hook.
+  - Evidence: `LikedVideosControllerTest` verifies the session principal, page defaults, DTO, no-store header and invalid paging. `SessionSecurityTest` verifies authentication on the real route.
+- [x] T10.05 — Add liked-video client/hook.
   - Estimate: 15–20 min. Depends on: T10.04.
   - Done when: Cancellation and loading/error/empty states are provided.
-  - Evidence: pending.
-- [ ] T10.06 — Render profile Liked videos entry.
+  - Evidence: `userClient.test.ts` verifies credentialed requests and the abort signal. `ProfilePage.test.tsx` verifies loading, empty and retry states and rejects a late response from a previous account.
+- [x] T10.06 — Render profile Liked videos entry.
   - Estimate: 15–20 min. Depends on: T10.05.
   - Done when: It opens the own collection.
-  - Evidence: pending.
-- [ ] T10.07 — Render liked-video page and pagination.
+  - Evidence: `ProfilePage.test.tsx` verifies the collapsed entry and fetch on expansion.
+- [x] T10.07 — Render liked-video page and pagination.
   - Estimate: 15–20 min. Depends on: T10.06.
   - Done when: Cards link to matching video IDs.
-  - Evidence: pending.
-- [ ] T10.08 — Invalidate collection after unlike/dislike.
+  - Evidence: `ProfilePage.test.tsx` verifies video links, next/previous controls and the return to a valid page when the collection shrinks.
+- [x] T10.08 — Invalidate collection after unlike/dislike.
   - Estimate: 15–20 min. Depends on: T10.07.
   - Done when: Refetch removes the no-longer-liked video.
-  - Evidence: pending.
-- [ ] T10.09 — Test private liked-list isolation.
+  - Evidence: `VideoPlayerPage.test.tsx` verifies DELETE on an active like or dislike. `liked-videos.spec.ts` verifies the collection after adding, switching and removing a like from the player, with a second account and a profile reload.
+- [x] T10.09 — Test private liked-list isolation.
   - Estimate: 15–20 min. Depends on: T10.08.
   - Done when: Caller-selected identity cannot expose another account's collection.
-  - Evidence: pending.
-- [ ] T10.10 — Test deleted liked video removal.
+  - Evidence: `SessionSecurityTest` checks two separate accounts, an anonymous request, a different ID in the query and attempts to access the collection by account ID. The profile test checks cancellation on account change.
+- [x] T10.10 — Test deleted liked video removal.
   - Estimate: 15–20 min. Depends on: T10.09.
   - Done when: No broken card appears after reload.
-  - Evidence: pending.
+  - Evidence: `SessionSecurityTest` verifies deletion by the video owner and a fresh collection response without the deleted item.
+
+### SCRUM-51 local validation
+
+| Criterion | Passing evidence |
+| --- | --- |
+| RF-10.AC1–AC2 | `SessionSecurityTest` and `liked-videos.spec.ts` verify active positive likes and exclusion of dislikes and other users' reactions. |
+| RF-10.AC3 | `SessionSecurityTest` verifies stable ties, pagination and the latest positive activation. `ProfilePage.test.tsx` verifies page navigation and recovery when the final page disappears. |
+| RF-10.AC4 | `ProfilePage.test.tsx` verifies each link target. `liked-videos.spec.ts` follows a liked item to its player route. |
+| RF-10.AC5 | `SessionSecurityTest` verifies unlike, dislike and video deletion. The browser test exercises unlike and dislike with the player buttons. |
+| RF-10.AC6 | `LikedVideosControllerTest` and `SessionSecurityTest` verify identity from the session and no caching. The browser test confirms a second account has an independent collection. |
+| RF-10.AC7 | `ProfilePage.test.tsx` and `liked-videos.spec.ts` verify the empty state. The profile component test also covers retry after failure. |
+| RF-10.AC8 | `SessionSecurityTest` verifies a fresh sign-in. `liked-videos.spec.ts` verifies a page reload and successful navigation from the reloaded collection. |
+
+- Backend `mvn -B -o clean verify` with Java 21 and isolated PostgreSQL Testcontainers. 198 passed and all JaCoCo checks passed. One existing `MediaStorageServiceTest` case was skipped because the Windows host cannot create symbolic links.
+- Frontend `npm run build`, `npm run lint` and `npm run test -- --coverage --watchAll=false --ci --runInBand` passed. Jest ran 240 tests in 34 suites.
+- Playwright `npm test -- --workers=2` passed all 31 tests against a freshly built, isolated Docker Compose deployment. The new flow ran at 375 px in Chromium. The first runs identified an ambiguous test locator and a player toggle that sent POST for an active reaction. Both were corrected before the passing run.
+- Sprint-wide collection QA, remote CI, PR review and merge are tracked separately from this local verification.
 
 ## P11 — Complete Video Editing and Deletion for Owners
 
@@ -1374,7 +1393,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-07 | T07.* + relevant QA | SubscriptionUniqueness + OwnListIsolation; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-08 | T08.* + relevant QA | CombinedPopularitySearch + MultiPageTies; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-09 | T09.* + relevant QA | PublicationSort + EditPreservesDate; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
-| RF-10 | T10.* + relevant QA | LikedListIsolation + UnlikeRefresh; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-10 | T10.* + relevant QA | Own-list isolation, pagination, player toggle, deletion and reload | [SCRUM-51 local validation](#scrum-51-local-validation) | Passed locally |
 | RF-11 | T11.* + relevant QA | OwnerMetadataDelete + SafeMediaCleanup; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-12 | T12.* + relevant QA | AudienceMigration + CombinedFilter; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-13 | T13.* + relevant QA | HistoryHideMetrics + SavedPersistence + QueueOrder; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |

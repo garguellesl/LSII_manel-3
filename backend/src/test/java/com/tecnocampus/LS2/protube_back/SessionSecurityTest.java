@@ -321,6 +321,70 @@ class SessionSecurityTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void likedVideosArePrivatePaginatedAndBasedOnCurrentPositiveReactions() throws Exception {
+        var actor = account();
+        var owner = account();
+        var own = csrf(login(actor));
+        var other = csrf(login(owner));
+        var first = video(owner);
+        var second = video(owner);
+        var disliked = video(owner);
+        var otherLiked = video(owner);
+        String path = "/api/users/me/liked-videos";
+
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(get(path).session(own.session()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        react(post("/api/videos/" + first + "/likes"), own);
+        react(post("/api/videos/" + second + "/likes"), own);
+        react(post("/api/videos/" + disliked + "/dislikes"), own);
+        react(post("/api/videos/" + otherLiked + "/likes"), other);
+
+        // A tie must fall back to the video ID, including across page boundaries.
+        jdbc.update("update video_likes set created_at = timestamp '2020-01-01' where user_id = ?", actor.id());
+        mvc.perform(get(path).session(own.session()).param("size", "1").param("userId", owner.id().toString()))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.content[0].id").value(first))
+                .andExpect(jsonPath("$.hasNext").value(true)).andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get(path).session(own.session()).param("page", "1").param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(second))
+                .andExpect(jsonPath("$.hasNext").value(false));
+        mvc.perform(get(path).session(own.session()).param("page", "2").param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get(path).session(other.session()).param("userId", actor.id().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(otherLiked));
+        mvc.perform(get("/api/users/" + actor.id() + "/liked-videos").session(other.session()))
+                .andExpect(status().isNotFound());
+
+        react(post("/api/videos/" + second + "/likes"), own);
+        mvc.perform(get(path).session(own.session()))
+                .andExpect(jsonPath("$.content[0].id").value(first));
+        react(post("/api/videos/" + second + "/dislikes"), own);
+        mvc.perform(get(path).session(own.session()))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        react(post("/api/videos/" + second + "/likes"), own);
+        mvc.perform(get(path).session(login(actor)))
+                .andExpect(jsonPath("$.content[0].id").value(second))
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        react(delete("/api/videos/" + second + "/likes"), own);
+        mvc.perform(get(path).session(own.session()))
+                .andExpect(jsonPath("$.content[0].id").value(first))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(delete("/api/videos/" + first).session(other.session()).header(other.header(), other.value()))
+                .andExpect(status().isNoContent());
+        mvc.perform(get(path).session(own.session()))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    private void react(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, Token token)
+            throws Exception {
+        mvc.perform(request.session(token.session()).header(token.header(), token.value())).andExpect(status().isOk());
+    }
+
+    @Test
     void playsArePublicIdempotentPerOpeningAndFeedOnlyTheOwnersAnalytics() throws Exception {
         UserResponse owner = account();
         UserResponse viewer = account();

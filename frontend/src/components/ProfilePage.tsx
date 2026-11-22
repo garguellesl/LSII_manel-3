@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useProfileActivity } from '../useProfileActivity';
 import type { User } from '../utils/authClient';
 import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar } from '../utils/userClient';
+import { LikedVideosSection } from './LikedVideosSection';
 import { UserAvatar } from './UserAvatar';
 
 const RECENT_HISTORY = 5;
@@ -31,7 +32,7 @@ export function ProfilePage() {
   }, [refresh]);
 
   const user = auth.status === 'authenticated' ? auth.user : auth.status === 'loading' && checked ? confirmed : null;
-  if (user) return <ProfileView key={user.id} user={user} />;
+  if (user) return <ProfileView key={user.id} user={user} sessionConfirmed={auth.status === 'authenticated'} />;
 
   if (!checked || auth.status === 'loading') {
     return (
@@ -52,7 +53,7 @@ export function ProfilePage() {
   );
 }
 
-function ProfileView({ user }: { user: User }) {
+function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed: boolean }) {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
@@ -118,6 +119,8 @@ function ProfileView({ user }: { user: User }) {
       </section>
 
       {editing && <ProfileEditor user={user} onClose={closeEditor} />}
+
+      <LikedVideosSection sessionConfirmed={sessionConfirmed} />
 
       <div className="profile-layout">
         <section className="profile-panel" aria-labelledby="profile-details">

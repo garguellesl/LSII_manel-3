@@ -114,3 +114,7 @@ Local change from 1208e34 on feature/fix-upload-file-picker. MediaFileValidator 
 ## Scoped player accessibility (2026-11-18)
 
 Local change on feature/add_documentacion_sprint-4: reaction controls expose a named group, selected check/underline and pending status; visitor counts use text labels. Video uses playsInline and page-scoped touch/reflow styles. No reaction API or persistence changes. Validation and limits: specs/sprint-4/task.md scoped evidence; frontend build/lint and 234 tests passed, mocked Chromium width matrix passed. Not a merged/released claim.
+
+## Liked videos in the profile (2026-11-22)
+
+`GET /api/users/me/liked-videos` returns the signed-in account's active likes in bounded pages. The profile fetches it when the collection opens. The player sends the existing DELETE request when a selected reaction is pressed again. The repository records dislike-to-like transitions in the existing reaction timestamp. See the [SCRUM-51 handoff](tasks/scrum-51.md) for scope and evidence.
