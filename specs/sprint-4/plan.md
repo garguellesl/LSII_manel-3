@@ -215,6 +215,8 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 
 #### SCRUM-58 catalogue implementation
 
+Validation continuation (22 November): reuse the completed baseline/candidate logs, including UTF-16 BOM output from Windows PowerShell. The runner must offer an offline comparison mode that needs neither Maven nor Docker and emits the same acceptance checks and source-log fingerprints. Launch focused benchmarks with `test-compile surefire:test`: the phase `test` binds global JaCoCo checks and is inappropriate for a single workload. Keep `pom.xml` and the full-suite coverage gates unchanged. Verify invocation, encoding, completeness and rejection paths with focused Python tests; preserve the completed load runs rather than repeating them.
+
 Keep the two existing paged searches, ranking and counts. After selecting the page, read only its IDs in four queries for tag names, reactions by type, visible comments and plays. Build DTOs in the original order with natural Java tag ordering and zeros for absent groups. An empty page needs no enrichment. Keep these reads in the existing service transaction. Verify the actual statement bound with Hibernate statistics after clearing the persistence context and compare public response hashes independently of timing. Use an isolated 537-video fixture for the agreed load test and the read-only probe for the existing 74-video sample. Record both sets of results separately. P08/P09 ordering and the P10/P13 collections stay with their tickets.
 
 ## Verification and execution order

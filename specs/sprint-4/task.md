@@ -1,7 +1,7 @@
 # Tasks — Sprint 4
 
 [Spec](spec.md) | [Plan](plan.md) | [Handoff](../../docs/ai/tasks/sprint4-specs.md).
-Authorised now: prepare documents only. All implementation and validation tasks below are pending.
+Original authorisation: prepare Sprint 4 documents only. Later authorised slices and historical work recognised below have their own evidence; unchecked tasks remain pending.
 
 ## Task sizing and evidence rules
 
@@ -48,30 +48,30 @@ Dependencies: none; implementation ownership is not yet assigned.
 
 Requirement: RF-01 (all AC). Design: [P01](plan.md#p01). Integration dependencies: none.
 
-- [ ] T01.01 — Inventory one source database's migration versions and table counts.
+- [x] T01.01 — Inventory one source database's migration versions and table counts.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: A redacted inventory identifies that source and missing exports.
-  - Evidence: pending.
-- [ ] T01.02 — Inventory media references for the same source.
+  - Evidence: Historical evidence, 2026-11-18: [003-shared-database RF-3 inventory](../003-shared-database/tasks.md#validaci%C3%B3n-por-requisito), active source V1-V8 and row counts. Other PC explicitly deferred.
+- [x] T01.02 — Inventory media references for the same source.
   - Estimate: 15–20 min. Depends on: T01.01.
   - Done when: Missing files and managed/imported ownership are listed.
-  - Evidence: pending.
-- [ ] T01.03 — Document the shared host and one-writer topology.
+  - Evidence: Historical evidence, 2026-11-18: [003 T3](../003-shared-database/tasks.md#ejecuci%C3%B3n) records 146 media references checked in 224 backed-up files; [source topology](../003-shared-database/plan.md#contexto-t%C3%A9cnico-comprobado) distinguishes writable managed media and read-only imports. Active source only.
+- [x] T01.03 — Document the shared host and one-writer topology.
   - Estimate: 15–20 min. Depends on: T01.02.
   - Done when: Frontend, backend, DB and persistent media locations are distinguished without secrets.
-  - Evidence: pending.
-- [ ] T01.04 — Prepare one source backup command and manifest.
+  - Evidence: [Shared database runbook](../../docs/SHARED_DATABASE.md#videos-avatars-and-serving-the-application) and [003 plan](../003-shared-database/plan.md): Supabase DB, local backend/frontend delivery and local mounted media are distinguished; one writer per store. Hosted application remains future work.
+- [x] T01.04 — Prepare one source backup command and manifest.
   - Estimate: 15–20 min. Depends on: T01.03.
   - Done when: Command uses an external destination and records checksums without credentials.
-  - Evidence: pending.
-- [ ] T01.05 — Launch an isolated restore of that backup.
+  - Evidence: Historical evidence, 2026-11-18: [003 T3 and RF-3](../003-shared-database/tasks.md) record external final backup 20261118T084111Z, private manifest/SHA-256 and prepare_final_cutover.py; [backup procedure](../../docs/SHARED_DATABASE.md#preserve-existing-data-before-the-first-switch) documents pg_dump and isolated schema conversion. No private backup copied into Git.
+- [x] T01.05 — Launch an isolated restore of that backup.
   - Estimate: 15–20 min. Depends on: T01.04.
   - Done when: Restore job ID and destination are recorded; completion remains pending if running.
-  - Evidence: pending.
-- [ ] T01.06 — Compare restored table counts against the manifest.
+  - Evidence: Historical evidence, 2026-11-18: [003 T3](../003-shared-database/tasks.md#ejecuci%C3%B3n) records two successful isolated restores of final backup 20261118T084111Z; not a new restore in this continuation.
+- [x] T01.06 — Compare restored table counts against the manifest.
   - Estimate: 15–20 min. Depends on: T01.05.
   - Done when: Differences are recorded and no live data was overwritten.
-  - Evidence: pending.
+  - Evidence: Historical evidence, 2026-11-18: [003 T3/T4 and RF-3](../003-shared-database/tasks.md) record all 10 tables matching by counts and row fingerprints; original volumes retained.
 - [ ] T01.07 — Check one restored video's file references.
   - Estimate: 15–20 min. Depends on: T01.06.
   - Done when: MP4, thumbnail and avatar resolution are recorded.
@@ -80,10 +80,10 @@ Requirement: RF-01 (all AC). Design: [P01](plan.md#p01). Integration dependencie
   - Estimate: 15–20 min. Depends on: T01.07.
   - Done when: Each collision has a proposed reconciliation rule; unresolved rows remain pending.
   - Evidence: pending.
-- [ ] T01.09 — Validate shared Compose settings with synthetic secrets.
+- [x] T01.09 — Validate shared Compose settings with synthetic secrets.
   - Estimate: 15–20 min. Depends on: T01.08.
   - Done when: Configuration validation succeeds without printing real values.
-  - Evidence: pending.
+  - Evidence: Historical evidence, 2026-11-18: [003 T1/T5](../003-shared-database/tasks.md#ejecuci%C3%B3n), six Compose checks and seven launcher checks with synthetic credentials. Source verified in tooling/database/test_shared_config.py and test_supabase_launcher.py; no tests rerun for this documentation reconciliation.
 - [ ] T01.10 — Document persistent volume and HTTPS settings.
   - Estimate: 15–20 min. Depends on: T01.09.
   - Done when: Deployment settings preserve one writer and environment-driven secrets.
@@ -96,10 +96,10 @@ Requirement: RF-01 (all AC). Design: [P01](plan.md#p01). Integration dependencie
   - Estimate: 15–20 min. Depends on: T01.11.
   - Done when: A sample record and media file resolve from that device.
   - Evidence: pending.
-- [ ] T01.13 — Record the restore job result.
+- [x] T01.13 — Record the restore job result.
   - Estimate: 15–20 min. Depends on: T01.12.
   - Done when: Exit result and reconciliation evidence are attached, or task stays open.
-  - Evidence: pending.
+  - Evidence: Historical evidence, 2026-11-18: [003 T3 and RF-3](../003-shared-database/tasks.md) record successful isolated restores and final reconciliation of 10 tables/146 media references; active source only.
 - [ ] T01.14 — Reconcile one documented source collision in an isolated copy.
   - Estimate: 15–20 min. Depends on: T01.13.
   - Done when: One account/ID conflict is resolved with related references preserved; repeat as child tasks for other conflicts.
@@ -132,6 +132,16 @@ Requirement: RF-01 (all AC). Design: [P01](plan.md#p01). Integration dependencie
   - Estimate: 15–20 min. Depends on: T01.20.
   - Done when: Two device reads and one managed upload remain accessible after restart.
   - Evidence: pending.
+
+### P01 historical cloud evidence
+
+Reconciled on 22 November 2026 following the user's clarification that the cloud work preceded Sprint 4 planning. Work completed on 18 November in [003-shared-database](../003-shared-database/tasks.md) counts toward RF-01; its date does not require repeating implementation or migration. Checked tasks above reference that historical evidence, rather than new execution. The previous blanket `pending` state was incomplete bookkeeping.
+
+RF-01.AC6 is supported by successful isolated restores; AC7/8/9 have prior configuration, secret-handling and isolated-test evidence. AC1/2/4 have two-instance and restart evidence in an isolated environment plus a real local application connected to Supabase. These results do not establish that all teammates or physical devices use the shared environment. AC3 (cross-device media) and full multi-source AC5 remain incomplete.
+
+The active source was migrated to Supabase with 10 tables compared by row fingerprints, V1–V8 validated, 74 catalogue videos, three HTTP details and six media range responses verified. This is already completed work. T01.15–17 have partial evidence for that database cutover, but their full data/media-transfer scope remains open because media still uses the original local mounts. No remote media transfer is inferred. The account and two videos of the other PC were explicitly deferred by the user; they do not invalidate the completed active-source migration or become mandatory work in this continuation.
+
+T01.07 lacks explicit restored MP4/thumbnail/avatar resolution evidence as one complete case. T01.08/14 need the deferred source's collision inventory/reconciliation before multi-source completion. T01.10/11/18–21 concern the hosted application/media, HTTPS and restart verification. T01.12 requires a real second-device read, not only two isolated application instances. These tasks remain open. No cloud resources, credentials, application code, deployment or database were changed or revalidated live here.
 
 ## P02 — Verify Reliable Storage of Registration, Profiles and Uploads
 
@@ -1060,42 +1070,42 @@ Requirement: RF-17 (all AC). Design: [P17](plan.md#p17). Integration dependencie
   - Estimate: 15–20 min. Depends on: T17.01.
   - Done when: Catalogue/search/detail/library operations and concurrency are specified.
   - Evidence: pending.
-- [ ] T17.03 — Instrument SQL count for one catalogue request.
+- [x] T17.03 — Instrument SQL count for one catalogue request.
   - Estimate: 15–20 min. Depends on: T17.02.
   - Done when: Count and query categories are captured without secrets.
-  - Evidence: pending.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
 - [ ] T17.04 — Record HTTP and backend timing separately.
   - Estimate: 15–20 min. Depends on: T17.03.
   - Done when: Measurement locations and warm/cold states are identified.
   - Evidence: pending.
-- [ ] T17.05 — Launch baseline benchmark runs.
+- [x] T17.05 — Launch baseline benchmark runs.
   - Estimate: 15–20 min. Depends on: T17.04.
   - Done when: Three run IDs and identical configuration are recorded.
-  - Evidence: pending.
-- [ ] T17.06 — Collect baseline p50/p95/errors.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
+- [x] T17.06 — Collect baseline p50/p95/errors.
   - Estimate: 15–20 min. Depends on: T17.05.
   - Done when: Actual measurements are stored or the collection stays pending.
-  - Evidence: pending.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
 - [ ] T17.07 — Capture the current catalogue query plan.
   - Estimate: 15–20 min. Depends on: T17.06.
   - Done when: Plan and dataset reference are attached.
   - Evidence: pending.
-- [ ] T17.08 — Replace per-video reaction counts with one batch aggregate.
+- [x] T17.08 — Replace per-video reaction counts with one batch aggregate.
   - Estimate: 15–20 min. Depends on: T17.07.
   - Done when: Counts match the known fixture and query count is bounded.
-  - Evidence: pending.
-- [ ] T17.09 — Replace per-video comment counts with one batch aggregate.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
+- [x] T17.09 — Replace per-video comment counts with one batch aggregate.
   - Estimate: 15–20 min. Depends on: T17.08.
   - Done when: Deleted-comment semantics remain correct.
-  - Evidence: pending.
-- [ ] T17.10 — Replace per-video play counts with one batch aggregate.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
+- [x] T17.10 — Replace per-video play counts with one batch aggregate.
   - Estimate: 15–20 min. Depends on: T17.09.
   - Done when: Only ProTube reproduction events are counted.
-  - Evidence: pending.
-- [ ] T17.11 — Batch-load tags for the current result page.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
+- [x] T17.11 — Batch-load tags for the current result page.
   - Estimate: 15–20 min. Depends on: T17.10.
   - Done when: No lazy tag query is issued per row.
-  - Evidence: pending.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
 - [ ] T17.12 — Measure one proposed search index.
   - Estimate: 15–20 min. Depends on: T17.11.
   - Done when: Before/after query plan justifies retaining or rejecting it.
@@ -1108,10 +1118,10 @@ Requirement: RF-17 (all AC). Design: [P17](plan.md#p17). Integration dependencie
   - Estimate: 15–20 min. Depends on: T17.13.
   - Done when: Connection settings and reason are documented without arbitrary increases.
   - Evidence: pending.
-- [ ] T17.15 — Launch the matching final benchmark runs.
+- [x] T17.15 — Launch the matching final benchmark runs.
   - Estimate: 15–20 min. Depends on: T17.14.
   - Done when: Dataset/client/workload match baseline and run IDs are recorded.
-  - Evidence: pending.
+  - Evidence: [verified catalogue checkpoint](#scrum-58-catalogue-checkpoint); completion limited to the authorised local catalogue slice.
 - [ ] T17.16 — Compare final metrics and functional results.
   - Estimate: 15–20 min. Depends on: T17.15.
   - Done when: p50/p95/errors/queries and filters/totals/privacy are reported honestly.
@@ -1127,7 +1137,7 @@ Requirement: RF-17 (all AC). Design: [P17](plan.md#p17). Integration dependencie
 
 Arithmetic seed 58 generates 537 videos owned by 64 synthetic accounts. Each fifth video has no tags and each other video has three of eight tags. The first 500 videos share 5,370 unique video/account reactions (every fourth is a dislike). The first 480 share 2,685 comments (every eleventh is soft-deleted). The first 520 share 1,074 play events. Sources: [SQL fixture](../../backend/src/test/resources/benchmark/catalogue-537.sql) and [isolated workload](../../backend/src/test/java/com/tecnocampus/LS2/protube_back/services/CatalogueBenchmarkIT.java).
 
-From the repository root, run `python tooling/database/compare_catalogue.py --output ../scrum58-comparison` with Java 21, Maven and Docker available. Choose a new output directory. The [comparison runner](../../tooling/database/compare_catalogue.py) extracts the baseline backend at `2ef450d`, copies the same workload and fixture into it, then runs `mvn -Dtest=CatalogueBenchmarkIT test` sequentially for both versions. It retains both logs and checks the response hashes, samples, SQL bound and p95 targets in every measured round. Its parser and rejection cases were exercised with synthetic logs. Each invocation starts its own PostgreSQL Testcontainer. The in-process client uses the actual HTTP endpoint on a random loopback port. Ten workers cycle through the first page, a title/tag search, page two, and a detail request. The run prints isolated service times and statement counts first, then stable response hashes and HTTP results per route. Exclude warm-up (round 0, 30 seconds). Compare rounds 1–3 (300 seconds each) and their error counts, p50/p95 and hashes. For each 24-card listing/search operation check the 1,000 ms budget and, when the baseline exceeds it, the 30% reduction. Fixed data and concurrent readers exercise read consistency. Concurrent writes, private collections, production network latency and post-idle startup require separate evidence.
+From the repository root, run `python tooling/database/compare_catalogue.py --output ../scrum58-comparison` with Java 21, Maven and Docker available. Choose a new output directory. The [comparison runner](../../tooling/database/compare_catalogue.py) extracts the baseline backend at `2ef450d`, copies the same workload and fixture into it, then runs `mvn -B -ntp -Dtest=CatalogueBenchmarkIT test-compile surefire:test` sequentially for both versions. It retains both logs and checks the response hashes, samples, SQL bound and p95 targets in every measured round. Its parser and rejection cases were exercised with synthetic logs. Each invocation starts its own PostgreSQL Testcontainer. The in-process client uses the actual HTTP endpoint on a random loopback port. Ten workers cycle through the first page, a title/tag search, page two, and a detail request. The run prints isolated service times and statement counts first, then stable response hashes and HTTP results per route. Exclude warm-up (round 0, 30 seconds). Compare rounds 1–3 (300 seconds each) and their error counts, p50/p95 and hashes. For each 24-card listing/search operation check the 1,000 ms budget and, when the baseline exceeds it, the 30% reduction. Fixed data and concurrent readers exercise read consistency. Concurrent writes, private collections, production network latency and post-idle startup require separate evidence.
 
 #### Shared Supabase sample before the change
 
@@ -1154,11 +1164,24 @@ Executed the fixture's seven SELECT expressions as in-memory query relations on 
 
 | RF-17 criteria | Evidence | Status |
 |---|---|---|
-| AC2–4 | Two CatalogueSummaryTest cases passed with Surefire. They exercise mapping by ID, ordering, absent groups, zero counts and the empty-page path. Hibernate 6.5.2 translated all four JPQL reads with the PostgreSQL dialect. | Implemented. The end-to-end six-statement bound still needs CatalogueQueryCountTest. |
-| AC1, AC5, AC6, AC8 | Reproducible pre-change HTTP sample, shared read-only SQL cross-check and a deterministic isolated workload. | Candidate HTTP p50/p95 and reduction are pending. |
-| AC7 | Concurrent read workload compares each response with its warmed reference. | Pending isolated execution. |
+| AC2–4 | CatalogueSummaryTest: two passed. CatalogueQueryCountTest: one passed, including sizes 1/6/24, tags, totals, partial last page, empty page and independent counters. Benchmark SQL before 7/32/122, after 6/6/6. | Verified for catalogue; private-library permissions outside scope. |
+| AC1, AC5, AC6, AC8 | Same 537-video fixture, PostgreSQL 16 Alpine, Java HTTP client in loopback, ten readers, 30 s warm-up and three 300 s rounds. [Comparison JSON](../../docs/evidence/scrum-58/comparison.json), [report](../../docs/SCRUM-58-ANTES-DESPUES-HTTP.md). | All catalogue/search rounds meet p95 ≤1,000 ms. Baseline already below budget; conditional 30% criterion not activated. No index change. |
+| AC7 | All four HTTP hashes match between versions. Every measured request checks status 200 and reference bytes. Zero errors in all measured and warm-up route/round combinations. | Concurrent fixed-data readers verified; concurrent writes remain pending. |
 
-Java 21 compilation of all production and test sources succeeded with the Eclipse compiler. The default Maven clean verify failed in javac while resolving Windows file paths. Running Surefire on the compiled classes reached the tests. The initial full run recorded 192 tests, 86 errors and one skip. Testcontainers could not start PostgreSQL because Docker Engine access was denied in this session. Separate MediaStorageServiceTest cases also encountered Windows temporary-directory access errors. The two focused unit tests added afterward passed. An explicit CatalogueBenchmarkIT invocation stopped during container startup, before any timed samples. The integration gate and the benchmark remain open.
+Validated on 22 November 2026 (Europe/Madrid), branch `feature/Scrum--58-Supabase-optimization`, commits `3c8e948` and `4246803`, baseline `2ef450d`. The checked T17 tasks apply to the authorised catalogue slice; broader library/index/pool dependencies do not gate this batch-read-only measurement.
+
+HTTP p95 R1/R2/R3 in ms: catalogue 106/99/98 → 12/12/10; filtered search 110/102/100 → 14/14/13; second page 107/99/98 → 11/11/10; detail 7/6/6 → 7/7/6. Detail's second-round p95 rises 1 ms. Measured requests: 123,433 baseline, 982,863 candidate. Exact p50, samples, errors and source-log SHA-256 are in the JSON.
+
+The user ran `mvn clean verify` and reported BUILD SUCCESS. Available Surefire XML from 15:56–15:57 confirms 194 tests, zero failures/errors and one skipped: `MediaStorageServiceTest.refusesSymlinkedUploadDirectories`, aborted because the host cannot create symbolic links. Available JaCoCo XML satisfies the configured gates: instructions 7,531/7,854; lines 1,326/1,368; methods 377/391; no measured class below 50% line coverage. The later CatalogueBenchmarkIT XML is separate (one passed test, 16:38:49); candidate log finishes BUILD SUCCESS at 16:38:50. Earlier javac/Docker/temp failures are superseded by these available results.
+
+The original launcher used phase `test`, so baseline Maven failed at 16:15:27 on global JaCoCo coverage after all benchmark rounds passed. It never launched the candidate or wrote JSON. The candidate was run separately with `test-compile surefire:test`; the launcher now uses that focused command. `pom.xml` and full-suite coverage gates are unchanged. The baseline's post-measurement coverage failure does not invalidate completed timings.
+
+- [x] C58.01 — Compare completed logs without rerunning load. `python -B tooling/database/compare_catalogue.py --from-logs ../scrum58-comparison/baseline.log ../scrum58-comparison/candidate.log --output docs/evidence/scrum-58`: `failures: []`; candidate UTF-16 BOM, baseline UTF-8.
+- [x] C58.02 — Correct focused Maven launch and verify offline parser. `python -B -m unittest discover -s tooling/database -p test_compare_catalogue.py -v`: four tests passed (command, encodings, offline mode, criteria, duplicate/incomplete rounds).
+- [x] C58.03 — Document real local before/after, suite evidence and launcher incident; preserve pending team approval in prompt traceability.
+- [x] C58.04 — Final documentation checks: 101 local links resolve, completed T17 tasks link verification evidence, real comparison totals match and `git diff --check` passes. Work remains on the requested branch; no publication or Jira transition.
+
+T17.02 remains partial because the full workload includes library operations. T17.04 has HTTP and isolated service timings but no cold/post-idle measurement. T17.07 has only the historical page-selector plan. T17.12–14 (search index, any justified migration, host pool review) remain unverified. T17.16 has catalogue metrics/equivalence but no integrated private-library permission check. Collections, concurrent writes, Supabase remote latency and final integration/review remain pending for broader RF-17. No backend suite or load was repeated during this continuation. The local catalogue slice is ready for review, without implying shared ticket completion or merge.
 
 ## P16 — Additional translation slices
 
@@ -1408,7 +1431,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 
 | RF | Task group | Proposed verification | Command/location | Actual result |
 | --- | --- | --- | --- | --- |
-| RF-01 | T01.* + relevant QA | CrossDevicePersistence + isolated restore manifest; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-01 | T01.* + relevant QA | CrossDevicePersistence + isolated restore manifest; verify every numbered AC | [Historical cloud evidence](#p01-historical-cloud-evidence) | Prior active-source DB migration/restore/configuration verified; hosted backend/media and physical second-device checks pending. |
 | RF-02 | T02.* + relevant QA | AccountAvatarUploadRollback + restart; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-03 | T03.* + relevant QA | CatalogueResponsive + ThemeContrast; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-04 | T04.* + relevant QA | FiveLineOverflow + RecommendationEligibility; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
@@ -1424,13 +1447,13 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-14 | T14.* + relevant QA | RoutePlaybackContinuity + SinglePlayId; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-15 | T15.* + relevant QA | KeyboardReaderJourney + VoiceFailures; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-16 | T16.* + relevant QA | LocaleParity + PreserveState; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
-| RF-17 | T17.* + relevant QA | RepeatableBenchmark + QueryCountBound | [Catalogue checkpoint](#scrum-58-catalogue-checkpoint) | Partial. PostgreSQL integration and isolated before/after timing pending. |
+| RF-17 | T17.* + relevant QA | RepeatableBenchmark + QueryCountBound | [Catalogue checkpoint](#scrum-58-catalogue-checkpoint) | Catalogue verified locally; collections, concurrent writes, remote/cold environment and integration/review pending. |
 
 ## Documentation handoff and current verdict
 
 - Prepared: spec/plan/task documents with all 17 requirements and small work slices.
 - Document verification: identifier uniqueness, <=20-minute estimate bounds, requirement/design coverage and local link existence checked by the authoring script; no application checks executed.
-- Feature implementation: not started in this request; all checkboxes intentionally open.
+- Historical spec-only baseline: implementation was not started in the original documentation request. Subsequent scoped implementation and checked tasks are recorded in their checkpoints above.
 - Team approval/ownership/remote CI/merge/staging: unverified or pending; no reservation claimed.
 - Next step: select the first implementation slice and establish P00 contracts/ownership before changing runtime code.
 - Verdict: planning documents prepared; Sprint 4 features not validated.

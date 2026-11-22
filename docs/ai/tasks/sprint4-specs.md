@@ -17,6 +17,8 @@
 
 ## Handoff
 
+- Continuation 2026-11-22 (Europe/Madrid), requested branch `feature/Scrum--58-Supabase-optimization`: user confirms cloud work preceded Sprint 4. Reconciled historical [003 evidence](../../../specs/003-shared-database/tasks.md) into [P01](../../../specs/sprint-4/task.md#p01-historical-cloud-evidence). T01.01–06, T01.09 and T01.13 now completed with references. Hosted application/media, actual second device and deferred-source integration remain open; no rerun, migration or deployment. Existing SCRUM-58 work preserved. [Prompt](../../../prompts/31-sprint4-cloud-evidence.md), team review pending. Remote coordination not refreshed; documentation-only continuation.
+
 - Changed: three requested planning documents and required traceability records.
 - Decisions: preserve sprint-4 folder and singular task.md per user; English supersedes template language; completed work never inferred from existing code.
 - Verification: document structure/links/IDs/estimates checked; application tests not run (documentation-only request).

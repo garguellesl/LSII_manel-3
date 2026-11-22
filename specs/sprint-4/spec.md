@@ -435,7 +435,7 @@ A user opens the catalogue, applies combined filters, changes sorting, paginates
 
 **Proposed benchmark, to agree before implementation:** Use 1,000 videos, 10,000 reactions and 5,000 comments with 10 concurrent virtual users. Run the same five-minute workload three times after warm-up. Target p95 HTTP latency at or below 1,000 ms for catalogue and filtered search pages of 24 videos, measured from a fixed documented client. For a baseline operation exceeding that budget, also target at least a 30% p95 reduction. Report cold-start behaviour separately and exclude MP4 transfer time from API measurements. These are proposed acceptance targets, not measured capabilities of the current deployment.
 
-**SCRUM-58 catalogue slice (22 November 2026).** The requested midpoint is 537 videos, 5,370 reactions and 2,685 comments on a dedicated test database. Retain the proposed warm workload (10 concurrent users, three five-minute runs), p95 ≤ 1,000 ms and ≥30% p95 reduction for an operation previously above budget. Compare equivalent responses for first, subsequent, last and empty pages, with and without filters. The existing 74-video Supabase catalogue is a separate observational sample. The reported click-to-first-frame below one second is a user estimate. Playback and collection changes are outside this slice.
+**SCRUM-58 catalogue slice (22 November 2026).** The user-agreed midpoint is 537 videos, 5,370 reactions, 2,685 comments and 1,074 plays on a dedicated local test database. The agreed workload uses 10 concurrent users, 30 seconds of warm-up and three five-minute runs, p95 ≤ 1,000 ms and ≥30% p95 reduction for an operation previously above budget. Compare equivalent responses for first, subsequent, last and empty pages, with and without filters. The existing 74-video Supabase catalogue is a separate observational sample. The reported click-to-first-frame below one second is a user estimate. Playback and collection changes are outside this slice.
 
 Query-plan analysis and index selection should follow measured workloads; see [Supabase: Query Optimization](https://supabase.com/docs/guides/database/query-optimization).
 
@@ -445,7 +445,7 @@ Preserve existing video JSON mappings under meta and MP4/thumbnail compatibility
 
 UI reference widths: 320,375,768,1024,1440 CSS px; check orientation and 200% zoom. Normal-text contrast >=4.5:1, large-text/control-state contrast >=3:1; principal touch-control target 44x44 CSS px. Check light/dark/high contrast and colour-independent states. These checks do not establish full WCAG conformance. Translate interface, errors and accessible labels into es/ca/en without translating user content.
 
-RF-17's benchmark numbers are proposed budgets requiring baseline/host confirmation before optimisation, not measured facts. No full database/media migrations or hosting purchases are authorised by this documentation request.
+The broader RF-17 benchmark numbers remain proposed budgets. The SCRUM-58 local catalogue slice has the user-agreed budget above and separately recorded [measurements](task.md#scrum-58-catalogue-checkpoint); these do not establish remote or sprint-wide performance. No full database/media migrations or hosting purchases are authorised by this documentation request.
 
 ## Assumptions, dependencies and exclusions
 
