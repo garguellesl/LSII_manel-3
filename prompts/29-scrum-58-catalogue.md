@@ -14,6 +14,10 @@
 
 > 1000 videos a lo mejor es demasiado y los 74 son muy pocos hacemos un punto ontermedio justo?
 
+> Entonces acabemos de optimizar el protocolo HTTP
+
+> y asi finalizamos este ticket con todfa la documentacion necesariia. a parte para finalizar añade un antes y despues en respuestas en un documento en docs/
+
 ## Notes
 
 La propuesta anterior priorizaba el catálogo y su comparación antes/después. Se eligió el punto medio aritmético de 537 vídeos para el entorno aislado. [Registro de SCRUM-58](../docs/ai/tasks/scrum-58.md).

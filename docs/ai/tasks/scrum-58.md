@@ -7,3 +7,7 @@
 - Validación adicional: las dos formas de consultar el conjunto sintético de 537 vídeos coincidieron en las 23 páginas. El comparador automático conserva los dos registros de Maven y evalúa los criterios por ronda.
 - Siguiente paso: ejecutar el mismo benchmark en la base y en el candidato con Docker accesible, verificar el límite de consultas y completar `mvn clean verify`. SCRUM-58 sigue en curso hasta disponer de evidencia comparable.
 - [Prompt de trabajo](../../../prompts/29-scrum-58-catalogue.md) pendiente de revisión del equipo.
+
+## Informe de antes y después
+
+[Comparativa de respuesta HTTP](../../SCRUM-58-ANTES-DESPUES-HTTP.md) con referencia inicial, diseño implementado, resultados de equivalencia y pasos de reproducción. La medición posterior y Maven siguen pendientes por los errores de acceso descritos. SCRUM-58 conserva el estado en curso.

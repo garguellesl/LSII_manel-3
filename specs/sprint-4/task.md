@@ -1148,6 +1148,8 @@ All 18 requests returned 200. Earlier observation: 122 catalogue statements (120
 
 Executed the fixture's seven SELECT expressions as in-memory query relations on PostgreSQL. Compared individual counts and sorted tag names against page-grouped results in both directions using EXCEPT ALL. All 537 IDs across 23 pages matched, including 5,370 distinct video/user reactions, 2,685 comments (245 soft-deleted) and 1,074 play events. This validates the SQL semantics independently of Spring. No rows were inserted into the shared application tables.
 
+[Informe de antes y después de la respuesta HTTP](../../docs/SCRUM-58-ANTES-DESPUES-HTTP.md).
+
 #### Candidate verification
 
 | RF-17 criteria | Evidence | Status |
