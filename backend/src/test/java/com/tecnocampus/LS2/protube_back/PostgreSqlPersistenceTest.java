@@ -10,6 +10,7 @@ import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import com.tecnocampus.LS2.protube_back.services.UserService;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import com.tecnocampus.LS2.protube_back.services.CommentService;
+import com.tecnocampus.LS2.protube_back.services.CreatorSubscriptionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -159,6 +160,7 @@ class PostgreSqlPersistenceTest {
             Long videoId;
             Long commentId;
             Long replyId;
+            Long creatorId;
             String description = "Persistent PostgreSQL description. ".repeat(100).trim();
 
             try (var application = startApplication(database, "dev")) {
@@ -180,9 +182,13 @@ class PostgreSqlPersistenceTest {
                 comments.deleteComment(commentId, userId);
                 videos.likeVideo(videoId, userId);
                 videos.recordWatch(videoId, new WatchHistoryRequest(userId, 5));
+                creatorId = application.getBean(UserService.class).register(new RegisterRequest(
+                        "followed@example.test", "followed", "Test", "Creator", "password123"
+                )).id();
+                application.getBean(CreatorSubscriptionService.class).subscribe(userId, creatorId);
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(
@@ -194,6 +200,11 @@ class PostgreSqlPersistenceTest {
             try (var application = startApplication(database, "prod")) {
                 var users = application.getBean(UserAccountRepository.class);
                 var videos = application.getBean(VideoService.class);
+                var subscriptions = application.getBean(CreatorSubscriptionService.class);
+                assertTrue(subscriptions.state(userId, creatorId).subscribed());
+                users.deleteById(creatorId);
+                assertTrue(subscriptions.list(userId, org.springframework.data.domain.PageRequest.of(0, 24))
+                        .content().isEmpty());
                 var persistedUser = users.findById(userId).orElseThrow();
                 assertEquals("persist@example.com", persistedUser.getEmail());
                 assertEquals("Persist", persistedUser.getFirstName());

@@ -108,7 +108,10 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 
 - Requirements: RF-07, all numbered acceptance criteria in [spec.md](spec.md).
 - Areas: New subscription persistence/service/controller/client; creator and profile UI.
-- Design: Unique subscriber/creator pair, FK cleanup, principal-derived own list. Public creator summary/video list is the minimal navigation destination, not a private profile API.
+- Design: `GET /api/users/{id}/subscription` returns `{ "subscribed": false }` for a known creator without a current relationship. PUT and DELETE return 204 and require CSRF; 400 on self-mutation, 404 for an unknown creator. `GET /api/users/me/subscriptions` returns `{ content, page, size, hasNext, totalElements }` with public creator objects `{ id, displayName, avatarUrl, description }`. Both authenticated GET routes send `Cache-Control: no-store`; no request selects a subscriber.
+- Public creator endpoints return the same creator object and a bounded page of `{ id, title, thumbnailUrl }` videos. Default `page=0`, `size=24`; size 1–100, and negative pages or unsupported offsets return 400. Public video order is newest first, then video ID.
+- Persistence: additive Flyway V9 on this branch, two cascading account references, a unique pair and a database self-check. Atomic `ON CONFLICT DO NOTHING` keeps the original follow date. Own lists sort by timestamp descending and creator ID ascending. Recheck the migration number against teammates’ branches before integration.
+- UI: add `/subscriptions` and `/creators/:id`, a menu entry, and the subscription control beside the player’s creator identity and on the public page. Mutation errors retain the last confirmed state. Use subscription-scoped Spanish, Catalan and English strings selected from browser language preferences until P16 provides the application-wide locale adapter.
 - Dependencies: P00 identity/contracts; P16 adapter.
 - Work slices: T07.01 onward in [task.md](task.md).
 - Verification: targeted component/service tests plus the RF-07 validation row; existing behaviour is retained unless the spec explicitly changes it.

@@ -11,6 +11,7 @@ import { AccountMenu } from './components/AccountMenu';
 import { AppearanceControls } from './components/AppearanceControls';
 import { AuthPage } from './components/AuthPage';
 import { ProfilePage } from './components/ProfilePage';
+import { CreatorPage, SubscriptionsPage } from './components/CreatorPages';
 import { AnalyticsPage } from './components/AnalyticsPage';
 import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
@@ -81,6 +82,8 @@ function AppRoutes() {
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/subscriptions" element={<SubscriptionsPage />} />
+          <Route path="/creators/:id" element={<CreatorPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/upload" element={<UploadVideoPage />} />
           <Route path="*" element={<p role="alert">Page not found.</p>} />

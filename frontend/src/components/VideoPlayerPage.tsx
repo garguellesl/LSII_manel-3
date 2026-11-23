@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
 import { CommentSection } from './CommentSection';
 import { UserAvatar } from './UserAvatar';
+import { CreatorSubscription } from './CreatorSubscription';
 import { newPlayId, videoClient } from '../utils/videoClient';
 import axios from 'axios';
 import { mutate } from '../apiClient';
@@ -157,9 +158,16 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           <p className="video-creator">
             <UserAvatar name={value.user} src={value.author?.avatarUrl} size="small" />
             <span className="video-creator-label">Uploaded by</span>
-            <strong className="video-player-user">{value.author?.displayName || value.user}</strong>
+            {value.author ? (
+              <Link className="video-player-user" to={`/creators/${value.author.id}`}>
+                {value.author.displayName || value.user}
+              </Link>
+            ) : (
+              <strong className="video-player-user">{value.user}</strong>
+            )}
           </p>
         )}
+        {value.author && <CreatorSubscription creatorId={value.author.id} />}
         {editable && (
           <div className="video-owner-actions">
             {/* RF-2 owner editing lives in its own route; this is its entry point. */}
