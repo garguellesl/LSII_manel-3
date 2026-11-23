@@ -16,6 +16,8 @@ import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.repositories.CommentRepository;
+import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository;
+import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository.VideoCount;
 import com.tecnocampus.LS2.protube_back.repositories.TagRepository;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoLikeRepository;
@@ -30,6 +32,11 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Objects;
@@ -41,6 +48,7 @@ import java.util.UUID;
 public class VideoService {
 
     private final VideoRepository videoRepository;
+    private final CatalogueMetricsRepository catalogueMetrics;
     private final UserAccountRepository userAccountRepository;
     private final TagRepository tagRepository;
     private final CommentRepository commentRepository;
@@ -51,7 +59,8 @@ public class VideoService {
     public VideoService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                         TagRepository tagRepository, CommentRepository commentRepository,
                         VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository,
-                        VideoPlayRepository videoPlayRepository) {
+                        VideoPlayRepository videoPlayRepository, CatalogueMetricsRepository catalogueMetrics) {
+        this.catalogueMetrics = catalogueMetrics;
         this.videoPlayRepository = videoPlayRepository;
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
@@ -77,7 +86,7 @@ public class VideoService {
         var pageable = PageRequest.of(page, size);
         var result = filters.isEmpty() ? videoRepository.search(normalized, pageable)
                 : videoRepository.searchByTags(normalized, filters, pageable);
-        return new VideoPage(result.getContent().stream().map(this::toSummary).toList(),
+        return new VideoPage(toSummaries(result.getContent()),
                 page, size, result.hasNext(), result.getTotalElements());
     }
 
@@ -223,18 +232,33 @@ public class VideoService {
         }
     }
 
-    private VideoSummary toSummary(Video video) {
-        return new VideoSummary(
-                video.getId(),
-                video.getTitle(),
-                urlFor(video.getThumbnailPath()),
-                urlFor(video.getMediaPath()),
-                tagNames(video),
-                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
-                commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                videoPlayRepository.countByVideoId(video.getId()),
-                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE)
-        );
+    private List<VideoSummary> toSummaries(List<Video> page) {
+        if (page.isEmpty()) {
+            return List.of();
+        }
+        var ids = page.stream().map(Video::getId).toList();
+        Map<Long, List<String>> tags = new HashMap<>();
+        for (var row : catalogueMetrics.tags(ids)) {
+            tags.computeIfAbsent(row.getVideoId(), key -> new ArrayList<>()).add(row.getName());
+        }
+        tags.values().forEach(names -> names.sort(String::compareTo));
+        var reactions = catalogueMetrics.reactions(ids, VideoLike.ReactionType.LIKE, VideoLike.ReactionType.DISLIKE)
+                .stream().collect(Collectors.toMap(CatalogueMetricsRepository.Reactions::getVideoId, Function.identity()));
+        var comments = countsByVideo(catalogueMetrics.visibleComments(ids));
+        var plays = countsByVideo(catalogueMetrics.plays(ids));
+
+        return page.stream().map(video -> {
+            Long id = video.getId();
+            var reaction = reactions.get(id);
+            return new VideoSummary(id, video.getTitle(), urlFor(video.getThumbnailPath()), urlFor(video.getMediaPath()),
+                    tags.getOrDefault(id, List.of()), reaction == null ? 0 : reaction.getLikes(),
+                    comments.getOrDefault(id, 0L), plays.getOrDefault(id, 0L),
+                    reaction == null ? 0 : reaction.getDislikes());
+        }).toList();
+    }
+
+    private Map<Long, Long> countsByVideo(List<VideoCount> rows) {
+        return rows.stream().collect(Collectors.toMap(VideoCount::getVideoId, VideoCount::getTotal));
     }
 
     private VideoDetail toDetail(Video video) {
