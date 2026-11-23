@@ -12,7 +12,7 @@ jest.mock('../../utils/authClient', () => ({
 }));
 jest.mock('../../utils/userClient', () => ({
   ...jest.requireActual('../../utils/userClient'),
-  userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn() },
+  userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn(), likedVideos: jest.fn() },
 }));
 
 const auth = authClient as jest.Mocked<typeof authClient>;
@@ -237,5 +237,96 @@ describe('ProfilePage', () => {
     expect(await screen.findByRole('region', { name: 'Tu canal' })).toBeInTheDocument();
     expect(screen.getByText(/Todavía no has publicado ningún vídeo/)).toBeInTheDocument();
     expect(screen.getByText(/Aún no has visto ningún vídeo/)).toBeInTheDocument();
+  });
+
+  it('opens the private collection, shows loading, and pages through links to the correct videos', async () => {
+    let finish!: (value: Awaited<ReturnType<typeof users.likedVideos>>) => void;
+    users.likedVideos.mockReturnValueOnce(new Promise((resolve) => (finish = resolve))).mockResolvedValueOnce({
+      content: [{ id: 8, title: 'Segundo vídeo', thumbnailUrl: null }],
+      page: 1,
+      size: 24,
+      totalElements: 25,
+      hasNext: false,
+    });
+    renderProfile();
+    const open = await screen.findByRole('button', { name: 'Ver vídeos que te gustan' });
+    expect(users.likedVideos).not.toHaveBeenCalled();
+    expect(open).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(open);
+    expect(open).toHaveAttribute('aria-expanded', 'true');
+    const section = screen.getByRole('region', { name: 'Vídeos que te gustan' });
+    expect(within(section).getByRole('status')).toHaveTextContent('Cargando');
+    await act(async () =>
+      finish({
+        content: [{ id: 7, title: 'Primer vídeo', thumbnailUrl: '/media/preview.webp' }],
+        page: 0,
+        size: 24,
+        totalElements: 25,
+        hasNext: true,
+      })
+    );
+    expect(within(section).getByRole('link', { name: 'Primer vídeo' })).toHaveAttribute('href', '/videos/7');
+    expect(within(section).getByRole('button', { name: 'Anterior' })).toBeDisabled();
+    fireEvent.click(within(section).getByRole('button', { name: 'Siguiente' }));
+    expect(await within(section).findByRole('link', { name: 'Segundo vídeo' })).toHaveAttribute('href', '/videos/8');
+    expect(within(section).getByRole('button', { name: 'Siguiente' })).toBeDisabled();
+    expect(users.likedVideos).toHaveBeenLastCalledWith(1, expect.any(AbortSignal));
+
+    users.likedVideos
+      .mockResolvedValueOnce({ content: [], page: 1, size: 24, totalElements: 1, hasNext: false })
+      .mockResolvedValueOnce({
+        content: [{ id: 7, title: 'Primer vídeo', thumbnailUrl: '/media/preview.webp' }],
+        page: 0,
+        size: 24,
+        totalElements: 1,
+        hasNext: false,
+      });
+    fireEvent(window, new Event('focus'));
+    expect(await within(section).findByRole('link', { name: 'Primer vídeo' })).toBeInTheDocument();
+    expect(within(section).queryByRole('link', { name: 'Segundo vídeo' })).not.toBeInTheDocument();
+    expect(users.likedVideos).toHaveBeenLastCalledWith(0, expect.any(AbortSignal));
+  });
+
+  it('lets the user retry a failed collection request and shows a useful empty state', async () => {
+    users.likedVideos
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({ content: [], page: 0, size: 24, totalElements: 0, hasNext: false });
+    renderProfile();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver vídeos que te gustan' }));
+    const section = screen.getByRole('region', { name: 'Vídeos que te gustan' });
+    expect(await within(section).findByRole('alert')).toHaveTextContent('No se han podido cargar');
+    fireEvent.click(within(section).getByRole('button', { name: 'Reintentar' }));
+    expect(await within(section).findByText(/Aún no has dado/)).toBeInTheDocument();
+    expect(within(section).getByRole('link', { name: 'Explora el catálogo' })).toHaveAttribute('href', '/');
+  });
+
+  it('discards an in-flight collection request when the active account changes', async () => {
+    let finish!: (value: Awaited<ReturnType<typeof users.likedVideos>>) => void;
+    users.likedVideos.mockReturnValueOnce(new Promise((resolve) => (finish = resolve))).mockResolvedValueOnce({
+      content: [{ id: 12, title: 'Privado de la otra cuenta', thumbnailUrl: null }],
+      page: 0,
+      size: 24,
+      totalElements: 1,
+      hasNext: false,
+    });
+    renderProfile();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver vídeos que te gustan' }));
+    const signal = users.likedVideos.mock.calls[0][1];
+    auth.currentUser.mockResolvedValue({ ...user, id: 99, accountName: 'grace', displayName: 'Grace Hopper' });
+    fireEvent(window, new Event('focus'));
+    await screen.findByText('Grace Hopper', { selector: '.profile-name' });
+    expect(signal?.aborted).toBe(true);
+    await act(async () =>
+      finish({
+        content: [{ id: 11, title: 'Privado de Ada', thumbnailUrl: null }],
+        page: 0,
+        size: 24,
+        totalElements: 1,
+        hasNext: false,
+      })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ver vídeos que te gustan' }));
+    expect(await screen.findByRole('link', { name: 'Privado de la otra cuenta' })).toBeInTheDocument();
+    expect(screen.queryByText('Privado de Ada')).not.toBeInTheDocument();
   });
 });

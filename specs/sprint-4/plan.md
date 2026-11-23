@@ -1,7 +1,7 @@
 # Plan — Sprint 4
 
 Spec: [spec.md](spec.md) | Execution/evidence: [task.md](task.md).
-Status: documentation prepared; implementation not started or authorised by this request.
+Status: sprint plan. See [task.md](task.md) for per-slice implementation and validation evidence.
 Baseline: ed0bd16, feature/shared-database-supabase, initially clean working tree on 2026-11-18. No remote tracker or PR coordination was verified. Responsible member/reviewer remain unassigned.
 
 ## Architecture and existing implementation
@@ -138,7 +138,10 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 
 - Requirements: RF-10, all numbered acceptance criteria in [spec.md](spec.md).
 - Areas: Reaction repository, own-collection DTO/controller/client, ProfilePage.
-- Design: Query current LIKE rows by principal, ordered reaction timestamp descending then video ID. Add timestamp only if absent; do not duplicate reactions.
+- Design: `GET /api/users/me/liked-videos?page=0&size=24` uses the session principal and returns the shared page fields `content`, `page`, `size`, `hasNext` and `totalElements`. Each entry contains `id`, `title` and nullable `thumbnailUrl`. Use `Cache-Control: no-store`; anonymous requests return 401, invalid page or size returns 400, and empty or out-of-range pages return 200. Accept size 1–100 and a non-negative page within the supported database offset.
+- Data: Page over existing positive `video_likes` joined to `videos`, ordered by `created_at` descending and video ID ascending. Reuse the saved timestamp and the existing cascade on video deletion. Update the timestamp atomically only when a stored dislike becomes a like. A repeated positive like keeps its timestamp. Existing rows keep their stored date. No migration is needed for this slice.
+- UI: Add a collapsible collection to the existing profile, with thumbnail/title links, loading, empty, retry and pagination states. Fetch each time the collection opens, including on return from the player, and after session revalidation while open. Cancel obsolete requests and keep the collection scoped to the confirmed account. Reuse the existing player and reaction HTTP contract.
+- Player toggle: Resolve the selected state against the singular `LIKE` or `DISLIKE` value. Pressing the selected button sends DELETE to its existing path. Pressing the other button sends POST and switches the reaction. The player control keeps its existing labels and layout.
 - Dependencies: P05 reaction contract; P00 page DTO.
 - Work slices: T10.01 onward in [task.md](task.md).
 - Verification: targeted component/service tests plus the RF-10 validation row; existing behaviour is retained unless the spec explicitly changes it.

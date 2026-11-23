@@ -243,7 +243,7 @@ As an authenticated user, I want to see the videos I have liked so that I can ea
 
 **Main use case:**
 
-A user likes a video, opens Liked videos in their profile and plays it. Removing the like removes the video from that collection when the list updates.
+A user likes a video, opens Liked videos in their profile and plays it. Selecting the active Like button again removes the reaction. Removing the like removes the video from that collection when the list updates.
 
 **Acceptance criteria:**
 
@@ -255,6 +255,8 @@ A user likes a video, opens Liked videos in their profile and plays it. Removing
 - **RF-10.AC6:** Another account cannot retrieve the user's private liked-video list by changing an identifier.
 - **RF-10.AC7:** An empty collection displays a useful message rather than an error.
 - **RF-10.AC8:** The collection remains correct across reloads and new sessions.
+
+The sort date is when the current positive like became active. Repeating an active like preserves its position. If the date of a historical switch to positive was never recorded, the collection uses the saved reaction date for that row.
 
 ### RF-11 — Complete Video Editing and Deletion for Owners
 

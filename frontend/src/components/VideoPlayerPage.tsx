@@ -99,13 +99,14 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         .catch(() => {});
   }, [auth.status, value.id]);
   const react = async (kind: 'likes' | 'dislikes') => {
+    const targetReaction = kind === 'likes' ? 'LIKE' : 'DISLIKE';
     setSaving(true);
     setReactionError('');
     try {
       const result = await mutate<{ liked: boolean; disliked: boolean; likesCount: number; dislikesCount: number }>(
         `/videos/${value.id}/${kind}`,
         null,
-        reaction === kind.toUpperCase() ? 'delete' : 'post'
+        reaction === targetReaction ? 'delete' : 'post'
       );
       setReaction(result.liked ? 'LIKE' : result.disliked ? 'DISLIKE' : null);
       setCounts({ likes: result.likesCount, dislikes: result.dislikesCount });
