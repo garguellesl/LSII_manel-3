@@ -1476,10 +1476,20 @@
 }
 
 .back-link {
-  display: inline-block;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--pt-border);
+  border-radius: 50%;
+  background: var(--pt-surface);
+  text-decoration: none;
   margin-bottom: var(--pt-player-space-md, 1rem);
   color: var(--pt-accent);
-  font-size: var(--pt-player-font-body, 1rem);
+  font-size: 1.4rem;
+}
+.back-link:hover {
+  border-color: var(--pt-accent);
+  background: var(--pt-surface-hover);
 }
 
 .video-player {

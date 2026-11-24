@@ -5,6 +5,29 @@
   width: 100%;
 }
 
+.comment-section-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.comment-section-heading h2 {
+  margin: 0;
+}
+.comment-sign-in {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 999px;
+  background: var(--pt-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.comment-sign-in:hover {
+  border-color: var(--pt-accent);
+  background: var(--pt-surface-hover);
+}
 .comment-section h2 {
   font-size: var(--pt-player-font-heading, 1.125rem);
   font-weight: 600;

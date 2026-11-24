@@ -14,3 +14,5 @@
 Presentation changes and checks complete for the narrowed slice. Build/lint passed; serial full Jest 234/234 passed after parallel timeouts. Browser responsive matrix passed with mocked APIs. Detailed evidence and limits: specs/sprint-4/task.md final entry. State: review, no ownership release/merge claimed. Next: user/team visual review and optional physical-device/screen-reader checks.
 
 Follow-up: circular thumb controls above description, counts below, accent/check selection. Updated build/lint/234 Jest tests and mocked Chromium responsive matrix pass; see task evidence. Unrelated local .env.supabase modification preserved without inspection.
+
+2026-11-24. Guest comments now show a compact Sign in link beside the Comments heading. Build, lint and 242 Jest tests passed. The Playwright selector was updated; browser E2E execution remains pending. [Prompt](../../../prompts/32-comments-sign-in.md).
