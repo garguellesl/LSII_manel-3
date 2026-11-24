@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SearchBar } from './components/SearchBar';
@@ -31,6 +31,25 @@ function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
+  // AppRoutes never unmounts between routes, so the message must be paired with the pathname
+  // it was set for and actually cleared (not just hidden) the moment a different path renders —
+  // otherwise navigating away and back to that same path would resurrect it. Adjusting state
+  // during render (https://react.dev/reference/react/useState#storing-information-from-previous-renders)
+  // clears it before paint without a separate effect; it can't loop because flash is already
+  // null on the next check once this runs.
+  const [flash, setFlash] = useState<{ pathname: string; message: string } | null>(null);
+  if (flash && flash.pathname !== location.pathname) {
+    setFlash(null);
+  }
+
+  useEffect(() => {
+    const state = location.state as { flash?: string } | null;
+    if (!state?.flash) return;
+    // Copy the message out first, then clear the history state immediately: back/forward
+    // or a refresh must never resurrect it, so the banner shows exactly once.
+    setFlash({ pathname: location.pathname, message: state.flash });
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -70,6 +89,18 @@ function AppRoutes() {
             }}
           />
         </div>
+        {/* Always mounted, even empty, so a screen reader already observing this live
+            region announces the text the moment it appears instead of missing it. */}
+        <p className={`app-flash${flash ? ' app-flash--visible' : ''}`} role="status">
+          {flash && (
+            <>
+              {flash.message}
+              <button type="button" onClick={() => setFlash(null)} aria-label="Dismiss message">
+                ×
+              </button>
+            </>
+          )}
+        </p>
         <Routes>
           <Route
             path="/"

@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import App from '../../App';
 import { authClient } from '../../utils/authClient';
@@ -554,5 +554,88 @@ describe('App Component', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Page not found.');
     await screen.findByRole('link', { name: 'Registrarse' });
+  });
+
+  it('shows a message passed via navigation state exactly once and lets the viewer dismiss it', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    const { container } = render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: { flash: 'Vídeo eliminado.' } }]}>
+        <App />
+      </MemoryRouter>
+    );
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
+    expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
+  });
+
+  it('clears the flash banner when navigating to a different route', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    const { container } = render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: { flash: 'Vídeo eliminado.' } }]}>
+        <App />
+      </MemoryRouter>
+    );
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
+    fireEvent.click(screen.getByRole('link', { name: 'Registrarse' }));
+    await screen.findByRole('button', { name: 'Crear cuenta' });
+    expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
+  });
+
+  it('stays cleared when navigating back to "/" after visiting a different route, without dismissing it first', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    const { container } = render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: { flash: 'Vídeo eliminado.' } }]}>
+        <App />
+      </MemoryRouter>
+    );
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
+    fireEvent.click(screen.getByRole('link', { name: 'Registrarse' }));
+    await screen.findByRole('button', { name: 'Crear cuenta' });
+    fireEvent.click(screen.getByRole('link', { name: 'Go to home' }));
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
+  });
+
+  it('does not reappear after navigating back to the entry whose flash state was already cleared', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    function GoBack() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate(-1)}>
+          Go back
+        </button>
+      );
+    }
+    const { container } = render(
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/', state: {} },
+          { pathname: '/', state: { flash: 'Vídeo eliminado.' } },
+        ]}
+        initialIndex={1}
+      >
+        <GoBack />
+        <App />
+      </MemoryRouter>
+    );
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
+    expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
+  });
+
+  it('does not show anything when the location carries no flash state, such as after it was already cleared', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    const { container } = render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: {} }]}>
+        <App />
+      </MemoryRouter>
+    );
+    await screen.findByText('No videos are available.');
+    expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
   });
 });
