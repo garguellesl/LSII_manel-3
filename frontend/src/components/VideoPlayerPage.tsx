@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useVideo } from '../useVideo';
@@ -6,6 +6,7 @@ import type { VideoDetail } from '../useVideo';
 import { toMediaUrl } from '../utils/media';
 import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
+import { Recommendations } from './Recommendations';
 import { CommentSection } from './CommentSection';
 import { UserAvatar } from './UserAvatar';
 import { CreatorSubscription } from './CreatorSubscription';
@@ -13,11 +14,6 @@ import { newPlayId, videoClient } from '../utils/videoClient';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from '../utils/Env';
-
-// Descriptions above either limit are collapsed behind a toggle so the controls
-// below them stay reachable without scrolling past the whole text.
-const DESCRIPTION_CHARACTER_LIMIT = 400;
-const DESCRIPTION_LINE_LIMIT = 6;
 
 export function VideoPlayerPage() {
   const { id } = useParams();
@@ -239,6 +235,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       </div>
       <CommentSection videoId={value.id} />
+      <Recommendations videoId={value.id} />
     </article>
   );
 }
@@ -270,14 +267,34 @@ function VideoMetaRow({ video }: { video: VideoDetail }) {
 
 function VideoDescription({ videoId, text }: { videoId: number; text: string }) {
   const [expanded, setExpanded] = useState(false);
+  const paragraph = useRef<HTMLParagraphElement>(null);
+  const [collapsible, setCollapsible] = useState(false);
+  useLayoutEffect(() => {
+    const element = paragraph.current;
+    if (!element) return;
+    const measure = () => {
+      const limit = expanded ? Math.ceil(parseFloat(getComputedStyle(element).lineHeight) * 5) : element.clientHeight;
+      const overflowing = element.scrollHeight > limit;
+      setCollapsible(overflowing);
+      if (!overflowing) setExpanded(false);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(element);
+    document.fonts?.addEventListener('loadingdone', measure);
+    return () => {
+      observer?.disconnect();
+      document.fonts?.removeEventListener('loadingdone', measure);
+    };
+  }, [text, expanded]);
   if (!text) return null;
-  const collapsible = text.length > DESCRIPTION_CHARACTER_LIMIT || text.split('\n').length > DESCRIPTION_LINE_LIMIT;
   const descriptionId = `video-description-${videoId}`;
-  const clamped = collapsible && !expanded;
+  const clamped = !expanded;
 
   return (
     <div className="video-description">
       <p
+        ref={paragraph}
         id={descriptionId}
         className={`video-player-description${clamped ? ' video-player-description--clamped' : ''}`}
       >

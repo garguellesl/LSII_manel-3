@@ -122,3 +122,7 @@ Local change on feature/add_documentacion_sprint-4: reaction controls expose a n
 ## Liked videos in the profile (2026-11-22)
 
 `GET /api/users/me/liked-videos` returns the signed-in account's active likes in bounded pages. The profile fetches it when the collection opens. The player sends the existing DELETE request when a selected reaction is pressed again. The repository records dislike-to-like transitions in the existing reaction timestamp. See the [SCRUM-51 handoff](tasks/scrum-51.md) for scope and evidence.
+
+## RF-04 player recommendations
+
+Local feature branch `feat/improve-videoplay-page-buttons-UIX` adds a public, session-aware recommendations endpoint capped at eight. The player measures five rendered description lines and previews the three most-liked comments in portrait. V10 adds audience eligibility with a legacy default of UNCLASSIFIED. [Scope and verification](tasks/rf04-player-recommendations.md).

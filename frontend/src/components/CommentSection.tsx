@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useComments } from '../useComments';
@@ -24,6 +24,24 @@ function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean 
   const [collapsed, setCollapsed] = useState(new Set<number>());
   const authenticated = auth.status === 'authenticated';
   const rows = discussionRows(discussion.comments, collapsed);
+
+  const [portrait, setPortrait] = useState(() => window.matchMedia?.('(orientation: portrait)').matches ?? false);
+  const [fullThread, setFullThread] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia?.('(orientation: portrait)');
+    if (!query) return;
+    const update = () => setPortrait(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  const preview = portrait && !fullThread && discussion.comments.length > 3;
+  const visibleRows = preview
+    ? discussion.comments
+        .filter((comment) => !comment.deleted)
+        .sort((a, b) => b.likesCount - a.likesCount || a.id - b.id)
+        .slice(0, 3)
+        .map((comment) => ({ comment, depth: 0, hasReplies: false }))
+    : rows;
 
   function toggle(id: number) {
     setCollapsed((current) => {
@@ -63,20 +81,31 @@ function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean 
         </div>
       )}
       {discussion.status === 'success' && rows.length === 0 && <p>No comments yet. Start the discussion.</p>}
-      <div className="comment-list">
-        {rows.map(({ comment, depth, hasReplies }) => (
+      <div className="comment-list" id="video-comment-list">
+        {visibleRows.map(({ comment, depth, hasReplies }) => (
           <CommentItem
             key={comment.id}
             comment={comment}
             depth={depth}
             hasReplies={hasReplies}
             collapsed={collapsed.has(comment.id)}
+            showThread={preview ? () => setFullThread(true) : undefined}
             toggle={() => toggle(comment.id)}
             authenticated={authenticated}
             discussion={discussion}
           />
         ))}
       </div>
+      {portrait && discussion.comments.length > 3 && (
+        <button
+          type="button"
+          aria-expanded={fullThread}
+          aria-controls="video-comment-list"
+          onClick={() => setFullThread(!fullThread)}
+        >
+          {fullThread ? 'Show fewer comments' : 'Show more comments'}
+        </button>
+      )}
     </section>
   );
 }
@@ -86,12 +115,22 @@ type ItemProps = {
   depth: number;
   hasReplies: boolean;
   collapsed: boolean;
+  showThread?: () => void;
   toggle: () => void;
   authenticated: boolean;
   discussion: ReturnType<typeof useComments>;
 };
 
-function CommentItem({ comment, depth, hasReplies, collapsed, toggle, authenticated, discussion }: ItemProps) {
+function CommentItem({
+  comment,
+  depth,
+  hasReplies,
+  collapsed,
+  toggle,
+  showThread,
+  authenticated,
+  discussion,
+}: ItemProps) {
   const [mode, setMode] = useState<'read' | 'reply' | 'edit' | 'delete'>('read');
   const item = useRef<HTMLElement>(null);
   const busy = discussion.pending.has(String(comment.id)) || discussion.status !== 'success' || !authenticated;
@@ -126,7 +165,7 @@ function CommentItem({ comment, depth, hasReplies, collapsed, toggle, authentica
         {active && comment.updatedAt !== comment.createdAt && <small>Edited</small>}
       </header>
       {comment.parentId !== null && (
-        <a className="comment-parent" href={`#comment-${comment.parentId}`}>
+        <a className="comment-parent" onClick={showThread} href={`#comment-${comment.parentId}`}>
           In reply to parent comment
         </a>
       )}

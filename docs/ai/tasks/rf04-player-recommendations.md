@@ -1,0 +1,13 @@
+# RF-04 player recommendations
+
+Requested by the user, implemented locally by Codex on `feat/improve-videoplay-page-buttons-UIX`. Team review pending. Scope covers the recommendation endpoint, V10 audience eligibility, player layout, description and portrait comments. P12 owns audience assignment and catalogue controls. Existing rows start as UNCLASSIFIED.
+
+Verification and changes are recorded in [P04](../../../specs/sprint-4/task.md#p04--improve-the-video-page-recommendations-and-description). The isolated E2E delivery uses port 18080. Next step is team review before integrating the migration. [Prompt](../../../prompts/33-player-recommendations.md).
+
+Header follow-up: logo placed beside appearance controls, shared search moved upward by removing the separate logo row and reducing header/search spacing. Build/lint and 243 Jest tests pass. Chrome at 1280, 768 and 320 px confirms logo inside toolbar, search above player, desktop recommendation alignment, working home navigation and no horizontal overflow. Available in the isolated deployment on port 18080.
+
+Header refinement: logo now precedes appearance controls in visual and keyboard order, as requested. Frontend build/lint passed.
+
+CI follow-up (2026-11-24): Job 138576981387 timed out because the deep mobile discussion test searched for a nested reply while the portrait top-three preview was still collapsed. The E2E now expands the thread before testing nested keyboard interaction; teardown protocol errors were secondary to the timeout. `npx playwright test tests/comments.spec.ts --list` passed. Full local execution was blocked because the isolated Docker build could not validate Maven Central's TLS certificate; the test was not run locally.
+
+CI follow-up (2026-11-24, job 138586694970): The deep mobile discussion test found its reply before reload but not after. Reload resets the page-local portrait preview to collapsed, so the reply was hidden rather than missing from persisted data. The E2E now confirms the preview is collapsed after reload, expands it again, and then checks the reply. `cd e2e && npx playwright test tests/comments.spec.ts --list` passed (5 tests discovered). Focused execution remains blocked because the isolated Docker image build cannot validate Maven Central's TLS certificate. `cd e2e && npx tsc --noEmit` also cannot run because the E2E package lacks `@types/node`. No product code changed; CI must execute the test against the isolated deployment.

@@ -152,6 +152,10 @@ test.describe('comments, replies and likes', () => {
       const page = await fixture.context.newPage();
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(`/videos/${fixture.video.id}`);
+      const expandPreview = page.getByRole('button', { name: 'Show more comments', exact: true });
+      await expect(expandPreview).toHaveAttribute('aria-expanded', 'false');
+      await expandPreview.click();
+      await expect(page.getByRole('button', { name: 'Show fewer comments', exact: true })).toHaveAttribute('aria-expanded', 'true');
       const deepest = page.locator(`#comment-${long.id}`);
       await deepest.scrollIntoViewIfNeeded();
       await expect(deepest).toBeVisible();
@@ -174,6 +178,10 @@ test.describe('comments, replies and likes', () => {
       await page.screenshot({ path: testInfo.outputPath('discussion-mobile.png'), fullPage: true });
       await page.screenshot({ path: testInfo.outputPath('discussion-mobile-viewport.png') });
       await page.reload();
+      const reloadedPreview = page.getByRole('button', { name: 'Show more comments', exact: true });
+      await expect(reloadedPreview).toHaveAttribute('aria-expanded', 'false');
+      await reloadedPreview.click();
+      await expect(page.getByRole('button', { name: 'Show fewer comments', exact: true })).toHaveAttribute('aria-expanded', 'true');
       await expect(row(page, 'Keyboard reply on mobile')).toBeVisible();
     } finally { await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });
