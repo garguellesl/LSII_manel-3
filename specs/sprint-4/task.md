@@ -298,7 +298,7 @@ Requirement: RF-04 (all AC). Design: [P04](plan.md#p04). Integration dependencie
 - [x] T04.09 — Add mobile recommendation stacking.
   - Estimate: 15–20 min. Depends on: T04.08.
   - Done when: The player retains width and cards appear below the main block.
-  - Evidence: player-page.spec.ts portrait 320/375 px, top-three comments before cards.
+  - Evidence: player-page.spec.ts portrait 320/375 px, top-three comments before cards; comments.spec.ts expands the portrait preview before exercising a deeply nested reply.
 - [x] T04.10 — Change description clamp to five lines.
   - Estimate: 15–20 min. Depends on: T04.09.
   - Done when: Collapsed CSS has a five-line limit.

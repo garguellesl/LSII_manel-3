@@ -152,6 +152,10 @@ test.describe('comments, replies and likes', () => {
       const page = await fixture.context.newPage();
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(`/videos/${fixture.video.id}`);
+      const expandPreview = page.getByRole('button', { name: 'Show more comments', exact: true });
+      await expect(expandPreview).toHaveAttribute('aria-expanded', 'false');
+      await expandPreview.click();
+      await expect(page.getByRole('button', { name: 'Show fewer comments', exact: true })).toHaveAttribute('aria-expanded', 'true');
       const deepest = page.locator(`#comment-${long.id}`);
       await deepest.scrollIntoViewIfNeeded();
       await expect(deepest).toBeVisible();

@@ -7,3 +7,5 @@ Verification and changes are recorded in [P04](../../../specs/sprint-4/task.md#p
 Header follow-up: logo placed beside appearance controls, shared search moved upward by removing the separate logo row and reducing header/search spacing. Build/lint and 243 Jest tests pass. Chrome at 1280, 768 and 320 px confirms logo inside toolbar, search above player, desktop recommendation alignment, working home navigation and no horizontal overflow. Available in the isolated deployment on port 18080.
 
 Header refinement: logo now precedes appearance controls in visual and keyboard order, as requested. Frontend build/lint passed.
+
+CI follow-up (2026-11-24): Job 138576981387 timed out because the deep mobile discussion test searched for a nested reply while the portrait top-three preview was still collapsed. The E2E now expands the thread before testing nested keyboard interaction; teardown protocol errors were secondary to the timeout. `npx playwright test tests/comments.spec.ts --list` passed. Full local execution was blocked because the isolated Docker build could not validate Maven Central's TLS certificate; the test was not run locally.
