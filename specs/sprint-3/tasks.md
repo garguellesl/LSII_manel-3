@@ -321,3 +321,15 @@ MP-F1: Chromium local reproduce el archivo original y reporta 46,944308 s/480x36
 | Limpieza y privacidad | Retirado solo protube-fragmented-check con sus dos volúmenes, eliminando la copia de prueba del vídeo; etiqueta temporal retirada. Original de Descargas intacto, sin bytes/capturas del vídeo en Git ni servicios externos. ProTube local y ambas parejas de datos existentes conservadas |
 
 Clases Java: modificada MediaFileValidator y ampliada VideoUploadIntegrationTest; nuevas clases de prueba FragmentedMp4ValidationTest y FragmentedMp4Fixture. No cambian frontend, dependencias, DTO/API o migraciones. Se reutilizan las verificaciones frontend del código 1208e34, sin presentarlas como ejecuciones nuevas; la imagen sí recompila producción y se ejecutó E2E nuevo. Sin commit/push/CI remoto de este arreglo; PR #33 sigue en el alcance publicado anterior. Revisión/publicación del equipo pendientes; comportamiento solicitado corregido y aplicado localmente.
+
+
+## Ejecución acotada de borrado accesible (2026-11-24)
+
+El borrado de vídeos propios (DELETE, cascadas, CSRF, botón en el reproductor) ya
+estaba implementado y probado desde sprint-2 (RF-7/T14/T16); esta petición no lo
+reabre. Alcance autorizado y contrato concreto en [delete.md](delete.md) (RF-11):
+diálogo de confirmación accesible en reproductor/editor/perfil, mensaje de
+confirmación tras borrar, y tombstone de rutas importadas para que un vídeo
+no-`UPLOAD` borrado no reaparezca al reiniciar. No amplía RF-2 ni ningún otro RF
+de este documento; no se declaran completas las tareas globales del sprint.
+Rama `feature/video-edit-deletion-owner`. Prompt: [registro](../../prompts/25-video-owner-edit-delete.md).

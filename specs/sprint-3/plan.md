@@ -56,6 +56,7 @@ Todos los archivos nuevos citados a continuación son propuestas, no implementac
 | RF-8 | `VideoImportService`, entidades, Flyway nuevo, almacenamiento, configuración/Compose y documentación | Procedencia, conservación del formato externo y persistencia |
 | RF-9 | `SecurityConfig`, `SessionSecurityTest`, controladores/servicios y clientes de sesión | Identidad del servidor, propiedad y CSRF en todos los contratos |
 | RF-10 | `VideoLike`, `VideoLikeRepository`, `VideoService`, `VideosController`, DTOs; VideoCard/VideoPlayerPage y cliente/hook | Like/dislike exclusivo persistente, conteos públicos y estado propio privado |
+| RF-11 | `ConfirmDialog` nuevo; `VideoPlayerPage`, `VideoMetadataPage`, `ProfilePage`, `App` (mensaje de confirmación); `VideoService`, `VideoImportService`, `DeletedMediaPath`/`DeletedMediaPathRepository`, migración V9 | Diálogo de borrado accesible reutilizable en tres superficies y tombstone de rutas importadas borradas |
 
 ## Diseño RF-10: reacciones a vídeos
 
@@ -66,6 +67,14 @@ Todos los archivos nuevos citados a continuación son propuestas, no implementac
 - Repositorio usa upsert PostgreSQL contra la clave única para serializar cambios concurrentes. Servicio obtiene conteos por tipo; controladores no acceden a entidades/repositorios.
 - UI: contadores en VideoCard y player; botones accesibles en player, visitor ve conteos y acceso a iniciar sesión. La UI conserva estado servidor confirmado y permite reintentar errores.
 - Pruebas: migración preserva likes existentes; servicio/controller/security cubren toggle, cambio, concurrencia, recurso inexistente, CSRF y DTO sin identidad; Jest con API simulada; E2E con visitante, dos cuentas, refresco y móvil.
+
+## Diseño RF-11: confirmación de borrado y tombstone de importación
+
+- Origen: el borrado de vídeos propios (DELETE `/api/videos/{id}`, 401/403/404, CSRF, cascadas) ya está implementado y probado desde sprint-2 (RF-7/T14/T16); no se reimplementa ni se reabre su contrato. Esta sección cubre solo lo que faltaba: un diálogo accesible en lugar de `window.confirm`, su presencia en editor y perfil, y una corrección de un defecto no abordado hasta ahora en el importador.
+- `ConfirmDialog` (`frontend/src/components/ConfirmDialog.tsx`): componente controlado, sin portal ni dependencia nueva; `role="dialog"`, `aria-modal="true"`, foco inicial en Cancelar, cierre con Escape (ignorado mientras `busy`), trampa de foco Tab/Shift+Tab entre Cancelar y Confirmar, y error en línea que mantiene el diálogo abierto en caso de fallo. `cancelLabel` es obligatorio para que cada página use el idioma de su propia interfaz (español en reproductor/perfil, inglés en el editor).
+- Mensaje de confirmación tras borrar desde reproductor/editor: `navigate('/', { state: { flash: '...' } })`; `App.tsx` copia `location.state.flash` a estado local y limpia inmediatamente el estado de historial (`navigate(pathname, { replace: true, state: {} })`) para que el aviso se vea una sola vez y no reaparezca con atrás/refrescar. Desde el perfil, la fila se refresca en sitio sin navegar.
+- Migración `V9__deleted_media_paths.sql` (siguiente versión libre tras V8) añade `deleted_media_paths(media_path PRIMARY KEY, deleted_at)`. `VideoService.deleteVideo` inserta la ruta del vídeo eliminado solo cuando su `source` no es `UPLOAD` (es decir, vídeos no subidos explícitamente por su propietario, que son los únicos que el importador podría reintroducir); un vídeo `UPLOAD` nunca genera tombstone porque nunca puede ser reimportado. `VideoImportService.importMetadata` comprueba la tabla antes de crear el vídeo y omite permanentemente cualquier ruta ya tombstoned.
+- Nota de nomenclatura: la restricción `videos_source_check` admite el valor `IMPORTED`, pero ningún código lo asigna nunca; los vídeos del importador quedan como `LEGACY` por defecto. La condición real para tombstoning es "no es `UPLOAD`", no una comparación literal con `IMPORTED`.
 
 Mantener Controller → Service → Repository y DTOs. Extraer almacenamiento/operaciones de conversación cuando ayude a probarlas sin convertir `VideoService` en una capa adicional de acceso desde controladores a repositorios. No introducir refactor general del monorepo.
 
@@ -159,6 +168,7 @@ Los nombres de pruebas nuevas se concretarán al implementar; son escenarios pre
 | RF-7 | Servicio, BD concurrente, player/panel, E2E | Sin reproducir=0; primer playing=1; pause/resume/replay/reintento=1; reapertura=2; dos aperturas simultáneas=2; visitante; sumas/ownership y cero subidas |
 | RF-8 | Migración/importador, reinicio, integración de store y Compose aislado | V1/V2 con datos y BD vacía; formato meta y WebP originales; reimportación, LEGACY, origen/counters separados; fallos entre DB/disco, persistencia y permisos de escritura |
 | RF-9 | Cadena real de seguridad, servicios, E2E | 401 con CSRF válido, 403 CSRF inválido, manipulación de IDs, 403 ajenos, privacidad en DTOs y acceso público de lecturas/reproducción |
+| RF-11 | Componente (Jest/RTL), servicio/importador (PostgreSQL), E2E | Diálogo con foco en Cancelar/trampa de foco/Escape ignorado en `busy`; error en línea sin cerrar; tombstone solo para vídeos no-`UPLOAD`; importador omite una ruta tombstoned sin leer su JSON; reaparición evitada tras reinicio simulado; no-propietario sin botones; mensaje de confirmación visible una sola vez |
 
 ## Verificación y riesgos
 

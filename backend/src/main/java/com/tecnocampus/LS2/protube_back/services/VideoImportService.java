@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tecnocampus.LS2.protube_back.entities.UserAccount;
 import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
+import com.tecnocampus.LS2.protube_back.repositories.DeletedMediaPathRepository;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import org.slf4j.Logger;
@@ -32,16 +33,19 @@ public class VideoImportService {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings demo;
+    private final DeletedMediaPathRepository deletedMediaPathRepository;
 
     public VideoImportService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                               VideoService videoService, PasswordEncoder passwordEncoder, ObjectMapper objectMapper,
-                              com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings demo) {
+                              com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings demo,
+                              DeletedMediaPathRepository deletedMediaPathRepository) {
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
         this.videoService = videoService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
         this.demo = demo;
+        this.deletedMediaPathRepository = deletedMediaPathRepository;
     }
 
     @Transactional
@@ -98,6 +102,10 @@ public class VideoImportService {
         String thumbnailPath = baseName + ".webp";
         if (!Files.isRegularFile(storeDirectory.resolve(mediaPath))
                 || !Files.isRegularFile(storeDirectory.resolve(thumbnailPath))) {
+            return;
+        }
+        if (deletedMediaPathRepository.existsById(mediaPath)) {
+            LOG.info("Skipping import of {} because it was previously deleted from ProTube", mediaPath);
             return;
         }
 

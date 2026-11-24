@@ -38,6 +38,9 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
     com.tecnocampus.LS2.protube_back.repositories.VideoPlayRepository videoPlayRepository;
 
     @Autowired
+    com.tecnocampus.LS2.protube_back.repositories.DeletedMediaPathRepository deletedMediaPathRepository;
+
+    @Autowired
     com.tecnocampus.LS2.protube_back.repositories.VideoRepository videoRepository;
 
     @Test
@@ -75,6 +78,21 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(0L, jdbc.queryForObject("select count(*) from video_likes where video_id=?", Long.class, video.id()));
         assertEquals(0L, jdbc.queryForObject("select count(*) from watch_history where video_id=?", Long.class, video.id()));
         assertEquals(1L, jdbc.queryForObject("select count(*) from tags where id=?", Long.class, tagId));
+    }
+
+    @Test
+    void deletingAnImportedVideoTombstonesItsMediaPathButAnUploadedVideoIsNotTombstoned() {
+        Long owner = registerUser("tombstone@example.com", "tombstone").id();
+        Long importedVideoId = createLegacyVideo(owner, "tombstone-imported.mp4");
+        Long uploadedVideoId = createUploadedVideo(owner, "tombstone-uploaded.mp4");
+
+        videoService.deleteVideo(importedVideoId, owner);
+        videoService.deleteVideo(uploadedVideoId, owner);
+
+        var tombstone = deletedMediaPathRepository.findById("tombstone-imported.mp4").orElseThrow();
+        assertEquals("tombstone-imported.mp4", tombstone.getMediaPath());
+        assertTrue(tombstone.getDeletedAt() != null);
+        assertTrue(deletedMediaPathRepository.findById("tombstone-uploaded.mp4").isEmpty());
     }
 
     @Test
@@ -513,6 +531,13 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         return jdbc.queryForObject("""
                 INSERT INTO videos (title, description, media_path, owner_user_id)
                 VALUES ('Legacy', '', ?, ?) RETURNING id
+                """, Long.class, mediaPath, owner);
+    }
+
+    private Long createUploadedVideo(Long owner, String mediaPath) {
+        return jdbc.queryForObject("""
+                INSERT INTO videos (title, description, media_path, owner_user_id, source, category)
+                VALUES ('Uploaded', '', ?, ?, 'UPLOAD', 'Other') RETURNING id
                 """, Long.class, mediaPath, owner);
     }
 
