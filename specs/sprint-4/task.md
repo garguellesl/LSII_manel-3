@@ -261,62 +261,66 @@ Requirement: RF-03 (all AC). Design: [P03](plan.md#p03). Integration dependencie
 
 Requirement: RF-04 (all AC). Design: [P04](plan.md#p04). Integration dependencies: P12 audience contract; P14 shell contract.
 
-- [ ] T04.01 — Define recommendation response fields and deterministic order.
+- Verify session isolation, 20-event history window, contextual fallback and portrait top-three comment disclosure alongside the cases below.
+
+- [x] T04.01 — Define recommendation response fields and deterministic order.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: Contract includes cap eight, eligibility and stable ID ties.
-  - Evidence: pending.
-- [ ] T04.02 — Write a recommendation exclusion repository case.
+  - Evidence: VideoRepository.recommendations and VideosControllerTest.
+- [x] T04.02 — Write a recommendation exclusion repository case.
   - Estimate: 15–20 min. Depends on: T04.01.
   - Done when: Current, deleted and audience-excluded videos are absent.
-  - Evidence: pending.
-- [ ] T04.03 — Implement the shared-tag recommendation query slice.
+  - Evidence: RecommendationTest (PostgreSQL).
+- [x] T04.03 — Implement the shared-tag recommendation query slice.
   - Estimate: 15–20 min. Depends on: T04.02.
   - Done when: Tag candidates are bounded and unique.
-  - Evidence: pending.
-- [ ] T04.04 — Add category/recent fallback selection.
+  - Evidence: RecommendationTest, distinct ranks and eight-row limit.
+- [x] T04.04 — Add category/recent fallback selection.
   - Estimate: 15–20 min. Depends on: T04.03.
   - Done when: The ordered result is capped at eight without duplicates.
-  - Evidence: pending.
-- [ ] T04.05 — Expose the recommendation GET through service and DTO.
+  - Evidence: SQL category, created_at and id tie-breaks; RecommendationTest.
+- [x] T04.05 — Expose the recommendation GET through service and DTO.
   - Estimate: 15–20 min. Depends on: T04.04.
   - Done when: Endpoint delegates and returns an empty list when appropriate.
-  - Evidence: pending.
-- [ ] T04.06 — Add a recommendation client with cancellation.
+  - Evidence: VideosControllerTest, HTTP 200 empty and session-bound inputs.
+- [x] T04.06 — Add a recommendation client with cancellation.
   - Estimate: 15–20 min. Depends on: T04.05.
   - Done when: A stale response cannot overwrite another video's data.
-  - Evidence: pending.
-- [ ] T04.07 — Render the recommendation card list.
+  - Evidence: useRecommendations.test.ts, aborted older request and ignored stale result.
+- [x] T04.07 — Render the recommendation card list.
   - Estimate: 15–20 min. Depends on: T04.06.
   - Done when: Loading, empty and error outputs are distinct.
-  - Evidence: pending.
-- [ ] T04.08 — Add desktop two-column player layout.
+  - Evidence: Recommendations component and player-page.spec.ts retry case.
+- [x] T04.08 — Add desktop two-column player layout.
   - Estimate: 15–20 min. Depends on: T04.07.
   - Done when: Recommendations sit beside a usable player.
-  - Evidence: pending.
-- [ ] T04.09 — Add mobile recommendation stacking.
+  - Evidence: player-page.spec.ts desktop and recommendation navigation.
+- [x] T04.09 — Add mobile recommendation stacking.
   - Estimate: 15–20 min. Depends on: T04.08.
   - Done when: The player retains width and cards appear below the main block.
-  - Evidence: pending.
-- [ ] T04.10 — Change description clamp to five lines.
+  - Evidence: player-page.spec.ts portrait 320/375 px, top-three comments before cards.
+- [x] T04.10 — Change description clamp to five lines.
   - Estimate: 15–20 min. Depends on: T04.09.
   - Done when: Collapsed CSS has a five-line limit.
-  - Evidence: pending.
-- [ ] T04.11 — Detect description overflow after width changes.
+  - Evidence: player-page.spec.ts measures client height divided by rendered line height.
+- [x] T04.11 — Detect description overflow after width changes.
   - Estimate: 15–20 min. Depends on: T04.10.
   - Done when: Show more appears only when rendered text exceeds the clamp.
-  - Evidence: pending.
-- [ ] T04.12 — Add expand/collapse accessible state.
+  - Evidence: player-page.spec.ts wide-to-portrait and back.
+- [x] T04.12 — Add expand/collapse accessible state.
   - Estimate: 15–20 min. Depends on: T04.11.
   - Done when: Button has matching expanded/controls state and retains focus.
-  - Evidence: pending.
-- [ ] T04.13 — Test expansion without playback reset.
+  - Evidence: VideoPlayerPage.test.tsx and keyboard Playwright case.
+- [x] T04.13 — Test expansion without playback reset.
   - Estimate: 15–20 min. Depends on: T04.12.
   - Done when: Player instance and playback position are preserved.
-  - Evidence: pending.
-- [ ] T04.14 — Check five-line descriptions at narrow and desktop widths.
+  - Evidence: player-page.spec.ts compares DOM identity and media time.
+- [x] T04.14 — Check five-line descriptions at narrow and desktop widths.
   - Estimate: 15–20 min. Depends on: T04.13.
   - Done when: Short, long and zoomed examples are recorded.
-  - Evidence: pending.
+  - Evidence: player-page.spec.ts five-line example at desktop, portrait and 200% CSS zoom.
+
+Local verification on 2026-11-24: Maven clean verify and JaCoCo passed (207 tests reported, one skipped). Frontend build, lint and all 243 Jest tests passed. All five player Playwright cases passed against the isolated Compose deployment. P12 catalogue controls and audience assignment remain separate. Physical devices and a translated-label matrix were not exercised.
 
 ## P05 — Improve the Like/Dislike Interface
 

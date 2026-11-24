@@ -50,16 +50,14 @@ function AppRoutes() {
     <div className="App">
       <header className="App-header">
         <div className="header-toolbar">
-          <AppearanceControls />
+          <div className="header-brand-controls">
+            <Link to="/" aria-label="Go to home" className="header-brand">
+              <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="Protube" />
+            </Link>
+            <AppearanceControls />
+          </div>
           <AccountMenu />
         </div>
-        <Link to="/" aria-label="Go to home">
-          <img
-            src="/protube-logo-removebg-preview.png"
-            className={isHome ? 'App-logo' : 'App-logo App-logo--compact'}
-            alt="logo"
-          />
-        </Link>
         <div className="catalog-search">
           <SearchBar value={searchQuery} onChange={handleSearch} />
           <TagSearch

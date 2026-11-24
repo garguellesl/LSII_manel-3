@@ -188,7 +188,7 @@ class PostgreSqlPersistenceTest {
                 application.getBean(CreatorSubscriptionService.class).subscribe(userId, creatorId);
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(

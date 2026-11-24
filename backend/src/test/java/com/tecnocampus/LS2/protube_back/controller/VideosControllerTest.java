@@ -40,6 +40,19 @@ class VideosControllerTest {
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
 
+    @Test
+    void recommendationsUseTheSessionAndReturnOnlyCardFields() throws Exception {
+        when(videoService.recommendations(7L, 3L, "CHILDREN")).thenReturn(List.of(
+                new com.tecnocampus.LS2.protube_back.model.RecommendedVideo(8L, "Next", null)));
+        mockMvc.perform(get("/api/videos/7/recommendations").principal(() -> "3")
+                        .param("audience", "CHILDREN").param("userId", "99"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].title").value("Next"))
+                .andExpect(jsonPath("$[0].userId").doesNotExist());
+        mockMvc.perform(get("/api/videos/7/recommendations"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        org.mockito.Mockito.verify(videoService).recommendations(7L, null, "ALL");
+    }
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new VideosController(videoService), new VideoUploadController(uploads))

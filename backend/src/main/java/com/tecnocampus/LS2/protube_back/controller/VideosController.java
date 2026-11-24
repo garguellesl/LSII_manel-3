@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tecnocampus.LS2.protube_back.model.RecommendedVideo;
 import java.util.List;
 import java.security.Principal;
 
@@ -44,6 +45,14 @@ public class VideosController {
             throw new IllegalArgumentException("Expected page >= 0, size between 1 and 100, and q at most 500 characters");
         }
         return ResponseEntity.ok(videoService.getVideos(q, tag == null ? List.of() : tag, page, size));
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<List<RecommendedVideo>> recommendations(
+            @PathVariable Long id, @RequestParam(defaultValue = "ALL") String audience, Principal principal) {
+        Long actor = principal == null ? null : Long.valueOf(principal.getName());
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(videoService.recommendations(id, actor, audience));
     }
 
     @GetMapping("/tags")

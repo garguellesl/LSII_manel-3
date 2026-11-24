@@ -113,7 +113,9 @@ A viewer opens a video, reads the initial description, expands and collapses it,
 - **RF-04.AC7:** A recommendation request failure does not prevent playback of the selected video.
 - **RF-04.AC8:** Orientation changes, long descriptions and translated labels do not break the layout.
 
-**Proposed recommendation scope:** Return up to eight eligible videos, prioritising shared tags, then category, then recent publication, with deterministic tie-breaking. Personalised machine-learning recommendations are outside this initial implementation.
+**Approved RF-04 refinement:** Rank by tag frequency across the current account’s last 20 watch events first. Guests and accounts without matching history use the contextual order below. In portrait, show video information, description, the three most-liked active comments with disclosure of the full thread, then recommendations.
+
+**Contextual recommendation scope:** Return up to eight eligible videos, prioritising shared tags, then category, then recent publication, with deterministic tie-breaking. Personalised machine-learning recommendations are outside this initial implementation.
 
 ### RF-05 — Improve the Like/Dislike Interface
 

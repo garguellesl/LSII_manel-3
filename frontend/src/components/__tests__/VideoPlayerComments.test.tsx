@@ -8,6 +8,7 @@ import type { AuthValue } from '../../auth/AuthContext';
 // The player keeps the real CommentSection here: RF-5 requires a failed discussion
 // to look different from a video that simply has no comments yet.
 jest.mock('axios');
+jest.mock('../Recommendations', () => ({ Recommendations: () => null }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const videoDetail = {

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
+import com.tecnocampus.LS2.protube_back.model.RecommendedVideo;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -173,6 +174,20 @@ public class VideoService {
         return new LikeResponse(videoId, reaction == VideoLike.ReactionType.LIKE, reaction == VideoLike.ReactionType.DISLIKE,
                 videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.LIKE),
                 videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.DISLIKE));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecommendedVideo> recommendations(Long id, Long actor, String audience) {
+        if (!List.of("ALL", "CHILDREN", "NOT_CHILDREN").contains(audience)) {
+            throw new IllegalArgumentException("Invalid audience");
+        }
+        if (!videoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Video not found");
+        }
+        return videoRepository.recommendations(id, actor, audience).stream()
+                .map(video -> new RecommendedVideo(
+                        video.getId(), video.getTitle(), urlFor(video.getThumbnailPath())))
+                .toList();
     }
 
     /**

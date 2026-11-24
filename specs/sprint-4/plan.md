@@ -19,7 +19,7 @@ These additions are proposed, not claims of existing routes. Existing auth, reac
 | Operation | Contract | Permission / result |
 | --- | --- | --- |
 | Catalogue | GET /api/videos?q=&tag=&sort=relevance&page=0&size=24&audience=ALL | Public; existing page envelope; size 1..100; allowlisted sort relevance/likes/views/newest/oldest; audience ALL/CHILDREN/NOT_CHILDREN. Invalid input 400. |
-| Recommendations | GET /api/videos/{id}/recommendations?audience=ALL | Public array of <=8 video summaries; unknown source 404; no matches 200 []. |
+| Recommendations | GET /api/videos/{id}/recommendations?audience=ALL | Public, non-cacheable array of <=8 cards (id, title, thumbnailUrl), ranked for the signed-in principal when available; unknown source 404; no matches 200 []. |
 | Subscription state | GET /api/users/{creatorId}/subscription | Own authenticated state {subscribed}; 401 anonymous, 404 unknown creator. |
 | Subscribe / remove | PUT or DELETE /api/users/{creatorId}/subscription | Principal + CSRF; 204 idempotent; 400 self-subscribe; 404 unknown creator. |
 | Own subscriptions | GET /api/users/me/subscriptions?page=&size= | Private page of public creator summaries; newest followed first, creator ID ties. |
@@ -78,7 +78,8 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 
 - Requirements: RF-04, all numbered acceptance criteria in [spec.md](spec.md).
 - Areas: VideoPlayerPage, description component, recommendation query/service/client.
-- Design: Add bounded recommendation selection: shared tags, category, recent fallback, stable ID ties. Observe rendered overflow and resize for five-line disclosure.
+- Design: Aggregate tag frequencies from the last 20 session-owned watch events and use the score before the contextual ranking. Use a portrait-only top-three comment preview ordered by likes then ID. Keep desktop recommendations beside the player.
+- Contextual selection: shared tags, category, recent fallback, stable ID ties. Observe rendered overflow and resize for five-line disclosure.
 - Dependencies: P12 audience contract; P14 shell contract.
 - Work slices: T04.01 onward in [task.md](task.md).
 - Verification: targeted component/service tests plus the RF-04 validation row; existing behaviour is retained unless the spec explicitly changes it.

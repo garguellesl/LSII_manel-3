@@ -7,6 +7,17 @@ import type { AuthValue } from '../../auth/AuthContext';
 import { videoClient } from '../../utils/videoClient';
 
 jest.mock('axios');
+jest.mock('../Recommendations', () => ({ Recommendations: () => null }));
+function mockOverflow() {
+  jest.spyOn(Element.prototype, 'scrollHeight', 'get').mockReturnValue(160);
+  const computed = window.getComputedStyle.bind(window);
+  jest.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+    const style = computed(element);
+    if (element.classList.contains('video-player-description')) style.lineHeight = '20px';
+    return style;
+  });
+}
+afterEach(() => jest.restoreAllMocks());
 jest.mock('../CommentSection', () => ({
   CommentSection: ({ videoId }: { videoId: number }) => <section aria-label={`Discussion for video ${videoId}`} />,
 }));
@@ -390,6 +401,7 @@ describe('VideoPlayerPage', () => {
   });
 
   it('collapses a long description behind a toggle and keeps a long title readable', async () => {
+    mockOverflow();
     const description = 'A very long description that keeps going. '.repeat(20);
     const title = 'Uptown'.repeat(40);
     mockedAxios.get.mockResolvedValueOnce({ status: 200, data: { ...videoDetail, title, description } });
@@ -452,6 +464,7 @@ describe('VideoPlayerPage', () => {
   });
 
   it('keeps the page controls focusable for keyboard use', async () => {
+    mockOverflow();
     const description = 'A very long description that keeps going. '.repeat(20);
     mockedAxios.get.mockResolvedValue({ status: 200, data: { ...videoDetail, description } });
     renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
