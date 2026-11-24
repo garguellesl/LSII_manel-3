@@ -3,3 +3,9 @@ test-results/
 playwright-report/
 blob-report/
 *.log
+
+# RF-8 persistence check (specs/sprint-3/persistence.md): Playwright resolves
+# outputDir/outputFolder relative to persistence/playwright.config.ts, so
+# these land under persistence/ instead of alongside the folders above.
+persistence-report/
+persistence-artifacts/

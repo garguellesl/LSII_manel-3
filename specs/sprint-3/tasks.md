@@ -113,11 +113,11 @@ Los identificadores se conservan en futuras actualizaciones. Cada tarea incluir�
 - [ ] T24 - Verificación transversal y E2E de recorridos (RF-1 a RF-9)
   - Depende de: T5, T7, T10, T12, T14, T18, T20, T23.
   - Hecho cuando: suite aislada cubra subida → catálogo → reproducción → edición → búsqueda; perfil/avatar; conversación profunda/borrado/likes; permisos y métricas; regresiones de registro/login/catálogo/búsqueda/player, responsive y teclado. Ejecutar checks del plan y registrar cobertura >50 % con informes reales.
-  - Evidencia: pendiente.
+  - Evidencia: pendiente (resto del alcance). Persistencia tras reinicio (parte de RF-8, dentro de este recorrido): cerrada y evidenciada en [persistence.md](persistence.md) — `e2e/persistence/run-persistence-check.sh` (seed → `up --force-recreate` real, nunca `down -v` → verify) ejecutado localmente el 2026-11-23, PASS; IDs de contenedor `app`/`db` confirmados distintos antes/después; login, perfil/bio, avatar, vídeo y miniatura verificados con hashes SHA-256 idénticos tras la recreación. No cierra T24: dependencias T5/T7/T10/T12/T14/T18/T20/T23 siguen pendientes.
 - [ ] T25 - Documentación de entrega y verificación de staging (RF-1 a RF-9)
   - Depende de: T24.
   - Hecho cuando: setup, límites, contratos, migraciones, clasificación histórica, medios y backup/restauración estén documentados; rutas SPA funcionen al refrescar y staging autorizado pase los recorridos y reinicio con DB/medios persistentes; registrar versión/entorno/resultados sin secretos.
-  - Evidencia: pendiente. Esta petición no autoriza desplegar.
+  - Evidencia: pendiente (resto del alcance; T24 no está completa y esta petición no autoriza desplegar a staging). Documentación de volúmenes y backup/restauración conjunta (BD + store), y verificación de "reinicio con DB/medios persistentes" vía recreación real de contenedores (no solo reinicio de contexto Spring): hecha en [persistence.md](persistence.md), con resultado real PASS documentado arriba. Sesiones documentadas como no persistentes por diseño (sin `spring-session-jdbc`), fuera del alcance de RF-8.
 - [ ] T26 - Revisión y cierre del sprint (RF-1 a RF-9)
   - Depende de: T25.
   - Hecho cuando: AC tengan evidencia, CI y revisión del equipo sean satisfactorias, prompt revisado según política y PR fusionada a main mediante squash sin credenciales/medios/generados. Coordinar liberación explícita de ownership, sin push directo a main.
