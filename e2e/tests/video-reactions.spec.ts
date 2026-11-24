@@ -32,7 +32,8 @@ test('video reactions switch, persist, and expose counts without voter identity'
     const visitor = await page.context().newPage();
     await visitor.goto(`/videos/${video.id}`);
     await expect(visitor.getByText(/👍 1 · 👎 0/)).toBeVisible();
-    await expect(visitor.getByRole('link', { name: 'Sign in to react' })).toBeVisible();
+    await expect(visitor.getByRole('link', { name: 'Sign in to like', exact: true })).toHaveAttribute('href', '/login');
+    await expect(visitor.getByText('Sign in to react', { exact: true })).toHaveCount(0);
     await context.close();
   } finally {
     await api.dispose();

@@ -71,6 +71,6 @@ describe('VideoPlayerPage discussion states', () => {
 
     expect(await screen.findByText('No comments yet. Start the discussion.')).toBeInTheDocument();
     expect(screen.queryByText('Could not load comments.')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sign in to join the discussion' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login');
   });
 });

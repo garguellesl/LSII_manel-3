@@ -26,8 +26,8 @@ export function VideoPlayerPage() {
 
   return (
     <main className="video-player-page">
-      <Link to="/" className="back-link">
-        ← Back to videos
+      <Link to="/" className="back-link" aria-label="Back to videos" title="Back to videos">
+        <span aria-hidden="true">←</span>
       </Link>
       {loading === 'loading' && <PlayerSkeleton />}
       {loading === 'notFound' && (
@@ -227,12 +227,9 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
             );
           })}
           {auth.status !== 'authenticated' && (
-            <>
-              <span className="video-reaction-summary">
-                👍 {counts.likes} · 👎 {counts.dislikes}
-              </span>
-              <Link to="/login">Sign in to react</Link>
-            </>
+            <span className="video-reaction-summary">
+              👍 {counts.likes} · 👎 {counts.dislikes}
+            </span>
           )}
         </div>
         <p className="video-reaction-status" role="status">

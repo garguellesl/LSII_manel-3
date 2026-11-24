@@ -43,7 +43,7 @@ test.describe('comments, replies and likes', () => {
       expect(await page.evaluate(() => Reflect.get(window, 'commentXss'))).toBeUndefined();
       await expect(page.getByRole('button', { name: 'Reply', exact: true })).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Like comment', exact: true })).toHaveCount(0);
-      await page.getByRole('link', { name: 'Sign in to join the discussion' }).click();
+      await page.getByRole('region', { name: 'Comments' }).getByRole('link', { name: 'Sign in', exact: true }).click();
       await expect(page).toHaveURL(/\/login$/);
     } finally { await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });

@@ -36,18 +36,21 @@ function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean 
 
   return (
     <section className="comment-section" aria-labelledby="comments-heading">
-      <h2 id="comments-heading">Comments</h2>
-      {signedIn ? (
+      <div className="comment-section-heading">
+        <h2 id="comments-heading">Comments</h2>
+        {!signedIn && (
+          <Link className="comment-sign-in" to="/login">
+            Sign in
+          </Link>
+        )}
+      </div>
+      {signedIn && (
         <CommentForm
           label="Add a comment"
           submitLabel="Post comment"
           pending={discussion.pending.has('new') || discussion.status !== 'success' || !authenticated}
           onSubmit={(text) => discussion.create(text, null)}
         />
-      ) : (
-        <p>
-          <Link to="/login">Sign in to join the discussion</Link>
-        </p>
       )}
       {discussion.errors.new && <p role="alert">{discussion.errors.new}</p>}
       {discussion.status === 'loading' && <p role="status">Loading comments…</p>}

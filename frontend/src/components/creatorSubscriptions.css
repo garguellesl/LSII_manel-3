@@ -26,6 +26,11 @@
   display: inline-block;
 }
 
+a.creator-subscribe {
+  justify-self: start;
+  padding-inline: 0.75rem;
+}
+
 .creator-subscribe p {
   margin: 0.5rem 0 0;
 }
