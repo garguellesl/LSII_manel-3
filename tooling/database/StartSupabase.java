@@ -55,13 +55,14 @@ public class StartSupabase {
         }
         if (configureOnly && checkOnly) throw new IllegalArgumentException();
         root = root.normalize();
-        if (!Files.isRegularFile(root.resolve("compose.supabase.yaml"))) {
-            System.err.println("No se encuentra compose.supabase.yaml. Ejecuta desde la raiz o indica --project-dir.");
+        if (!Files.isRegularFile(root.resolve("compose.yaml"))) {
+            System.err.println("No se encuentra compose.yaml. Ejecuta desde la raiz o indica --project-dir.");
             return 2;
         }
-        Path envFile = root.resolve(".env.supabase");
+        Path envFile = root.resolve(".env");
         if (!Files.exists(envFile)) {
-            Files.copy(root.resolve("tooling/database/supabase.env.example"), envFile);
+            Path legacy = root.resolve(".env.supabase");
+            Files.copy(Files.isRegularFile(legacy) ? legacy : root.resolve(".env.example"), envFile);
         }
         Validation validation = validate(root);
         if (validation.exitCode() != 0 && validation.missingPassword() && !checkOnly) {
@@ -80,14 +81,14 @@ public class StartSupabase {
                     return 2;
                 }
                 savePassword(envFile, original, password);
-                System.out.println("Contraseña guardada en .env.supabase, excluido de Git.");
+                System.out.println("Contraseña guardada en .env, excluido de Git.");
             } finally {
                 if (password != null) Arrays.fill(password, '\0');
             }
             validation = validate(root);
         }
         if (validation.exitCode() != 0) {
-            System.err.println("Configuracion Supabase incompleta o invalida. Revisa .env.supabase y Docker.");
+            System.err.println("Configuracion Supabase incompleta o invalida. Revisa .env y Docker.");
             return validation.exitCode();
         }
         if (configureOnly || checkOnly) {
@@ -100,8 +101,7 @@ public class StartSupabase {
     }
 
     private static List<String> compose() {
-        return new ArrayList<>(List.of("docker", "compose", "--env-file", ".env.supabase",
-                "-f", "compose.supabase.yaml"));
+        return new ArrayList<>(List.of("docker", "compose", "-f", "compose.yaml"));
     }
 
     private static Validation validate(Path root) throws IOException, InterruptedException {
@@ -134,7 +134,7 @@ public class StartSupabase {
         expectedContent.lines().filter(line -> !line.matches("\\s*(export\\s+)?SUPABASE_DB_PASSWORD\\s*=.*"))
                 .forEach(lines::add);
         lines.add("SUPABASE_DB_PASSWORD=\"" + quoted + "\"");
-        Path temporary = Files.createTempFile(file.toAbsolutePath().getParent(), ".env.supabase.", ".tmp");
+        Path temporary = Files.createTempFile(file.toAbsolutePath().getParent(), ".env.", ".tmp");
         try {
             if (Files.getFileStore(temporary).supportsFileAttributeView("posix")) {
                 Files.setPosixFilePermissions(temporary, PosixFilePermissions.fromString("rw-------"));

@@ -5,6 +5,9 @@ e2e/playwright-report/
 e2e/test-results/
 
 # Per-machine shared database credentials and private migration artifacts.
+.env
+.env.*
+!.env.example
 .env.supabase
 .env.supabase.*.tmp
 database-backups/
