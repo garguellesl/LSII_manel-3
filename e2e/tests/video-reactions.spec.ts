@@ -2,7 +2,7 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { createOwnVideo, registerUser } from '../fixtures/api';
 import { uniqueUser } from '../fixtures/users';
 
-async function mutate(api: import('@playwright/test').APIRequestContext, method: 'POST' | 'DELETE', path: string) {
+async function mutate(api: import('@playwright/test').APIRequestContext, method: 'POST' | "Eliminar", path: string) {
   const csrf = await api.get('/api/auth/csrf');
   const { token, headerName } = await csrf.json();
   return api.fetch(path, { method, headers: { [headerName]: token } });
@@ -23,11 +23,11 @@ test('video reactions switch, persist, and expose counts without voter identity'
     const context = await browser.newContext({ baseURL, storageState: await api.storageState() });
     const signedIn = await context.newPage();
     await signedIn.goto(`/videos/${video.id}`);
-    await expect(signedIn.getByRole('button', { name: /Dislike 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(signedIn.getByRole('button', { name: /No me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
     await signedIn.reload();
-    await expect(signedIn.getByRole('button', { name: /Dislike 1/ })).toHaveAttribute('aria-pressed', 'true');
-    await signedIn.getByRole('button', { name: /Like 0/ }).click();
-    await expect(signedIn.getByRole('button', { name: /Like 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(signedIn.getByRole('button', { name: /No me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await signedIn.getByRole('button', { name: /Me gusta 0/ }).click();
+    await expect(signedIn.getByRole('button', { name: /Me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
 
     const visitor = await page.context().newPage();
     await visitor.goto(`/videos/${video.id}`);

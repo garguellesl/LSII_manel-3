@@ -1,3 +1,4 @@
+import { t, fieldErrors } from '../i18n/locale';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from './Env';
@@ -9,22 +10,22 @@ export const THUMBNAIL_LIMIT = 5 * 1024 * 1024;
 export type UploadMetadata = { title: string; description: string; category: string; tags: string[] };
 
 export function validateUpload(metadata: UploadMetadata, video?: File, thumbnail?: File): string | null {
-  if (!metadata.title.trim() || metadata.title.trim().length > 255) return 'Escribe un título de hasta 255 caracteres.';
-  if (!metadata.category) return 'Selecciona una categoría.';
-  if (metadata.tags.length > 40) return 'Selecciona como máximo 40 etiquetas.';
-  if (!video || video.size === 0) return 'Selecciona un vídeo MP4 que no esté vacío.';
-  if (video.size > VIDEO_LIMIT) return 'El vídeo supera el límite de 100 MiB.';
-  if (!/\.mp4$/i.test(video.name) || video.type !== 'video/mp4') return 'El vídeo debe ser MP4.';
+  if (!metadata.title.trim() || metadata.title.trim().length > 255) return t('upload.enterATitleOfUpTo255Characters');
+  if (!metadata.category) return t('upload.selectACategoryMessage');
+  if (metadata.tags.length > 40) return t('upload.selectUpTo40Tags');
+  if (!video || video.size === 0) return t('upload.selectANonemptyMp4Video');
+  if (video.size > VIDEO_LIMIT) return t('upload.theVideoExceedsThe100MibLimit');
+  if (!/\.mp4$/i.test(video.name) || video.type !== 'video/mp4') return t('upload.theVideoMustBeMp4');
   if (thumbnail) {
-    if (!thumbnail.size) return 'La miniatura no puede estar vacía.';
-    if (thumbnail.size > THUMBNAIL_LIMIT) return 'La miniatura supera el límite de 5 MiB.';
+    if (!thumbnail.size) return t('upload.theThumbnailCannotBeEmpty');
+    if (thumbnail.size > THUMBNAIL_LIMIT) return t('upload.theThumbnailExceedsThe5MibLimit');
     if (
       !(
         (/\.jpe?g$/i.test(thumbnail.name) && thumbnail.type === 'image/jpeg') ||
         (/\.png$/i.test(thumbnail.name) && thumbnail.type === 'image/png')
       )
     )
-      return 'La miniatura debe ser JPG o PNG.';
+      return t('upload.theThumbnailMustBeJpgOrPng');
   }
   return null;
 }
@@ -57,15 +58,17 @@ export const uploadClient = {
       });
     } catch (failure) {
       const response = (
-        failure as { response?: { status?: number; data?: { error?: string; errors?: Record<string, string> } } }
+        failure as {
+          response?: { status?: number; data?: { code?: string; error?: string; errors?: Record<string, string> } };
+        }
       )?.response;
       const message =
         response?.status === 401
-          ? 'Tu sesión ha caducado. Inicia sesión de nuevo para subir el vídeo.'
+          ? t('upload.yourSessionHasExpiredSignInAgainToUploadThe')
           : response?.status === 403
-            ? 'No se ha podido validar la sesión. Vuelve a intentarlo.'
-            : response?.data?.error || 'No se ha podido subir el vídeo. Comprueba tu conexión e inténtalo de nuevo.';
-      throw new AuthError(message, response?.data?.errors, response?.status);
+            ? t('upload.couldNotValidateYourSessionTryAgain')
+            : t('upload.couldNotUploadTheVideoCheckYourConnectionAndTry');
+      throw new AuthError(message, fieldErrors(response?.data?.errors), response?.status);
     }
   },
 };

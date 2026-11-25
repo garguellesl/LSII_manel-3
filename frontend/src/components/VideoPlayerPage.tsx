@@ -1,3 +1,4 @@
+import { localizeMessage, t, useLocale, plural, formatNumber, categoryLabel } from '../i18n/locale';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -16,24 +17,26 @@ import { mutate } from '../apiClient';
 import { getEnv } from '../utils/Env';
 
 export function VideoPlayerPage() {
+  useLocale();
   const { id } = useParams();
   const { loading, message, value } = useVideo(id);
   const auth = useAuth();
 
   return (
     <main className="video-player-page">
-      <Link to="/" className="back-link" aria-label="Back to videos" title="Back to videos">
+      <Link to="/" className="back-link" aria-label={t('player.backToVideos')} title={t('player.backToVideos')}>
         <span aria-hidden="true">←</span>
       </Link>
       {loading === 'loading' && <PlayerSkeleton />}
       {loading === 'notFound' && (
         <p className="video-player-status" role="alert">
-          Video not found.
+          {' '}
+          {t('player.videoNotFound')}{' '}
         </p>
       )}
       {loading === 'error' && (
         <div className="video-player-status" role="alert">
-          <h3>Error</h3> <p>{message}</p>
+          <h3>{t('catalogue.error')}</h3> <p>{localizeMessage(message)}</p>
         </div>
       )}
       {loading === 'success' && value && (
@@ -48,17 +51,19 @@ export function VideoPlayerPage() {
 }
 
 function PlayerSkeleton() {
+  useLocale();
   return (
     <div className="video-player-skeleton" role="status" aria-busy="true">
       <span className="video-player-skeleton-media" aria-hidden="true" />
       <span className="video-player-skeleton-line" aria-hidden="true" />
       <span className="video-player-skeleton-line video-player-skeleton-line--short" aria-hidden="true" />
-      <span className="video-player-skeleton-label">Loading video…</span>
+      <span className="video-player-skeleton-label">{t('player.loadingVideo')}</span>
     </div>
   );
 }
 
 function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable: boolean }) {
+  useLocale();
   const [tags, setTags] = useState(value.tags);
   const auth = useAuth();
   const [reaction, setReaction] = useState<'LIKE' | 'DISLIKE' | null>(null);
@@ -108,7 +113,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
       setReaction(result.liked ? 'LIKE' : result.disliked ? 'DISLIKE' : null);
       setCounts({ likes: result.likesCount, dislikes: result.dislikesCount });
     } catch {
-      setReactionError('Could not update your reaction. Please try again.');
+      setReactionError(t('player.couldNotUpdateYourReactionPleaseTryAgain'));
     } finally {
       setSaving(false);
     }
@@ -136,13 +141,15 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           onError={() => setMediaFailed(true)}
           onPlaying={reportPlay}
         >
-          Your browser does not support video playback.
+          {' '}
+          {t('player.yourBrowserDoesNotSupportVideoPlayback')}{' '}
         </video>
         {mediaFailed && (
           <div className="video-media-error" role="alert">
-            <p>This video could not be played. The file may be unavailable.</p>
+            <p>{t('player.thisVideoCouldNotBePlayedTheFileMayBe')}</p>
             <button type="button" onClick={retryPlayback}>
-              Retry playback
+              {' '}
+              {t('player.retryPlayback')}{' '}
             </button>
           </div>
         )}
@@ -153,7 +160,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           // account name and keeps deciding ownership.
           <p className="video-creator">
             <UserAvatar name={value.user} src={value.author?.avatarUrl} size="small" />
-            <span className="video-creator-label">Uploaded by</span>
+            <span className="video-creator-label">{t('player.uploadedBy')}</span>
             {value.author ? (
               <Link className="video-player-user" to={`/creators/${value.author.id}`}>
                 {value.author.displayName || value.user}
@@ -167,30 +174,30 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         {editable && (
           <div className="video-owner-actions">
             {/* RF-2 owner editing lives in its own route; this is its entry point. */}
-            <Link to={`/videos/${value.id}/edit`}>Editar datos del vídeo</Link>
+            <Link to={`/videos/${value.id}/edit`}>{t('upload.editVideoDetails')}</Link>
             <button
               type="button"
               disabled={deleting}
               onClick={() => {
-                if (!window.confirm('¿Eliminar este vídeo? El archivo del almacén se conservará.')) return;
+                if (!window.confirm(t('player.deleteThisVideoTheFileInTheStoreWillBe'))) return;
                 setDeleting(true);
                 setDeleteError('');
                 videoClient
                   .deleteVideo(value.id)
                   .then(() => navigate('/'))
-                  .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+                  .catch(() => setDeleteError(t('player.couldNotDeleteTheVideoTryAgain')))
                   .finally(() => setDeleting(false));
               }}
             >
-              {deleting ? 'Eliminando…' : 'Eliminar vídeo'}
+              {deleting ? t('player.deleting') : t('player.deleteVideo')}
             </button>
-            {deleteError && <p role="alert">{deleteError}</p>}
+            {deleteError && <p role="alert">{localizeMessage(deleteError)}</p>}
           </div>
         )}
         <VideoDescription videoId={value.id} text={value.description} />
-        <div className="video-reactions" role="group" aria-label="Video reactions" aria-busy={saving}>
+        <div className="video-reactions" role="group" aria-label={t('catalogue.videoReactions')} aria-busy={saving}>
           {(['likes', 'dislikes'] as const).map((kind) => {
-            const label = kind === 'likes' ? 'Like' : 'Dislike';
+            const label = kind === 'likes' ? t('comments.like') : t('player.dislike');
             const selected = reaction === (kind === 'likes' ? 'LIKE' : 'DISLIKE');
             const icon = <span aria-hidden="true">{kind === 'likes' ? '👍' : '👎'}</span>;
             return (
@@ -200,7 +207,7 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
                     className="video-reaction-button"
                     type="button"
                     disabled={saving}
-                    aria-label={`${label} ${counts[kind]}`}
+                    aria-label={`${label} ${formatNumber(counts[kind])}`}
                     aria-pressed={selected}
                     onClick={() => void react(kind)}
                   >
@@ -212,12 +219,16 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
                     )}
                   </button>
                 ) : (
-                  <Link className="video-reaction-button" to="/login" aria-label={`Sign in to ${label.toLowerCase()}`}>
+                  <Link
+                    className="video-reaction-button"
+                    to="/login"
+                    aria-label={t(kind === 'likes' ? 'player.signInLike' : 'player.signInDislike')}
+                  >
                     {icon}
                   </Link>
                 )}
                 <span className="video-reaction-count">
-                  {counts[kind]} {kind}
+                  {plural(kind === 'likes' ? 'player.likes' : 'player.dislikes', counts[kind])}
                 </span>
               </div>
             );
@@ -229,9 +240,9 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           )}
         </div>
         <p className="video-reaction-status" role="status">
-          {saving ? 'Updating reaction…' : ''}
+          {saving ? t('player.updatingReaction') : ''}
         </p>
-        {reactionError && <p role="alert">{reactionError}</p>}
+        {reactionError && <p role="alert">{localizeMessage(reactionError)}</p>}
         <VideoTagEditor videoId={value.id} tags={tags} editable={editable} onTagsSaved={setTags} />
       </div>
       <CommentSection videoId={value.id} />
@@ -244,28 +255,30 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
 // The comment count is left out too: it comes from the video detail fetched once on
 // load, so it would go stale the moment someone posts in the discussion right below.
 function VideoMetaRow({ video }: { video: VideoDetail }) {
+  useLocale();
   const items: ReactNode[] = [];
   if (typeof video.viewsCount === 'number')
     items.push(
       <li key="views" className="video-meta-item">
-        {video.viewsCount} {video.viewsCount === 1 ? 'view' : 'views'}
+        {plural('player.views', video.viewsCount)}
       </li>
     );
   if (video.category)
     items.push(
       <li key="category" className="video-meta-item video-meta-category">
-        {video.category}
+        {categoryLabel(video.category)}
       </li>
     );
   if (items.length === 0) return null;
   return (
-    <ul className="video-meta-row" aria-label="Video details">
+    <ul className="video-meta-row" aria-label={t('player.videoDetails')}>
       {items}
     </ul>
   );
 }
 
 function VideoDescription({ videoId, text }: { videoId: number; text: string }) {
+  useLocale();
   const [expanded, setExpanded] = useState(false);
   const paragraph = useRef<HTMLParagraphElement>(null);
   const [collapsible, setCollapsible] = useState(false);
@@ -308,7 +321,7 @@ function VideoDescription({ videoId, text }: { videoId: number; text: string }) 
           aria-controls={descriptionId}
           onClick={() => setExpanded((current) => !current)}
         >
-          {expanded ? 'Show less' : 'Show more'}
+          {expanded ? t('player.showLess') : t('player.showMore')}
         </button>
       )}
     </div>

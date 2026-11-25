@@ -32,9 +32,9 @@ test.describe('search by title or description', () => {
     const { titleToken, video } = await seedSearchableVideo(baseURL!);
 
     await page.goto('/');
-    await page.getByRole('searchbox', { name: 'Search videos by title or description' }).fill(titleToken.slice(0, -3));
+    await page.getByRole('searchbox', { name: "Buscar vídeos por título o descripción" }).fill(titleToken.slice(0, -3));
 
-    await expect(page.getByRole('link', { name: `Watch ${video.title}` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `Ver ${video.title}` })).toBeVisible();
   });
 
   test('search by a description-only fragment finds the video', async ({ page, baseURL }) => {
@@ -42,23 +42,23 @@ test.describe('search by title or description', () => {
 
     await page.goto('/');
     await page
-      .getByRole('searchbox', { name: 'Search videos by title or description' })
+      .getByRole('searchbox', { name: "Buscar vídeos por título o descripción" })
       .fill(descriptionToken.slice(0, -3));
 
-    await expect(page.getByRole('link', { name: `Watch ${video.title}` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `Ver ${video.title}` })).toBeVisible();
   });
 
   test('clearing the search restores the unfiltered catalog heading', async ({ page, baseURL }) => {
     const { titleToken } = await seedSearchableVideo(baseURL!);
 
     await page.goto('/');
-    const searchbox = page.getByRole('searchbox', { name: 'Search videos by title or description' });
+    const searchbox = page.getByRole('searchbox', { name: "Buscar vídeos por título o descripción" });
     await searchbox.fill(titleToken);
     await expect(page.getByRole('heading', { name: `Results for "${titleToken}"` })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Clear search' }).click();
+    await page.getByRole('button', { name: "Borrar búsqueda" }).click();
 
     await expect(searchbox).toHaveValue('');
-    await expect(page.getByRole('heading', { name: 'Available videos' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Vídeos disponibles" })).toBeVisible();
   });
 });

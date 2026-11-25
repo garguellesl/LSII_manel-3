@@ -37,19 +37,19 @@ test.describe('tag editor as owner', () => {
     await page.goto(`/videos/${video.id}`);
     await expect(page.getByRole('heading', { name: video.title })).toBeVisible();
 
-    const tagInput = page.getByLabel('Add a tag');
+    const tagInput = page.getByLabel("Añadir etiqueta");
     await expect(tagInput).toBeVisible();
     await expect(page.getByText('0/40 tags')).toBeVisible();
 
     // Añadir.
     await tagInput.fill('funk');
     await tagInput.press('Enter');
-    await expect(page.getByLabel('Remove tag funk')).toBeVisible();
+    await expect(page.getByLabel("Eliminar etiqueta funk")).toBeVisible();
     await expect(page.getByText('1/40 tags')).toBeVisible();
 
     // Quitar.
-    await page.getByLabel('Remove tag funk').click();
-    await expect(page.getByLabel('Remove tag funk')).toHaveCount(0);
+    await page.getByLabel("Eliminar etiqueta funk").click();
+    await expect(page.getByLabel("Eliminar etiqueta funk")).toHaveCount(0);
     await expect(page.getByText('0/40 tags')).toBeVisible();
 
     // Error de validación: 81 caracteres supera el límite de 80 de TagNormalizer.

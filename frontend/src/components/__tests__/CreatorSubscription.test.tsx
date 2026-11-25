@@ -51,22 +51,22 @@ describe('CreatorSubscription', () => {
     api.state.mockResolvedValue({ subscribed: false });
     api.setSubscribed.mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce(undefined);
     renderControl(2);
-    expect(screen.getByRole('status')).toHaveTextContent('Loading');
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando');
 
-    const subscribe = await screen.findByRole('button', { name: 'Subscribe', exact: true });
+    const subscribe = await screen.findByRole('button', { name: 'Suscribirme', exact: true });
     fireEvent.click(subscribe);
     expect(subscribe).toBeDisabled();
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be changed');
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cambiar');
     expect(subscribe).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(subscribe);
 
-    const unsubscribe = await screen.findByRole('button', { name: 'Unsubscribe' });
+    const unsubscribe = await screen.findByRole('button', { name: 'Cancelar suscripción' });
     expect(unsubscribe).toHaveAttribute('aria-pressed', 'true');
     expect(api.setSubscribed).toHaveBeenLastCalledWith(2, true, expect.any(AbortSignal));
     api.setSubscribed.mockResolvedValueOnce(undefined);
     fireEvent.click(unsubscribe);
     await waitFor(() => expect(api.setSubscribed).toHaveBeenLastCalledWith(2, false, expect.any(AbortSignal)));
-    expect(await screen.findByRole('button', { name: 'Subscribe', exact: true })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Suscribirme', exact: true })).toBeEnabled();
   });
 
   it('hides the mutation for the signed-in creator and localizes the feature by language preference', () => {
@@ -75,6 +75,6 @@ describe('CreatorSubscription', () => {
     expect(api.state).not.toHaveBeenCalled();
     expect(subscriptionMessages(['ca-ES', 'es']).subscriptions).toBe('Les meves subscripcions');
     expect(subscriptionMessages(['fr-FR', 'es-ES']).subscribe).toBe('Suscribirme');
-    expect(subscriptionMessages(['fr-FR']).subscriptions).toBe('My subscriptions');
+    expect(subscriptionMessages(['fr-FR']).subscriptions).toBe('Mis suscripciones');
   });
 });

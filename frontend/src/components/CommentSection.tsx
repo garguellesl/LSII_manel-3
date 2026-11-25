@@ -1,3 +1,4 @@
+import { formatDate, formatNumber, plural, localizeMessage, t, useLocale } from '../i18n/locale';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -9,6 +10,7 @@ import { UserAvatar } from './UserAvatar';
 import './comments.css';
 
 export function CommentSection({ videoId }: { videoId: number }) {
+  useLocale();
   const auth = useAuth();
   const [identity, setIdentity] = useState<number | null>(auth.user?.id ?? null);
   if (auth.status === 'authenticated' && auth.user && identity !== auth.user.id) setIdentity(auth.user.id);
@@ -19,6 +21,7 @@ export function CommentSection({ videoId }: { videoId: number }) {
 }
 
 function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean }) {
+  useLocale();
   const auth = useAuth();
   const discussion = useComments(videoId, auth.refresh);
   const [collapsed, setCollapsed] = useState(new Set<number>());
@@ -55,32 +58,34 @@ function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean 
   return (
     <section className="comment-section" aria-labelledby="comments-heading">
       <div className="comment-section-heading">
-        <h2 id="comments-heading">Comments</h2>
+        <h2 id="comments-heading">{t('comments.comments')}</h2>
         {!signedIn && (
           <Link className="comment-sign-in" to="/login">
-            Sign in
+            {' '}
+            {t('comments.signIn')}{' '}
           </Link>
         )}
       </div>
       {signedIn && (
         <CommentForm
-          label="Add a comment"
-          submitLabel="Post comment"
+          label={t('comments.addAComment')}
+          submitLabel={t('comments.postComment')}
           pending={discussion.pending.has('new') || discussion.status !== 'success' || !authenticated}
           onSubmit={(text) => discussion.create(text, null)}
         />
       )}
-      {discussion.errors.new && <p role="alert">{discussion.errors.new}</p>}
-      {discussion.status === 'loading' && <p role="status">Loading comments…</p>}
+      {discussion.errors.new && <p role="alert">{localizeMessage(discussion.errors.new)}</p>}
+      {discussion.status === 'loading' && <p role="status">{t('comments.loadingComments')}</p>}
       {discussion.status === 'error' && (
         <div role="alert">
-          <p>Could not load comments.</p>
+          <p>{t('comments.couldNotLoadComments')}</p>
           <button type="button" onClick={() => void discussion.reload()}>
-            Retry comments
+            {' '}
+            {t('comments.retryComments')}{' '}
           </button>
         </div>
       )}
-      {discussion.status === 'success' && rows.length === 0 && <p>No comments yet. Start the discussion.</p>}
+      {discussion.status === 'success' && rows.length === 0 && <p>{t('comments.noCommentsYetStartTheDiscussion')}</p>}
       <div className="comment-list" id="video-comment-list">
         {visibleRows.map(({ comment, depth, hasReplies }) => (
           <CommentItem
@@ -103,7 +108,7 @@ function Discussion({ videoId, signedIn }: { videoId: number; signedIn: boolean 
           aria-controls="video-comment-list"
           onClick={() => setFullThread(!fullThread)}
         >
-          {fullThread ? 'Show fewer comments' : 'Show more comments'}
+          {fullThread ? t('comments.showFewerComments') : t('comments.showMoreComments')}
         </button>
       )}
     </section>
@@ -131,6 +136,7 @@ function CommentItem({
   authenticated,
   discussion,
 }: ItemProps) {
+  useLocale();
   const [mode, setMode] = useState<'read' | 'reply' | 'edit' | 'delete'>('read');
   const item = useRef<HTMLElement>(null);
   const busy = discussion.pending.has(String(comment.id)) || discussion.status !== 'success' || !authenticated;
@@ -155,62 +161,68 @@ function CommentItem({
       ref={item}
       tabIndex={-1}
       className="comment-item"
-      aria-label={`Comment by ${name}`}
+      aria-label={t('comments.by', { name })}
       style={{ marginInlineStart: `${Math.min(depth, 3) * 0.75}rem` }}
     >
       <header className="comment-header">
         <UserAvatar name={name} src={comment.author.avatarUrl} size="small" />
         <strong>{name}</strong>
-        <time dateTime={comment.createdAt}>{new Date(comment.createdAt).toLocaleString()}</time>
-        {active && comment.updatedAt !== comment.createdAt && <small>Edited</small>}
+        <time dateTime={comment.createdAt}>
+          {formatDate(comment.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
+        </time>
+        {active && comment.updatedAt !== comment.createdAt && <small>{t('comments.edited')}</small>}
       </header>
       {comment.parentId !== null && (
         <a className="comment-parent" onClick={showThread} href={`#comment-${comment.parentId}`}>
-          In reply to parent comment
+          {' '}
+          {t('comments.inReplyToParentComment')}{' '}
         </a>
       )}
       <p className={`comment-text${active ? '' : ' comment-deleted'}`}>
-        {comment.deleted ? 'Comment deleted' : comment.text}
+        {comment.deleted ? t('comments.commentDeleted') : comment.text}
       </p>
       <div className="comment-actions">
         {active && authenticated && (
           <>
             <button type="button" disabled={busy} onClick={() => begin('reply')}>
-              Reply
+              {' '}
+              {t('comments.reply')}{' '}
             </button>
             <button
               type="button"
               disabled={busy}
               aria-pressed={comment.likedByMe}
-              aria-label={comment.likedByMe ? 'Unlike comment' : 'Like comment'}
+              aria-label={comment.likedByMe ? t('comments.unlikeComment') : t('comments.likeComment')}
               onClick={() => void discussion.setLike(comment.id, !comment.likedByMe)}
             >
-              {comment.likedByMe ? 'Liked' : 'Like'} · {comment.likesCount}
+              {comment.likedByMe ? t('comments.liked') : t('comments.like')} · {formatNumber(comment.likesCount)}
             </button>
             {comment.canEdit && (
               <>
                 <button type="button" disabled={busy} onClick={() => begin('edit')}>
-                  Edit
+                  {' '}
+                  {t('comments.edit')}{' '}
                 </button>
                 <button type="button" disabled={busy} onClick={() => begin('delete')}>
-                  Delete
+                  {' '}
+                  {t('comments.delete')}{' '}
                 </button>
               </>
             )}
           </>
         )}
-        {active && !authenticated && <span>{comment.likesCount} likes</span>}
+        {active && !authenticated && <span>{plural('player.likes', comment.likesCount)}</span>}
         {hasReplies && (
           <button type="button" aria-expanded={!collapsed} onClick={toggle}>
-            {collapsed ? 'Show replies' : 'Hide replies'}
+            {collapsed ? t('comments.showReplies') : t('comments.hideReplies')}
           </button>
         )}
       </div>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{localizeMessage(error)}</p>}
       {active && mode === 'reply' && (
         <CommentForm
-          label={`Reply to ${name}`}
-          submitLabel="Post reply"
+          label={t('comments.replyTo', { name })}
+          submitLabel={t('comments.postReply')}
           pending={busy}
           onCancel={finish}
           onSubmit={async (text) => {
@@ -225,8 +237,8 @@ function CommentItem({
       )}
       {active && mode === 'edit' && (
         <CommentForm
-          label="Edit comment"
-          submitLabel="Save comment"
+          label={t('comments.editComment')}
+          submitLabel={t('comments.saveComment')}
           initialText={comment.text}
           pending={busy}
           onCancel={finish}
@@ -238,8 +250,8 @@ function CommentItem({
         />
       )}
       {active && mode === 'delete' && (
-        <div className="comment-confirm" role="group" aria-label="Confirm deletion">
-          <p>Delete this comment? Replies will be preserved.</p>
+        <div className="comment-confirm" role="group" aria-label={t('comments.confirmDeletion')}>
+          <p>{t('comments.deleteThisCommentRepliesWillBePreserved')}</p>
           <button
             type="button"
             disabled={busy}
@@ -249,10 +261,12 @@ function CommentItem({
               })
             }
           >
-            Confirm delete
+            {' '}
+            {t('comments.confirmDelete')}{' '}
           </button>
           <button type="button" disabled={busy} onClick={finish}>
-            Cancel
+            {' '}
+            {t('comments.cancel')}{' '}
           </button>
         </div>
       )}

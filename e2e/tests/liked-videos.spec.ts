@@ -20,8 +20,8 @@ test('the player like appears only in the signed-in user’s profile and disappe
     const reaction = (name: string) => page.getByRole('button', { name, exact: true });
 
     await page.goto(`/videos/${video.id}`);
-    await reaction('Like 0').click();
-    await expect(reaction('Like 1')).toHaveAttribute('aria-pressed', 'true');
+    await reaction("Me gusta 0").click();
+    await expect(reaction("Me gusta 1")).toHaveAttribute('aria-pressed', 'true');
     await profile.click();
     await open.press('Enter');
     await expect(likedLink).toHaveAttribute('href', `/videos/${video.id}`);
@@ -35,16 +35,16 @@ test('the player like appears only in the signed-in user’s profile and disappe
     await open.click();
     await likedLink.click();
     await expect(page).toHaveURL(new RegExp(`/videos/${video.id}$`));
-    await reaction('Dislike 0').click();
-    await expect(reaction('Dislike 1')).toHaveAttribute('aria-pressed', 'true');
+    await reaction("No me gusta 0").click();
+    await expect(reaction("No me gusta 1")).toHaveAttribute('aria-pressed', 'true');
     await profile.click();
     await open.click();
     await expect(collection.getByText('Aún no has dado a Me gusta a ningún vídeo.')).toBeVisible();
 
     await page.goto(`/videos/${video.id}`);
-    await reaction('Like 0').click();
-    await reaction('Like 1').click();
-    await expect(reaction('Like 0')).toHaveAttribute('aria-pressed', 'false');
+    await reaction("Me gusta 0").click();
+    await reaction("Me gusta 1").click();
+    await expect(reaction("Me gusta 0")).toHaveAttribute('aria-pressed', 'false');
     await profile.click();
     await open.click();
     await expect(collection.getByText('Aún no has dado a Me gusta a ningún vídeo.')).toBeVisible();

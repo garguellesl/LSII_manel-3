@@ -48,6 +48,20 @@ public class UserAccount {
     protected UserAccount() {
     }
 
+    @Column(name = "preferred_language", length = 2)
+    private String preferredLanguage;
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        if (preferredLanguage != null && !java.util.Set.of("es", "ca", "en").contains(preferredLanguage)) {
+            throw new IllegalArgumentException("Unsupported preferred language");
+        }
+        this.preferredLanguage = preferredLanguage;
+    }
+
     public UserAccount(String email, String accountName, String firstName, String lastName, String passwordHash) {
         this.email = email;
         this.accountName = accountName;

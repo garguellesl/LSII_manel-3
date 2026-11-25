@@ -8,12 +8,12 @@ import { test, expect } from '@playwright/test';
 test('browse the catalog and play a video', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'Available videos' })).toBeVisible();
-  const firstCard = page.getByRole('link', { name: /^Watch / }).first();
+  await expect(page.getByRole('heading', { name: "Vídeos disponibles" })).toBeVisible();
+  const firstCard = page.getByRole('link', { name: /^Ver / }).first();
   await expect(firstCard).toBeVisible();
   const title = await firstCard.getAttribute('aria-label');
   expect(title).toBeTruthy();
-  const expectedTitle = title!.replace(/^Watch /, '');
+  const expectedTitle = title!.replace(/^Ver /, '');
 
   await firstCard.click();
 

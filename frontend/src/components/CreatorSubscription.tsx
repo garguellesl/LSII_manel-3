@@ -1,3 +1,4 @@
+import { useLocale } from '../i18n/locale';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -7,6 +8,7 @@ import { subscriptionMessages } from '../utils/subscriptionMessages';
 import './creatorSubscriptions.css';
 
 export function CreatorSubscription({ creatorId }: { creatorId: number }) {
+  useLocale();
   const auth = useAuth();
   const { pathname } = useLocation();
   const messages = subscriptionMessages();

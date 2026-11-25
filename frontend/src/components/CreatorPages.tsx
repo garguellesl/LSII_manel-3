@@ -1,3 +1,4 @@
+import { useLocale, localizeMessage, formatNumber } from '../i18n/locale';
 import { isAxiosError } from 'axios';
 import { useCallback, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
@@ -11,6 +12,7 @@ import { CreatorSubscription } from './CreatorSubscription';
 import { UserAvatar } from './UserAvatar';
 
 export function SubscriptionsPage() {
+  useLocale();
   const auth = useAuth();
   const messages = subscriptionMessages();
   if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: '/subscriptions' }} />;
@@ -61,6 +63,7 @@ function OwnSubscriptions() {
 }
 
 export function CreatorPage() {
+  useLocale();
   const { id } = useParams();
   const creatorId = Number(id);
   return (
@@ -157,7 +160,7 @@ function CreatorPagination({
         {messages.previous}
       </button>
       <span role="status">
-        {messages.page} {data.page + 1}
+        {messages.page} {formatNumber(data.page + 1)}
       </span>
       <button
         className="profile-action"
@@ -178,7 +181,7 @@ function Loading() {
 function LoadError({ message, retry }: { message: string; retry: () => void }) {
   return (
     <>
-      <p role="alert">{message}</p>
+      <p role="alert">{localizeMessage(message)}</p>
       <button className="profile-action" type="button" onClick={retry}>
         {subscriptionMessages().retry}
       </button>

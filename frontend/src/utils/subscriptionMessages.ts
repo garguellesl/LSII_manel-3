@@ -1,79 +1,33 @@
-const translations = {
-  en: {
-    subscriptions: 'My subscriptions',
-    subscribe: 'Subscribe',
-    unsubscribe: 'Unsubscribe',
-    signIn: 'Sign in to subscribe',
-    loading: 'Loading…',
-    retry: 'Try again',
-    stateError: 'The subscription could not be checked.',
-    writeError: 'The subscription could not be changed. Try again.',
-    listError: 'Your subscriptions could not be loaded.',
-    creatorError: 'The creator could not be loaded.',
-    creatorMissing: 'Creator not found.',
-    videosError: 'The creator’s videos could not be loaded.',
-    sessionError: 'Your session could not be checked.',
-    emptyList: 'You haven’t subscribed to any creators yet.',
-    emptyVideos: 'This creator hasn’t published any videos yet.',
-    videos: 'Videos',
-    browse: 'Browse videos',
-    previous: 'Previous',
-    next: 'Next',
-    pages: 'Pages',
-    page: 'Page',
-  },
-  es: {
-    subscriptions: 'Mis suscripciones',
-    subscribe: 'Suscribirme',
-    unsubscribe: 'Cancelar suscripción',
-    signIn: 'Inicia sesión para suscribirte',
-    loading: 'Cargando…',
-    retry: 'Reintentar',
-    stateError: 'No se ha podido comprobar la suscripción.',
-    writeError: 'No se ha podido cambiar la suscripción. Inténtalo de nuevo.',
-    listError: 'No se han podido cargar tus suscripciones.',
-    creatorError: 'No se ha podido cargar el creador.',
-    creatorMissing: 'No se ha encontrado el creador.',
-    videosError: 'No se han podido cargar los vídeos del creador.',
-    sessionError: 'No se ha podido comprobar tu sesión.',
-    emptyList: 'Todavía no te has suscrito a ningún creador.',
-    emptyVideos: 'Este creador todavía no ha publicado ningún vídeo.',
-    videos: 'Vídeos',
-    browse: 'Explora el catálogo',
-    previous: 'Anterior',
-    next: 'Siguiente',
-    pages: 'Páginas',
-    page: 'Página',
-  },
-  ca: {
-    subscriptions: 'Les meves subscripcions',
-    subscribe: 'Subscriure’m',
-    unsubscribe: 'Cancel·lar la subscripció',
-    signIn: 'Inicia la sessió per subscriure-t’hi',
-    loading: 'S’està carregant…',
-    retry: 'Torna-ho a provar',
-    stateError: 'No s’ha pogut comprovar la subscripció.',
-    writeError: 'No s’ha pogut canviar la subscripció. Torna-ho a provar.',
-    listError: 'No s’han pogut carregar les teves subscripcions.',
-    creatorError: 'No s’ha pogut carregar el creador.',
-    creatorMissing: 'No s’ha trobat el creador.',
-    videosError: 'No s’han pogut carregar els vídeos del creador.',
-    sessionError: 'No s’ha pogut comprovar la teva sessió.',
-    emptyList: 'Encara no t’has subscrit a cap creador.',
-    emptyVideos: 'Aquest creador encara no ha publicat cap vídeo.',
-    videos: 'Vídeos',
-    browse: 'Explora el catàleg',
-    previous: 'Anterior',
-    next: 'Següent',
-    pages: 'Pàgines',
-    page: 'Pàgina',
-  },
-};
+import { getLocale, isLocale, translate } from '../i18n/locale';
 
-export function subscriptionMessages(languages = navigator.languages) {
-  for (const language of languages) {
-    const code = language.toLowerCase().split('-')[0];
-    if (code === 'es' || code === 'ca' || code === 'en') return translations[code];
-  }
-  return translations.en;
+const keys = [
+  'subscriptions',
+  'subscribe',
+  'unsubscribe',
+  'signIn',
+  'loading',
+  'retry',
+  'stateError',
+  'writeError',
+  'listError',
+  'creatorError',
+  'creatorMissing',
+  'videosError',
+  'sessionError',
+  'emptyList',
+  'emptyVideos',
+  'videos',
+  'browse',
+  'previous',
+  'next',
+  'pages',
+  'page',
+] as const;
+
+export function subscriptionMessages(languages: readonly string[] = [getLocale()]) {
+  const locale = languages.map((language) => language.toLowerCase().split('-')[0]).find(isLocale) ?? 'es';
+  return Object.fromEntries(keys.map((key) => [key, translate(`library.subscription.${key}`, locale)])) as Record<
+    (typeof keys)[number],
+    string
+  >;
 }

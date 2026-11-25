@@ -1,6 +1,8 @@
+import { localizeMessage, t, useLocale } from './i18n/locale';
 import { useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
+import { LanguageSelector } from './components/LanguageSelector';
 import { SearchBar } from './components/SearchBar';
 import { TagSearch } from './components/TagSearch';
 import { VideoCard } from './components/VideoCard';
@@ -18,6 +20,7 @@ import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
 
 function App() {
+  useLocale();
   return (
     <AuthProvider>
       <AppRoutes />
@@ -26,6 +29,7 @@ function App() {
 }
 
 function AppRoutes() {
+  useLocale();
   const [searchQuery, setSearchQuery] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(0);
@@ -51,10 +55,11 @@ function AppRoutes() {
       <header className="App-header">
         <div className="header-toolbar">
           <div className="header-brand-controls">
-            <Link to="/" aria-label="Go to home" className="header-brand">
+            <Link to="/" aria-label={t('catalogue.goToHome')} className="header-brand">
               <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="Protube" />
             </Link>
             <AppearanceControls />
+            <LanguageSelector />
           </div>
           <AccountMenu />
         </div>
@@ -84,7 +89,7 @@ function AppRoutes() {
           <Route path="/creators/:id" element={<CreatorPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/upload" element={<UploadVideoPage />} />
-          <Route path="*" element={<p role="alert">Page not found.</p>} />
+          <Route path="*" element={<p role="alert">{t('catalogue.pageNotFound')}</p>} />
         </Routes>
       </header>
     </div>
@@ -99,20 +104,23 @@ interface ContentAppProps {
 }
 
 function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) {
+  useLocale();
   const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page, tags);
   switch (loading) {
     case 'loading':
       return (
         <div className="catalog-loading" aria-busy="true">
-          Loading...
+          {' '}
+          {t('catalogue.loading')}{' '}
         </div>
       );
     case 'error':
       return (
         <div className="catalog-error">
-          <h3>Error</h3> <p role="alert">{message}</p>
+          <h3>{t('catalogue.error')}</h3> <p role="alert">{localizeMessage(message)}</p>
           <button type="button" className="catalog-retry" onClick={retry}>
-            Retry
+            {' '}
+            {t('catalogue.retry')}{' '}
           </button>
         </div>
       );
@@ -132,10 +140,10 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
           <>
             <p className="empty-search-message" role="status">
               {tags.length > 0
-                ? 'No videos found matching the selected filters.'
+                ? t('catalogue.noVideosFoundMatchingTheSelectedFilters')
                 : searchQuery.trim()
-                  ? `No videos found matching "${searchQuery}".`
-                  : 'No videos are available.'}
+                  ? t('catalogue.noResults', { query: searchQuery })
+                  : t('catalogue.noVideosAreAvailable')}
             </p>
             {pagination}
           </>
@@ -143,9 +151,11 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
       }
 
       return (
-        <section className="catalog" aria-label="Video catalog">
+        <section className="catalog" aria-label={t('catalogue.videoCatalog')}>
           <h2 className="catalog-heading">
-            {searchQuery.trim() ? `Results for "${searchQuery.trim()}"` : 'Available videos'}
+            {searchQuery.trim()
+              ? t('catalogue.results', { query: searchQuery.trim() })
+              : t('catalogue.availableVideos')}
           </h2>
           <ul className="video-grid">
             {value.map((video) => (
@@ -157,7 +167,7 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
       );
     }
   }
-  return <div>Idle...</div>;
+  return <div>{t('catalogue.idle')}</div>;
 }
 
 export default App;

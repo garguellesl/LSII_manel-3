@@ -60,7 +60,10 @@ describe('authClient', () => {
     http.post.mockRejectedValueOnce({ response: { status: 409 } });
     await expect(authClient.register(input)).rejects.toThrow('Ya existe una cuenta');
     http.post.mockRejectedValueOnce({ response: { status: 400, data: { errors: { email: 'Invalid email' } } } });
-    await expect(authClient.register(input)).rejects.toMatchObject({ fields: { email: 'Invalid email' }, status: 400 });
+    await expect(authClient.register(input)).rejects.toMatchObject({
+      fields: { email: 'Revisa este campo.' },
+      status: 400,
+    });
   });
 
   it('registers and renews CSRF before the subsequent logout', async () => {
@@ -90,9 +93,14 @@ describe('authClient', () => {
 
   it('preserves the special response when an account was created but session setup failed', async () => {
     http.get.mockResolvedValue({ data: csrf });
-    http.post.mockRejectedValue({ response: { status: 503, data: { error: 'Account created. Please sign in.' } } });
+    http.post.mockRejectedValue({
+      response: {
+        status: 503,
+        data: { code: 'ACCOUNT_CREATED_SESSION_FAILED', error: 'Account created. Please sign in.' },
+      },
+    });
     await expect(authClient.register({ ...user, password: 'password123' })).rejects.toThrow(
-      'Account created. Please sign in.'
+      'La cuenta se ha creado. Inicia sesión para continuar.'
     );
   });
 });

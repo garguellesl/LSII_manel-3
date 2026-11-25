@@ -1,3 +1,4 @@
+import { localizeMessage, t, useLocale } from '../i18n/locale';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -5,6 +6,7 @@ import { UserAvatar } from './UserAvatar';
 import { subscriptionMessages } from '../utils/subscriptionMessages';
 
 export function AccountMenu() {
+  useLocale();
   const auth = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -15,32 +17,36 @@ export function AccountMenu() {
       await auth.signOut();
       navigate('/');
     } catch {
-      setError('No se ha podido cerrar sesión. Comprueba tu conexión y vuelve a intentarlo.');
+      setError(t('catalogue.couldNotSignOutCheckYourConnectionAndTryAgain'));
     }
   };
 
   return (
-    <nav className="account-bar" aria-label="Cuenta de usuario">
-      {auth.status === 'loading' && <span role="status">Comprobando sesión…</span>}
+    <nav className="account-bar" aria-label={t('catalogue.userAccount')}>
+      {auth.status === 'loading' && <span role="status">{t('catalogue.checkingSession')}</span>}
       {auth.status === 'anonymous' && (
         <>
           <Link className="account-link" to="/login">
-            Iniciar sesión
+            {' '}
+            {t('catalogue.signIn')}{' '}
           </Link>
           <Link className="account-link account-link--primary" to="/register">
-            Registrarse
+            {' '}
+            {t('catalogue.register')}{' '}
           </Link>
         </>
       )}
       {auth.status === 'authenticated' && auth.user && (
         <>
           <Link className="account-link" to="/videos/new">
-            Registrar vídeo existente
+            {' '}
+            {t('catalogue.registerExistingVideo')}{' '}
           </Link>
           <Link className="account-link account-link--primary" to="/upload">
-            Subir vídeo
+            {' '}
+            {t('catalogue.uploadVideo')}{' '}
           </Link>
-          <Link className="account-link account-profile" to="/profile" aria-label="Mi perfil">
+          <Link className="account-link account-profile" to="/profile" aria-label={t('catalogue.myProfile')}>
             <UserAvatar name={auth.user.accountName} src={auth.user.avatarUrl} />
             <span className="account-name">{auth.user.displayName || auth.user.accountName}</span>
           </Link>
@@ -48,19 +54,21 @@ export function AccountMenu() {
             {subscriptionMessages().subscriptions}
           </Link>
           <button className="account-link" type="button" onClick={() => void logout()}>
-            Cerrar sesión
+            {' '}
+            {t('catalogue.signOut')}{' '}
           </button>
         </>
       )}
       {auth.status === 'error' && (
         <>
-          <span>Sesión sin comprobar</span>
+          <span>{t('catalogue.sessionNotChecked')}</span>
           <button className="account-link" type="button" onClick={() => void auth.refresh()}>
-            Reintentar sesión
+            {' '}
+            {t('catalogue.retrySession')}{' '}
           </button>
         </>
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{localizeMessage(error)}</p>}
     </nav>
   );
 }

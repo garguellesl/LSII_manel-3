@@ -126,3 +126,8 @@ Local change on feature/add_documentacion_sprint-4: reaction controls expose a n
 ## RF-04 player recommendations
 
 Local feature branch `feat/improve-videoplay-page-buttons-UIX` adds a public, session-aware recommendations endpoint capped at eight. The player measures five rendered description lines and previews the three most-liked comments in portrait. V10 adds audience eligibility with a legacy default of UNCLASSIFIED. [Scope and verification](tasks/rf04-player-recommendations.md).
+
+
+## Localisation (2026-11-25)
+
+RF-16 uses frontend/src/i18n for es/ca/en, an identity-scoped locale store, a global selector and Intl formatting. Optional registration preferredLanguage is persisted by V11 and returned on private user DTOs. Account/browser manual choice precedes profile language, then Spanish; browser language is not consulted. Subscription screens use the same locale adapter. See [handoff](tasks/language-localisation.md) and [local evidence](../../specs/sprint-4/task.md#rf-16-local-validation); no remote CI/staging verification is implied.

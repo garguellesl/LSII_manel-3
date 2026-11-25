@@ -48,6 +48,26 @@ class UserServiceTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void preservesOptionalLanguageAcrossRegistrationLoginAndProfile() {
+        for (String language : java.util.List.of("es", "ca", "en")) {
+            var registered = userService.register(new RegisterRequest(language + "@example.test", language,
+                    "First", "Last", "password123", language));
+            userAccountRepository.flush();
+            assertEquals(language, userService.login(new LoginRequest(language + "@example.test", "password123")).preferredLanguage());
+            assertEquals(language, userService.getProfile(registered.id()).preferredLanguage());
+        }
+        var legacy = userService.register(new RegisterRequest("optional@example.test", "optional", "First", "Last", "password123"));
+        org.junit.jupiter.api.Assertions.assertNull(userService.getProfile(legacy.id()).preferredLanguage());
+    }
+
+    @Test
+    void rejectsUnsupportedLanguageWithoutCreatingAccount() {
+        assertThrows(IllegalArgumentException.class, () -> userService.register(new RegisterRequest(
+                "unsupported@example.test", "unsupported", "First", "Last", "password123", "fr")));
+        org.junit.jupiter.api.Assertions.assertFalse(userAccountRepository.existsByEmailIgnoreCase("unsupported@example.test"));
+    }
+
+    @Test
     void loginReturnsUserForValidCredentials() {
         userService.register(new RegisterRequest("login@example.com", "login", "Log", "In", "password123"));
 

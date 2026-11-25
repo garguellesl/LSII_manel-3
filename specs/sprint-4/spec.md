@@ -408,7 +408,7 @@ A user selects a language, navigates through the application, submits forms and 
 
 - **RF-16.AC1:** Users can select any of the three languages from the application interface.
 - **RF-16.AC2:** A manual selection takes precedence and persists across navigation and reloads when browser storage is available.
-- **RF-16.AC3:** On first use, a supported browser language is selected; otherwise Spanish is used as the proposed fallback.
+- **RF-16.AC3:** Registration accepts an optional preferred language (es, ca or en). On registration, sign-in and session restoration, that account's language is the default. Accounts without an assigned language and visitors without a manual preference default to Spanish, regardless of browser language. A later manual selection persists per account/browser without leaking between accounts.
 - **RF-16.AC4:** Application-controlled text in the agreed screens is translated; translation keys and unintended mixed-language messages are not shown.
 - **RF-16.AC5:** Accessible labels, document language, plural forms, dates and numbers match the selected language.
 - **RF-16.AC6:** Changing language preserves entered form values, filters, queue state and current playback.

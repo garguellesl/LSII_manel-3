@@ -1,3 +1,4 @@
+import { t } from './i18n/locale';
 import { useCallback } from 'react';
 import { useCreatorRequest } from './useCreatorRequest';
 import type { VideoSummary } from './useAllVideos';
@@ -13,7 +14,7 @@ export function useRecommendations(videoId: number, audience: string) {
         credentials: 'include',
         signal,
       });
-      if (!response.ok) throw new Error('Recommendations unavailable');
+      if (!response.ok) throw new Error(t('catalogue.recommendationsUnavailable'));
       return response.json();
     },
     [videoId, audience]

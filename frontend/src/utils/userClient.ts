@@ -1,3 +1,4 @@
+import { t, fieldErrors } from '../i18n/locale';
 import axios from 'axios';
 import { getEnv } from './Env';
 import { mutate } from '../apiClient';
@@ -37,31 +38,33 @@ export type ProfileInput = { displayName: string; description: string; removeAva
 
 // Mirrors the server rules so the common mistakes are reported before uploading.
 export function validateAvatar(file: File): string | null {
-  if (!file.size) return 'La imagen está vacía.';
-  if (file.size > AVATAR_LIMIT) return 'La imagen supera el límite de 2 MB.';
+  if (!file.size) return t('profile.theImageIsEmpty');
+  if (file.size > AVATAR_LIMIT) return t('profile.theImageExceedsThe2MbLimit');
   const jpg = /\.jpe?g$/i.test(file.name) && file.type === 'image/jpeg';
   const png = /\.png$/i.test(file.name) && file.type === 'image/png';
-  return jpg || png ? null : 'La imagen debe ser JPG o PNG.';
+  return jpg || png ? null : t('profile.theImageMustBeJpgOrPng');
 }
 
 function profileError(failure: unknown): AuthError {
   const response = (
-    failure as { response?: { status?: number; data?: { error?: string; errors?: Record<string, string> } } }
+    failure as {
+      response?: { status?: number; data?: { code?: string; error?: string; errors?: Record<string, string> } };
+    }
   )?.response;
   const status = response?.status;
   const message =
     status === 401
-      ? 'Tu sesión ha caducado. Inicia sesión de nuevo para guardar los cambios.'
+      ? t('profile.yourSessionHasExpiredSignInAgainToSaveChanges')
       : status === 403
-        ? 'No se ha podido validar la sesión. Vuelve a intentarlo.'
+        ? t('upload.couldNotValidateYourSessionTryAgain')
         : status === 413
-          ? 'La imagen supera el límite de 2 MB.'
+          ? t('profile.theImageExceedsThe2MbLimit')
           : status === 415
-            ? 'La imagen debe ser un JPG o PNG válido.'
+            ? t('profile.theImageMustBeAValidJpgOrPng')
             : status === 400
-              ? 'Revisa el nombre visible (máx. 100 caracteres) y la descripción (máx. 1000).'
-              : 'No se ha podido guardar tu perfil. Comprueba tu conexión e inténtalo de nuevo.';
-  return new AuthError(message, response?.data?.errors, status);
+              ? t('profile.checkTheDisplayNameUpTo100CharactersAndDescription')
+              : t('profile.couldNotSaveYourProfileCheckYourConnectionAndTry');
+  return new AuthError(message, fieldErrors(response?.data?.errors), status);
 }
 
 const usersUrl = (userId: number) => `${getEnv().API_BASE_URL}/users/${userId}`;

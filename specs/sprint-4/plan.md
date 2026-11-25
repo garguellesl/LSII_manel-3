@@ -205,6 +205,8 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 
 - Requirements: RF-16, all numbered acceptance criteria in [spec.md](spec.md).
 - Areas: New locale adapter/catalogues, shared formatters and language selector.
+- Account default (user clarification, 2026-11-25): optional `preferredLanguage` in registration and private UserResponse, allowlisted es/ca/en. Nullable app_users.preferred_language via new V11 migration; existing accounts remain null. Resolve a manual browser preference scoped to account ID, then account preference, then Spanish. Anonymous preference has a separate key. Do not consult navigator.languages. Failed storage keeps the selection in memory. Rechecks of the same session preserve a manual selection; changing identity resolves the new account's preference.
+- Adapter: a small identity-scoped store connected through React useSyncExternalStore, typed catalogues and Intl, reusing installed dependencies. No new production dependency. The inventory groups navigation, account, catalogue, player, comments, upload, profile, analytics and library strings. Locale changes rerender without keying/remounting forms or media. API codes/status map to controlled translated messages, never arbitrary server text.
 - Design: Justify dependency choice before installation. Namespace translations by route, preserve component identity on locale changes, translate errors through stable codes and accessible labels too.
 - Dependencies: P00 locale contract.
 - Work slices: T16.01 onward in [task.md](task.md).

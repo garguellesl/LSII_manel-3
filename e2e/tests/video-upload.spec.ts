@@ -44,7 +44,7 @@ test('registered user uploads without thumbnail, finds the video and actually pl
   await page.goto('/');
   // Navigate through the server's existing search rather than expecting a position in a paginated catalog.
   await page.getByRole('searchbox', { name: /search/i }).fill(title);
-  await expect(page.getByRole('link', { name: `Watch ${title}` })).toHaveAttribute('href', destination!);
+  await expect(page.getByRole('link', { name: `Ver ${title}` })).toHaveAttribute('href', destination!);
 });
 
 test('upload form remains usable on narrow screens and preserves inputs after a network failure', async ({ page, request }) => {
