@@ -166,7 +166,8 @@ describe('App Component', () => {
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: /search videos by title/i })).toBeInTheDocument();
-    await screen.findByRole('link', { name: 'Registrarse' });
+    // On the catalog the header shows only the account avatar; guests get a login link.
+    await screen.findByRole('link', { name: 'Iniciar sesión' });
   });
 
   it('renders prominently visible search input and full video list on success', async () => {

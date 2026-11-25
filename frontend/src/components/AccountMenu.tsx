@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from './UserAvatar';
+import { AccountChip } from './AccountChip';
 import { subscriptionMessages } from '../utils/subscriptionMessages';
 
-export function AccountMenu() {
+export function AccountMenu({ compact = false }: { compact?: boolean }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+
+  if (compact) return <AccountChip />;
 
   const logout = async () => {
     setError('');

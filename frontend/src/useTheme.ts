@@ -1,5 +1,13 @@
 import { useLayoutEffect, useState } from 'react';
-import { applyTheme, initialTheme, saveTheme } from './utils/theme';
+import {
+  applyContrast,
+  applyTheme,
+  initialContrast,
+  initialTheme,
+  saveContrast,
+  saveTheme,
+  type Contrast,
+} from './utils/theme';
 
 export function useTheme() {
   const [theme, setTheme] = useState(initialTheme);
@@ -15,4 +23,20 @@ export function useTheme() {
   };
 
   return { theme, toggleTheme };
+}
+
+export function useContrast() {
+  const [contrast, setContrast] = useState<Contrast>(initialContrast);
+
+  useLayoutEffect(() => {
+    applyContrast(contrast);
+  }, [contrast]);
+
+  const toggleContrast = () => {
+    const next: Contrast = contrast === 'high' ? 'standard' : 'high';
+    saveContrast(next);
+    setContrast(next);
+  };
+
+  return { contrast, toggleContrast };
 }

@@ -17,7 +17,7 @@ describe('pre-render theme bootstrap', () => {
     const storage = { getItem: jest.fn(() => stored) };
     runInNewContext(bootstrap, { document: { documentElement: root }, window: { localStorage: storage } });
     expect(storage.getItem).toHaveBeenCalledWith(THEME_STORAGE_KEY);
-    expect(root.dataset).toEqual({ theme: expected, bsTheme: expected });
+    expect(root.dataset).toEqual({ theme: expected, bsTheme: expected, contrast: 'standard' });
     expect(root.style.colorScheme).toBe(expected);
   });
 

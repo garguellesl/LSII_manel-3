@@ -75,15 +75,20 @@ describe('Authentication navigation and pages', () => {
   it('keeps the public catalog available while checking the session, then offers both account links', async () => {
     client.currentUser.mockReturnValue(new Promise(() => {}));
     const page = renderPage();
-    expect(within(screen.getByRole('navigation', { name: 'Cuenta de usuario' })).getByRole('status')).toHaveTextContent(
-      'Comprobando sesión'
-    );
+    expect(screen.getByText('Comprobando sesión…')).toBeInTheDocument();
     expect(screen.getByText('No videos are available.')).toBeInTheDocument();
     page.unmount();
     client.currentUser.mockResolvedValue(null);
     renderPage();
-    const navigation = screen.getByRole('navigation', { name: 'Cuenta de usuario' });
-    expect(await within(navigation).findByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
+    // On the catalog, the header offers only the avatar link; the register link lives on the login page.
+    expect(await screen.findByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
+  });
+
+  it('keeps the full account navigation on non-catalog pages for guests', async () => {
+    client.currentUser.mockResolvedValue(null);
+    renderPage('/register');
+    const navigation = await screen.findByRole('navigation', { name: 'Cuenta de usuario' });
+    expect(within(navigation).getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
     expect(within(navigation).getByRole('link', { name: 'Registrarse' })).toHaveAttribute('href', '/register');
   });
 
@@ -206,9 +211,11 @@ describe('Authentication navigation and pages', () => {
   it('reports a logout failure and revalidates the session on retry', async () => {
     client.currentUser.mockResolvedValue(user);
     client.logout.mockRejectedValue(new Error('Offline'));
-    renderPage();
+    // Logout lives in the full account menu on non-catalog pages; the catalog uses the avatar panel.
+    renderPage('/profile');
     fireEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cerrar sesión');
+    const navigation = await screen.findByRole('navigation', { name: 'Cuenta de usuario' });
+    expect(await within(navigation).findByRole('alert')).toHaveTextContent('No se ha podido cerrar sesión');
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar sesión' }));
     expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
   });

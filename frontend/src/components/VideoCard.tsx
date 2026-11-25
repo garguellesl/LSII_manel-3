@@ -25,7 +25,12 @@ export function VideoCard({ video, compact = false }: VideoCardProps) {
       </Link>
       {!compact && (
         <p aria-label="Video reactions">
-          👍 {video.likesCount ?? 0} · 👎 {video.dislikesCount ?? 0}
+          <span aria-hidden="true">
+            👍 {video.likesCount ?? 0} · 👎 {video.dislikesCount ?? 0}
+          </span>
+          <span className="visually-hidden">
+            {`${video.likesCount ?? 0} likes, ${video.dislikesCount ?? 0} dislikes`}
+          </span>
         </p>
       )}
     </li>

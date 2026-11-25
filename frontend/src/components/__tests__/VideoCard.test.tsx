@@ -48,6 +48,7 @@ describe('VideoCard', () => {
       </MemoryRouter>
     );
     expect(screen.getByLabelText('Video reactions')).toHaveTextContent('👍 12 · 👎 3');
+    expect(screen.getByText('12 likes, 3 dislikes')).toBeInTheDocument();
     expect(screen.queryByText(/@|user/i)).not.toBeInTheDocument();
   });
 });

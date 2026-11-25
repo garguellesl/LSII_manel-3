@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SearchBar } from './components/SearchBar';
@@ -16,6 +16,7 @@ import { AnalyticsPage } from './components/AnalyticsPage';
 import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
+import { HomeSidebar } from './components/HomeSidebar';
 
 function App() {
   return (
@@ -47,16 +48,17 @@ function AppRoutes() {
   };
 
   return (
-    <div className="App">
+    <div className={isHome ? 'App App--home' : 'App'}>
       <header className="App-header">
         <div className="header-toolbar">
+          {isHome && <AccountMenu compact />}
           <div className="header-brand-controls">
             <Link to="/" aria-label="Go to home" className="header-brand">
               <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="Protube" />
             </Link>
             <AppearanceControls />
           </div>
-          <AccountMenu />
+          {!isHome && <AccountMenu />}
         </div>
         <div className="catalog-search">
           <SearchBar value={searchQuery} onChange={handleSearch} />
@@ -72,7 +74,11 @@ function AppRoutes() {
         <Routes>
           <Route
             path="/"
-            element={<ContentApp searchQuery={searchQuery} tags={tags} page={page} onPageChange={changePage} />}
+            element={
+              <HomeLayout>
+                <ContentApp searchQuery={searchQuery} tags={tags} page={page} onPageChange={changePage} />
+              </HomeLayout>
+            }
           />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
           <Route path="/videos/new" element={<NewVideoMetadataPage />} />
@@ -91,6 +97,16 @@ function AppRoutes() {
   );
 }
 
+// Home keeps the account panel on the left on wide screens; on phones it stacks above the catalog.
+function HomeLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="home-layout">
+      <HomeSidebar />
+      <div className="home-main">{children}</div>
+    </div>
+  );
+}
+
 interface ContentAppProps {
   searchQuery: string;
   tags: string[];
@@ -103,7 +119,7 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
   switch (loading) {
     case 'loading':
       return (
-        <div className="catalog-loading" aria-busy="true">
+        <div className="catalog-loading" role="status" aria-busy="true">
           Loading...
         </div>
       );
@@ -144,6 +160,9 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
 
       return (
         <section className="catalog" aria-label="Video catalog">
+          <p className="visually-hidden" role="status">
+            {`${totalElements} ${totalElements === 1 ? 'video' : 'videos'} found`}
+          </p>
           <h2 className="catalog-heading">
             {searchQuery.trim() ? `Results for "${searchQuery.trim()}"` : 'Available videos'}
           </h2>
