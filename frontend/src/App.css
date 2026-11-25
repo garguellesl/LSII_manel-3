@@ -538,19 +538,6 @@
   font-size: 0.9rem;
 }
 
-.profile-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 1.25rem;
-  margin-top: 1.25rem;
-}
-
-.profile-activity {
-  display: grid;
-  gap: 1.25rem;
-  align-content: start;
-}
-
 .profile-panel {
   align-self: start;
   padding: clamp(1.25rem, 3vw, 1.75rem);
@@ -2472,39 +2459,13 @@
   margin-top: 0.75rem;
 }
 
-/* Full-width profile blocks share the edges of the two-column row, so their outer lines match. */
-.profile-page > .profile-hero,
-.profile-page > .liked-videos,
-.profile-page > .profile-layout {
-  box-sizing: border-box;
-  width: 100%;
-  margin-left: 0;
-  margin-right: 0;
-}
-
-/* The activity column never wins over the liked-videos section: both stay inside the profile width. */
-.profile-layout > * {
-  min-width: 0;
-  max-width: 100%;
-}
-.profile-activity {
-  width: 100%;
-  box-sizing: border-box;
-}
-.profile-activity > .profile-panel {
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-}
-
-/* Profile page: one container sets the width; every block fills it, with the same edges and spacing. */
+/* Profile page structure: one container sets the width and every block fills it, sharing its edges.
+   The lower row is a two-column grid: profile details (left) and activity (right). Grid items may shrink. */
 .profile-page {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   box-sizing: border-box;
-  width: min(92%, 64rem);
-  margin: 0.5rem auto 3rem;
 }
 .profile-page > * {
   box-sizing: border-box;
@@ -2521,10 +2482,33 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: 1.25rem;
   align-items: start;
+  min-width: 0;
 }
 .profile-layout > * {
+  box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
+}
+.profile-activity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-content: start;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.profile-activity > .profile-panel,
+.profile-layout > .profile-panel {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.profile-stats li {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 720px) {
   .profile-layout {
