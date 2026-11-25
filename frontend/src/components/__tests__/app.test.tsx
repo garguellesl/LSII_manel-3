@@ -13,6 +13,7 @@ jest.mock('../../useAvailableTags', () => ({
   useAvailableTags: () => ({ loading: false, error: false, tags: ['rock', 'pop', 'reguetton'], reload: jest.fn() }),
 }));
 jest.mock('../../utils/authClient', () => ({ authClient: { currentUser: jest.fn() } }));
+jest.mock('../HomeSidebar', () => ({ HomeSidebar: () => null }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const sampleVideos = [
@@ -303,7 +304,8 @@ describe('App Component', () => {
 
     expect(screen.getByText('Cargando...')).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: /Buscar vídeos por título/i })).toBeInTheDocument();
-    await screen.findByRole('link', { name: 'Registrarse' });
+    // On the catalog the header shows only the account avatar; guests get a login link.
+    await screen.findByRole('link', { name: 'Iniciar sesión' });
   });
 
   it('renders prominently visible search input and full video list on success', async () => {

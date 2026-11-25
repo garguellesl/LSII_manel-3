@@ -1,125 +1,86 @@
-import { t, useLocale, formatNumber } from '../i18n/locale';
-import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCarousel } from '../useCarousel';
 import { useLikedVideos } from '../useLikedVideos';
 import { toMediaUrl } from '../utils/media';
+import { CarouselNav } from './CarouselNav';
+import './carousel.css';
 import './likedVideos.css';
 
+// The profile shows the latest likes as a horizontal carousel; the full, paginated list lives at /liked.
 export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boolean }) {
-  useLocale();
-  const [open, setOpen] = useState(false);
-  const [page, setPage] = useState(0);
-
   return (
     <section className="profile-panel liked-videos" aria-labelledby="liked-videos-title">
       <div className="profile-panel-heading liked-videos-heading">
-        <h2 id="liked-videos-title">{t('library.likedVideos')}</h2>
-        <button
-          className="profile-action"
-          type="button"
-          aria-expanded={open}
-          aria-controls="liked-videos-collection"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? t('library.hideLikedVideos') : t('library.showLikedVideos')}
-        </button>
+        <h2 id="liked-videos-title">Vídeos que te gustan</h2>
+        <Link className="profile-action" to="/liked">
+          Ver todos
+        </Link>
       </div>
-      <div id="liked-videos-collection" hidden={!open}>
-        {open && (sessionConfirmed ? <LikedVideosCollection page={page} setPage={setPage} /> : <Loading />)}
-      </div>
+      {sessionConfirmed ? <LikedCarousel /> : <Loading />}
     </section>
   );
 }
 
-function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page: number) => void }) {
-  useLocale();
-  const { data, retry } = useLikedVideos(page, setPage);
-  const content = useRef<HTMLDivElement>(null);
+// Stable reference: the hook refetches whenever this callback changes identity.
+const keepFirstPage = () => undefined;
 
-  const changePage = (next: number) => {
-    content.current?.focus();
-    setPage(next);
-  };
+function LikedCarousel() {
+  // The first page holds the most recent likes; the carousel never pages.
+  const { data, retry } = useLikedVideos(0, keepFirstPage);
+  const { track, scrollBy } = useCarousel<HTMLUListElement>();
+
+  if (data === undefined) return <Loading />;
+  if (data === null) {
+    return (
+      <>
+        <p className="profile-empty" role="alert">
+          No se han podido cargar los vídeos que te gustan.
+        </p>
+        <button type="button" className="profile-retry" onClick={retry}>
+          Reintentar
+        </button>
+      </>
+    );
+  }
+  if (data.content.length === 0) {
+    return (
+      <p className="profile-empty">
+        Aún no has dado Me gusta a ningún vídeo. <Link to="/">Explora el catálogo</Link>
+      </p>
+    );
+  }
 
   return (
-    <div ref={content} tabIndex={-1} role="group" aria-label={t('library.likedVideosCollection')}>
-      {data === undefined ? (
-        <Loading />
-      ) : data === null ? (
-        <>
-          <p className="profile-empty" role="alert">
-            {' '}
-            {t('library.couldNotLoadYourLikedVideos')}{' '}
-          </p>
-          <button type="button" className="profile-retry" onClick={retry}>
-            {' '}
-            {t('profile.tryAgain')}{' '}
-          </button>
-        </>
-      ) : data.content.length === 0 ? (
-        <p className="profile-empty">
-          {' '}
-          {t('library.youHaventLikedAnyVideosYet')} <Link to="/">{t('library.browseVideos')}</Link>
-        </p>
-      ) : (
-        <>
-          <ul className="liked-videos-list" aria-label={t('library.videosYouLiked')}>
-            {data.content.map((video) => (
-              <li key={video.id}>
-                <Link to={`/videos/${video.id}`} className="liked-video-link">
-                  {video.thumbnailUrl ? (
-                    <img className="liked-video-thumbnail" src={toMediaUrl(video.thumbnailUrl)} alt="" loading="lazy" />
-                  ) : (
-                    <span className="liked-video-thumbnail" aria-hidden="true">
-                      ▶
-                    </span>
-                  )}
-                  <span>{video.title}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {(page > 0 || data.hasNext) && (
-            <nav className="liked-videos-pagination" aria-label={t('library.likedVideoPages')}>
-              <button
-                type="button"
-                className="profile-action"
-                disabled={page === 0}
-                onClick={() => changePage(page - 1)}
-              >
-                {' '}
-                {t('library.previous')}{' '}
-              </button>
-              <span role="status">
-                {' '}
-                {t('catalogue.pageOf', {
-                  page: formatNumber(page + 1),
-                  total: formatNumber(Math.ceil(data.totalElements / data.size)),
-                })}
-              </span>
-              <button
-                type="button"
-                className="profile-action"
-                disabled={!data.hasNext}
-                onClick={() => changePage(page + 1)}
-              >
-                {' '}
-                {t('library.next')}{' '}
-              </button>
-            </nav>
-          )}
-        </>
-      )}
-    </div>
+    <>
+      <ul ref={track} className="carousel-track" tabIndex={0} aria-label="Últimos vídeos con Me gusta">
+        {data.content.map((video) => (
+          <li key={video.id}>
+            <Link to={`/videos/${video.id}`} className="carousel-card">
+              {video.thumbnailUrl ? (
+                <img className="carousel-card-thumbnail" src={toMediaUrl(video.thumbnailUrl)} alt="" loading="lazy" />
+              ) : (
+                <span className="carousel-card-thumbnail" aria-hidden="true">
+                  ▶
+                </span>
+              )}
+              <span className="carousel-card-title">{video.title}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <CarouselNav
+        onPrevious={() => scrollBy(-1)}
+        onNext={() => scrollBy(1)}
+        labels={{ previous: 'Ver los anteriores', next: 'Ver los siguientes' }}
+      />
+    </>
   );
 }
 
 function Loading() {
-  useLocale();
   return (
     <p className="profile-empty" role="status">
-      {' '}
-      {t('library.loadingLikedVideos')}{' '}
+      Cargando los vídeos que te gustan…
     </p>
   );
 }

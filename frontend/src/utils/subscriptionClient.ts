@@ -33,6 +33,14 @@ export const subscriptionClient = {
     });
     return response.data;
   },
+  // Public creator profiles (accounts that have published at least one video), for discovery.
+  async publicCreators(page: number, size: number, signal: AbortSignal) {
+    const response = await axios.get<CreatorPageResult<Creator>>(`${getEnv().API_BASE_URL}/creators`, {
+      params: { page, size },
+      signal,
+    });
+    return response.data;
+  },
   async creator(creator: number, signal: AbortSignal) {
     const response = await axios.get<Creator>(`${getEnv().API_BASE_URL}/creators/${creator}`, { signal });
     return response.data;

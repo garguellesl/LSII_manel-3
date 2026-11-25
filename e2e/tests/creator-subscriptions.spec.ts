@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { createOwnVideo, registerUser } from '../fixtures/api';
 import { uniqueUser } from '../fixtures/users';
+import type { Page } from '@playwright/test';
+
+// The account actions live behind the avatar on every page (the corner panel on the catalogue, the dropdown elsewhere).
+async function openAccountMenu(page: Page) {
+  await page.getByRole('button', { name: /^Cuenta de / }).click();
+}
 
 test('a subscriber can find the creator again and remove the subscription', async ({ browser, baseURL }) => {
   const creator = await browser.newContext({ baseURL, locale: 'es-ES' });
@@ -17,6 +23,7 @@ test('a subscriber can find the creator again and remove the subscription', asyn
     await page.goto(`/videos/${video.id}`);
     await page.getByRole('button', { name: 'Suscribirme', exact: true }).press('Enter');
     await expect(page.getByRole('button', { name: 'Cancelar suscripción' })).toHaveAttribute('aria-pressed', 'true');
+    await openAccountMenu(page);
     await page.getByRole('link', { name: 'Mis suscripciones', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Mis suscripciones' })).toBeVisible();
     await page.getByRole('link', { name: author.accountName, exact: true }).click();
@@ -25,15 +32,18 @@ test('a subscriber can find the creator again and remove the subscription', asyn
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
     await page.reload();
     await expect(page.getByRole('button', { name: 'Cancelar suscripción' })).toBeEnabled();
+    await openAccountMenu(page);
     await page.getByRole('button', { name: 'Cerrar sesión' }).click();
     await page.getByRole('link', { name: 'Iniciar sesión' }).click();
     await page.getByLabel('Email').fill(person.email);
     await page.getByLabel('Contraseña', { exact: true }).fill(person.password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await openAccountMenu(page);
     await page.getByRole('link', { name: 'Mis suscripciones', exact: true }).click();
     await page.getByRole('link', { name: author.accountName, exact: true }).click();
     await page.getByRole('button', { name: 'Cancelar suscripción' }).click();
     await expect(page.getByRole('button', { name: 'Suscribirme', exact: true })).toBeEnabled();
+    await openAccountMenu(page);
     await page.getByRole('link', { name: 'Mis suscripciones', exact: true }).click();
     await expect(page.getByText('Todavía no te has suscrito a ningún creador.')).toBeVisible();
   } finally {

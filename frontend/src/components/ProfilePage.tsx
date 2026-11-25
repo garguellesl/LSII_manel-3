@@ -5,11 +5,16 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useProfileActivity } from '../useProfileActivity';
 import type { User } from '../utils/authClient';
-import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar } from '../utils/userClient';
+import { toMediaUrl } from '../utils/media';
+import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar, validateBanner } from '../utils/userClient';
+import { useCarousel } from '../useCarousel';
+import type { WatchHistoryEntry } from '../utils/userClient';
+import { CarouselNav } from './CarouselNav';
 import { LikedVideosSection } from './LikedVideosSection';
 import { UserAvatar } from './UserAvatar';
+import './carousel.css';
 
-const RECENT_HISTORY = 5;
+const RECENT_HISTORY = 10;
 
 export function ProfilePage() {
   useLocale();
@@ -57,6 +62,67 @@ export function ProfilePage() {
   );
 }
 
+// Profile background: its own actions, applied at once; the session is updated with the saved account.
+function BannerControls({ hasBanner }: { hasBanner: boolean }) {
+  const { updateUser } = useAuth();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const run = async (action: () => Promise<User>) => {
+    setBusy(true);
+    setError('');
+    try {
+      updateUser(await action());
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'No se ha podido actualizar el fondo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const choose = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const problem = validateBanner(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    void run(() => userClient.updateBanner(file));
+  };
+
+  return (
+    <div className="profile-banner-controls">
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="visually-hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={choose}
+        disabled={busy}
+      />
+      <button type="button" className="profile-action" disabled={busy} onClick={() => input.current?.click()}>
+        {busy ? 'Guardando fondo…' : 'Cambiar fondo'}
+      </button>
+      {hasBanner && (
+        <button
+          type="button"
+          className="profile-action"
+          disabled={busy}
+          onClick={() => void run(() => userClient.removeBanner())}
+        >
+          Quitar fondo
+        </button>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
+
 function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed: boolean }) {
   useLocale();
   const [editing, setEditing] = useState(false);
@@ -79,7 +145,11 @@ function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed:
   return (
     <main className="profile-page">
       <section className="profile-hero" aria-labelledby="profile-title">
-        <div className="profile-hero-banner" aria-hidden="true" />
+        <div
+          className={user.bannerUrl ? 'profile-hero-banner profile-hero-banner--image' : 'profile-hero-banner'}
+          style={user.bannerUrl ? { backgroundImage: `url("${toMediaUrl(user.bannerUrl)}")` } : undefined}
+          aria-hidden="true"
+        />
         <div className="profile-hero-body">
           <UserAvatar name={user.accountName} src={user.avatarUrl} size="large" />
           <div className="profile-identity">
@@ -92,6 +162,7 @@ function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed:
             <p className="profile-since">
               {t('profile.memberSince')} {memberSince}
             </p>
+            <BannerControls hasBanner={Boolean(user.bannerUrl)} />
           </div>
           {!editing && (
             <button
@@ -420,16 +491,42 @@ function ProfileActivity({ userId }: { userId: number }) {
             {t('profile.youHaventWatchedAnyVideosYet')} <Link to="/">{t('library.browseVideos')}</Link>
           </p>
         ) : (
-          <ul className="profile-list" aria-label={t('profile.recentHistory')}>
-            {recent.map((entry) => (
-              <li key={entry.id}>
-                <Link to={`/videos/${entry.videoId}`}>{entry.videoTitle}</Link>
-                <span>{formatDate(entry.watchedAt, { dateStyle: 'medium', timeStyle: 'short' })}</span>
-              </li>
-            ))}
-          </ul>
+          <RecentHistory entries={recent} />
         )}
       </section>
     </div>
+  );
+}
+
+// Recently watched videos as a smaller carousel; each video appears once (the server keeps the latest view).
+function RecentHistory({ entries }: { entries: WatchHistoryEntry[] }) {
+  const { track, scrollBy } = useCarousel<HTMLUListElement>();
+  return (
+    <>
+      <ul ref={track} className="carousel-track carousel-track--small" tabIndex={0} aria-label="Historial reciente">
+        {entries.map((entry) => (
+          <li key={entry.id}>
+            <Link to={`/videos/${entry.videoId}`} className="carousel-card">
+              {entry.thumbnailUrl ? (
+                <img className="carousel-card-thumbnail" src={toMediaUrl(entry.thumbnailUrl)} alt="" loading="lazy" />
+              ) : (
+                <span className="carousel-card-thumbnail" aria-hidden="true">
+                  ▶
+                </span>
+              )}
+              <span className="carousel-card-title">{entry.videoTitle}</span>
+              <span className="carousel-card-meta">
+                {new Date(entry.watchedAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <CarouselNav
+        onPrevious={() => scrollBy(-1)}
+        onNext={() => scrollBy(1)}
+        labels={{ previous: 'Ver los anteriores vídeos vistos', next: 'Ver los siguientes vídeos vistos' }}
+      />
+    </>
   );
 }

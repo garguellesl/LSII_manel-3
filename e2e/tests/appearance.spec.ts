@@ -6,14 +6,14 @@ import { uniqueUser } from "../fixtures/users";
 type Theme = "dark" | "light";
 const palette = {
   dark: {
-    background: "rgb(40, 44, 52)",
-    surface: "rgb(30, 33, 38)",
-    text: "rgb(245, 247, 250)",
+    background: "rgb(18, 18, 18)",
+    surface: "rgb(31, 31, 31)",
+    text: "rgb(255, 255, 255)",
   },
   light: {
-    background: "rgb(244, 246, 250)",
+    background: "rgb(255, 255, 255)",
     surface: "rgb(255, 255, 255)",
-    text: "rgb(24, 34, 50)",
+    text: "rgb(18, 18, 18)",
   },
 };
 
@@ -148,11 +148,11 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
   await page.keyboard.press("Space");
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Alto contraste" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.locator(".language-selector select")).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(
-    page.getByRole("link", { name: "Iniciar sesión", exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole("searchbox", { name: /Buscar vídeos/ })).toBeFocused();
 
   for (const path of ["/", "/login", "/register", "/not-a-page"]) {
     if (path === "/not-a-page") {
@@ -175,7 +175,11 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
       await assertPaletteContrast(page);
       await assertRenderedContrast(page.locator(".theme-toggle"));
       await assertRenderedContrast(page.locator(".party-placeholder"));
-      const primary = page.locator(".account-link--primary");
+      // The catalogue shows the avatar chip; other pages show the text links of the account bar instead.
+      const primary =
+        path === "/"
+          ? page.locator(".account-chip--guest")
+          : page.locator(".account-link--primary");
       await primary.hover();
       await assertRenderedContrast(primary);
       await primary.focus();
@@ -453,7 +457,7 @@ test("both controls fit a 320px screen and remain available while session checki
   });
   try {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByText("Comprobando sesión…")).toBeVisible();
+    await expect(page.getByRole("status", { name: "Comprobando sesión" })).toBeVisible();
     for (const theme of ["light", "dark"] as const) {
       await chooseTheme(page, theme);
       await expect(

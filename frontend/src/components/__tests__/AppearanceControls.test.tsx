@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { AppearanceControls } from '../AppearanceControls';
-import { THEME_STORAGE_KEY } from '../../utils/theme';
+import { CONTRAST_STORAGE_KEY, THEME_STORAGE_KEY } from '../../utils/theme';
 
 describe('AppearanceControls', () => {
   beforeEach(() => {
@@ -12,6 +12,7 @@ describe('AppearanceControls', () => {
     localStorage.clear();
     delete document.documentElement.dataset.theme;
     delete document.documentElement.dataset.bsTheme;
+    delete document.documentElement.dataset.contrast;
   });
 
   it('starts dark and exposes a native toggle with its current state and a visible inactive party button', () => {
@@ -41,6 +42,28 @@ describe('AppearanceControls', () => {
     delete document.documentElement.dataset.theme;
     render(<AppearanceControls />);
     expect(screen.getByRole('button', { name: 'Modo oscuro' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('toggles high contrast with a pressed state, persists it and follows the system preference when unset', () => {
+    const page = render(<AppearanceControls />);
+    const contrast = screen.getByRole('button', { name: 'Alto contraste' });
+    expect(contrast).toHaveAttribute('aria-pressed', 'false');
+    expect(document.documentElement).toHaveAttribute('data-contrast', 'standard');
+    fireEvent.click(contrast);
+    expect(contrast).toHaveAttribute('aria-pressed', 'true');
+    expect(contrast).toHaveTextContent('Contraste alto: activado');
+    expect(document.documentElement).toHaveAttribute('data-contrast', 'high');
+    expect(localStorage.getItem(CONTRAST_STORAGE_KEY)).toBe('high');
+    fireEvent.click(contrast);
+    expect(localStorage.getItem(CONTRAST_STORAGE_KEY)).toBe('standard');
+    page.unmount();
+
+    localStorage.clear();
+    delete document.documentElement.dataset.contrast;
+    window.matchMedia = jest.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    render(<AppearanceControls />);
+    expect(screen.getByRole('button', { name: 'Alto contraste' })).toHaveAttribute('aria-pressed', 'true');
+    delete (window as { matchMedia?: unknown }).matchMedia;
   });
 
   it('preserves an early applied preference and works when persistence is denied', () => {

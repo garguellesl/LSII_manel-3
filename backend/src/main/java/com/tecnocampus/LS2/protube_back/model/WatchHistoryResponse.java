@@ -7,6 +7,7 @@ public record WatchHistoryResponse(
         Long videoId,
         String videoTitle,
         int progressSeconds,
-        LocalDateTime watchedAt
+        LocalDateTime watchedAt,
+        String thumbnailUrl
 ) {
 }

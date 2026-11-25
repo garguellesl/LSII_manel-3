@@ -121,6 +121,48 @@ public class MediaStorageService {
         Files.deleteIfExists(safe(root().resolve(relative)));
     }
 
+    // Profile backgrounds mirror avatars: staged privately, validated by the caller, then moved
+    // under a generated name. Only generated banner files are ever removed.
+    public Path stageBanner(MultipartFile file) throws IOException {
+        Path pending = safe(uploads().resolve(".pending"));
+        Files.createDirectories(pending);
+        Path target = safe(pending.resolve("banner-" + UUID.randomUUID() + ".tmp"));
+        try (var input = file.getInputStream(); var output = Files.newOutputStream(target)) {
+            byte[] buffer = new byte[64 * 1024];
+            long total = 0;
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                total += count;
+                if (total > MediaFileValidator.BANNER_LIMIT) throw new UploadException(413, "Banner exceeds 5 MiB");
+                output.write(buffer, 0, count);
+            }
+            if (total == 0) throw new UploadException(400, "Banner must not be empty");
+        } catch (IOException | RuntimeException exception) {
+            Files.deleteIfExists(target);
+            throw exception;
+        }
+        return target;
+    }
+
+    public String publishBanner(Path staged, String extension) throws IOException {
+        if (!List.of("jpg", "png").contains(extension)) throw new IllegalArgumentException("Invalid image extension");
+        Path banners = safe(uploads().resolve("banners"));
+        Files.createDirectories(banners);
+        String name = UUID.randomUUID() + "." + extension;
+        Files.move(safe(staged), safe(banners.resolve(name)), StandardCopyOption.ATOMIC_MOVE);
+        return "uploads/banners/" + name;
+    }
+
+    public void discardStagedBanner(Path staged) throws IOException {
+        Path verified = safe(staged);
+        if (verified.getFileName().toString().matches("banner-[0-9a-f-]{36}\\.tmp")) Files.deleteIfExists(verified);
+    }
+
+    public void deleteBanner(String relative) throws IOException {
+        if (relative == null || !relative.matches("uploads/banners/[0-9a-f-]{36}\\.(jpg|png)")) return;
+        Files.deleteIfExists(safe(root().resolve(relative)));
+    }
+
     public List<UUID> pendingIds() throws IOException {
         String configured = environment.getProperty("pro_tube.store.dir");
         if (configured == null || configured.isBlank() || !Files.isDirectory(Path.of(configured))) return List.of();

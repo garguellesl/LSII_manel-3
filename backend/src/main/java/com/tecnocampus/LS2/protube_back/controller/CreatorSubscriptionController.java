@@ -51,6 +51,12 @@ public class CreatorSubscriptionController {
                 .body(subscriptions.list(actor(principal), paging(page, size)));
     }
 
+    @GetMapping("/creators")
+    public ResponseEntity<ResultPage<Creator>> creators(@RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok().body(subscriptions.publicCreators(paging(page, size)));
+    }
+
     @GetMapping("/creators/{creatorId}")
     public Creator creator(@PathVariable Long creatorId) {
         return subscriptions.creator(creatorId);

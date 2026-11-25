@@ -15,7 +15,7 @@ test('catalogue filters disappear on client navigation to video, login and regis
   await expect(page.getByRole('combobox', { name: 'Audience' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Etiquetas' })).toHaveCount(0);
   await expect(page.getByRole('searchbox', { name: /Buscar vídeos/ })).toBeVisible();
-  for (const [name, path] of [['Registrarse', '/register'], ['Iniciar sesión', '/login']] as const) {
+  for (const [name, path] of [['Iniciar sesión', '/login']] as const) {
     await page.goto('/');
     await page.getByRole('link', { name }).click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));

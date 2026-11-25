@@ -107,6 +107,21 @@ class CreatorSubscriptionsIntegrationTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    @Transactional
+    void publicCreatorListContainsOnlyAccountsWithVideosAndPublicFields() throws Exception {
+        Long withVideo = account();
+        users.updateProfile(withVideo, new UpdateProfileRequest("Listed creator", "Bio", false), null);
+        video(withVideo, "A video");
+        Long withoutVideo = account();
+
+        mvc.perform(get("/api/creators").param("size", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.id == " + withVideo + ")].displayName").value("Listed creator"))
+                .andExpect(jsonPath("$.content[?(@.id == " + withoutVideo + ")]").isEmpty())
+                .andExpect(jsonPath("$.content[0].email").doesNotExist());
+    }
+
+    @Test
     void simultaneousSubscribesLeaveOnePairAndAnOrderedPrivatePage() throws Exception {
         Long viewer = account();
         Long first = account();

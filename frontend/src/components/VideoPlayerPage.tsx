@@ -134,6 +134,8 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
           className="video-player-media"
           controls
           playsInline
+          /* Keeps the video in this page: no floating picture-in-picture window that cannot be brought back. */
+          disablePictureInPicture
           autoPlay
           poster={toMediaUrl(value.thumbnailUrl)}
           src={toMediaUrl(value.videoUrl)}
