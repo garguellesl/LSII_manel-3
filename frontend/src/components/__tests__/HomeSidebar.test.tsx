@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomeSidebar } from '../HomeSidebar';
 import { useAuth } from '../../auth/AuthContext';
@@ -25,6 +25,13 @@ const user = {
   description: null,
   avatarUrl: null,
 };
+const page = (content: unknown[], hasNext = false) => ({
+  content,
+  page: 0,
+  size: 5,
+  hasNext,
+  totalElements: content.length,
+});
 
 function renderSidebar() {
   return render(
@@ -37,90 +44,62 @@ function renderSidebar() {
 describe('HomeSidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (subscriptionClient.publicCreators as jest.Mock).mockResolvedValue({
-      content: [{ id: 21, displayName: 'Perfil público', avatarUrl: null, description: null }],
-      page: 0,
-      size: 5,
-      hasNext: false,
-      totalElements: 1,
-    });
+    (subscriptionClient.publicCreators as jest.Mock).mockResolvedValue(
+      page([{ id: 21, displayName: 'Perfil público', avatarUrl: null, description: null }])
+    );
   });
 
-  it('invites an anonymous visitor to sign in and explores public profiles without account data', async () => {
+  it('shows public profiles to a guest, as avatars without account actions', async () => {
     mockedAuth.mockReturnValue({ status: 'anonymous', user: null });
     renderSidebar();
-    expect(screen.getByRole('complementary', { name: 'Panel de usuario' })).toBeInTheDocument();
-    expect(screen.getByText(/Inicia sesión con el icono superior izquierdo/)).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Accesos rápidos' })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Perfil público' })).toHaveAttribute('href', '/creators/21');
+    expect(screen.queryByRole('link', { name: 'Historial' })).not.toBeInTheDocument();
     expect(subscriptionClient.list).not.toHaveBeenCalled();
     expect(userClient.watchHistory).not.toHaveBeenCalled();
     expect(userClient.likedVideos).not.toHaveBeenCalled();
   });
 
-  it('shows the signed-in user with subscriptions, history and liked videos', async () => {
+  it('shows one icon per account action and subscribed creators as avatars', async () => {
     mockedAuth.mockReturnValue({ status: 'authenticated', user });
-    (subscriptionClient.list as jest.Mock).mockResolvedValue({
-      content: [{ id: 3, displayName: 'Creador Uno', avatarUrl: null, description: null }],
-    });
-    (userClient.watchHistory as jest.Mock).mockResolvedValue([
-      { id: 1, videoId: 11, videoTitle: 'Visto recientemente', progressSeconds: 5, watchedAt: '2026-01-02T00:00:00Z' },
-    ]);
-    (userClient.likedVideos as jest.Mock).mockResolvedValue({
-      content: [{ id: 12, title: 'Me gusta vídeo', thumbnailUrl: null }],
-      page: 0,
-      size: 5,
-      hasNext: false,
-      totalElements: 1,
-    });
+    (subscriptionClient.list as jest.Mock).mockResolvedValue(
+      page([{ id: 3, displayName: 'Creador Uno', avatarUrl: null, description: null }])
+    );
     renderSidebar();
 
-    // Account details are not repeated in the sidebar; they live behind the header avatar.
-    expect(screen.queryByText('Ana P.')).not.toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Creador Uno' })).toHaveAttribute('href', '/creators/3');
-    expect(await screen.findByRole('link', { name: 'Visto recientemente' })).toHaveAttribute('href', '/videos/11');
-    expect(await screen.findByRole('link', { name: 'Me gusta vídeo' })).toHaveAttribute('href', '/videos/12');
-    expect(userClient.watchHistory).toHaveBeenCalledWith(7, expect.any(AbortSignal));
-    // With subscriptions, the discovery block is not shown.
+    expect(screen.getByRole('link', { name: 'Tu canal' })).toHaveAttribute('href', '/profile#profile-stats');
+    expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/profile#profile-history');
+    expect(screen.getByRole('link', { name: 'Vídeos que me gustan' })).toHaveAttribute(
+      'href',
+      '/profile#liked-videos-title'
+    );
+    expect(screen.getByRole('link', { name: 'Subir vídeo' })).toHaveAttribute('href', '/upload');
+    // Minimal rail: no lists or history items, so the data is not requested here.
     expect(screen.queryByText('Explorar catálogo')).not.toBeInTheDocument();
+    expect(userClient.watchHistory).not.toHaveBeenCalled();
+    expect(userClient.likedVideos).not.toHaveBeenCalled();
   });
 
-  it('explores public creator profiles instead of an empty subscriptions list', async () => {
+  it('replaces an empty subscriptions rail with public profiles to explore', async () => {
     mockedAuth.mockReturnValue({ status: 'authenticated', user });
-    (subscriptionClient.list as jest.Mock).mockResolvedValue({ content: [] });
-    (userClient.watchHistory as jest.Mock).mockResolvedValue([]);
-    (userClient.likedVideos as jest.Mock).mockResolvedValue({
-      content: [],
-      page: 0,
-      size: 5,
-      hasNext: false,
-      totalElements: 0,
-    });
+    (subscriptionClient.list as jest.Mock).mockResolvedValue(page([]));
     renderSidebar();
 
-    expect(await screen.findByText('Explorar catálogo')).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Perfil público' })).toHaveAttribute('href', '/creators/21');
-    expect(screen.queryByText('Aún no sigues a ningún creador.')).not.toBeInTheDocument();
     expect(subscriptionClient.publicCreators).toHaveBeenCalledWith(0, 5, expect.any(AbortSignal));
-    expect(await screen.findByText('Todavía no has visto ningún vídeo.')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Explorar creadores' })).toBeInTheDocument();
   });
 
-  it('shows a retry when history fails to load', async () => {
+  it('offers a labelled retry when subscriptions fail to load', async () => {
     mockedAuth.mockReturnValue({ status: 'authenticated', user });
-    (subscriptionClient.list as jest.Mock).mockResolvedValue({
-      content: [{ id: 3, displayName: 'Creador Uno', avatarUrl: null, description: null }],
-    });
-    (userClient.watchHistory as jest.Mock).mockRejectedValue(new Error('network'));
-    (userClient.likedVideos as jest.Mock).mockResolvedValue({
-      content: [],
-      page: 0,
-      size: 5,
-      hasNext: false,
-      totalElements: 0,
-    });
+    (subscriptionClient.list as jest.Mock).mockRejectedValueOnce(new Error('network'));
+    (subscriptionClient.list as jest.Mock).mockResolvedValueOnce(
+      page([{ id: 3, displayName: 'Creador Uno', avatarUrl: null, description: null }])
+    );
     renderSidebar();
 
-    expect(await screen.findByText('No se pudo cargar tu historial.', { exact: false })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
-    expect(await screen.findByText('Aún no has dado Me gusta a ningún vídeo.')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar suscripciones' }));
+    expect(await screen.findByRole('link', { name: 'Creador Uno' })).toBeInTheDocument();
   });
 });

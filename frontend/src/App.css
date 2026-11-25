@@ -2178,136 +2178,6 @@
   }
 }
 
-/* Home account panel: left column on wide screens, stacked above the catalog on phones. */
-.App--home .home-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.25rem;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0 clamp(0.75rem, 3vw, 2rem);
-  align-items: start;
-}
-.App--home .home-main {
-  min-width: 0;
-}
-.App--home .home-sidebar {
-  display: grid;
-  gap: 0.75rem;
-  min-width: 0;
-  text-align: left;
-  color: var(--pt-text);
-}
-.App--home .sidebar-section {
-  padding: 0.85rem 1rem;
-  border-radius: 8px;
-  background: var(--pt-inset);
-  border: 1px solid var(--pt-border-subtle);
-}
-.App--home .sidebar-section h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--pt-text);
-}
-.App--home .sidebar-section > summary {
-  cursor: pointer;
-  list-style-position: inside;
-}
-.App--home .sidebar-section > summary h2 {
-  display: inline;
-}
-.App--home .sidebar-section p {
-  margin: 0.4rem 0;
-  font-size: 0.95rem;
-}
-.App--home .sidebar-muted,
-.App--home .sidebar-status {
-  color: var(--pt-secondary);
-}
-.App--home .sidebar-user-identity {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-.App--home .sidebar-user-identity p {
-  margin: 0;
-}
-.App--home .sidebar-user-name {
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-.App--home .sidebar-list {
-  list-style: none;
-  margin: 0.25rem 0 0.5rem;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-.App--home .sidebar-list a {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-height: 44px;
-  color: var(--pt-text);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-.App--home .sidebar-list a:hover span,
-.App--home .sidebar-list a:focus-visible span {
-  text-decoration: underline;
-  color: var(--pt-accent);
-}
-.App--home .sidebar-list a:focus-visible {
-  outline: 3px solid var(--pt-focus);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-.App--home .sidebar-thumb {
-  flex-shrink: 0;
-  width: 4rem;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border-radius: 4px;
-}
-.App--home .sidebar-thumb--empty {
-  display: grid;
-  place-items: center;
-  background: var(--pt-surface);
-  color: var(--pt-secondary);
-}
-.App--home .home-sidebar a,
-.App--home .sidebar-more {
-  color: var(--pt-accent);
-  font-weight: 600;
-}
-.App--home .sidebar-more {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-}
-.App--home .home-sidebar button {
-  min-height: 44px;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  color: var(--pt-text);
-}
-
-@media (min-width: 62rem) {
-  .App--home .home-layout {
-    grid-template-columns: 16rem minmax(0, 1fr);
-    gap: 1.5rem;
-  }
-  .App--home .home-sidebar {
-    position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    padding-right: 0.25rem;
-  }
-}
-
 /* Home header: the account is only the profile avatar; its details open from it. */
 .App--home .header-toolbar {
   justify-content: flex-start;
@@ -2405,4 +2275,93 @@
 .App--home .account-chip-panel [role='alert'] {
   margin: 0.75rem 0 0;
   color: var(--pt-danger);
+}
+
+/* Home rail: one icon per action; subscriptions and public profiles are avatars. */
+.App--home .home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 clamp(0.75rem, 3vw, 2rem);
+  align-items: start;
+}
+.App--home .home-main {
+  min-width: 0;
+}
+.App--home .home-sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+.App--home .rail-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.App--home .rail-group + .rail-group {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--pt-border-subtle);
+}
+.App--home .rail-icon,
+.App--home .rail-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pt-text);
+  cursor: pointer;
+  text-decoration: none;
+}
+.App--home .rail-icon:hover,
+.App--home .rail-avatar:hover {
+  background: var(--pt-surface-hover);
+  color: var(--pt-accent);
+}
+.App--home .rail-icon:focus-visible,
+.App--home .rail-avatar:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 2px;
+}
+.App--home .rail-avatar {
+  padding: 0;
+  overflow: hidden;
+}
+.App--home .rail-avatar .user-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+@media (min-width: 62rem) {
+  .App--home .home-layout {
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .App--home .home-sidebar {
+    position: sticky;
+    top: 1rem;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  .App--home .rail-group {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .App--home .rail-group + .rail-group {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--pt-border-subtle);
+  }
 }
