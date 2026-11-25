@@ -57,10 +57,7 @@ test.describe('tag editor as owner', () => {
     await tagInput.fill(tooLong);
     await tagInput.press('Enter');
 
-    // VideoTagEditor.tsx no da role/aria-label al error por etiqueta (único caso
-    // documentado en specs/sprint-2/plan.md en el que no se usa un selector de
-    // accesibilidad); se busca el texto exacto que devuelve el backend.
-    await expect(page.getByText('tag must be at most 80 characters')).toBeVisible();
+    await expect(page.getByText('Cada etiqueta puede tener como máximo 80 caracteres.')).toBeVisible();
     await expect(page.getByText('0/40 Etiquetas')).toBeVisible();
   });
 });

@@ -292,6 +292,8 @@ for (const width of [1280, 375]) {
         await page
           .getByRole("button", { name: messages[locale].logout, exact: true })
           .click();
+        await expect(page.locator("html")).toHaveAttribute("lang", "es");
+        await page.locator(".language-selector select").selectOption(locale);
         await page.goto("/login");
         await page.locator("#auth-email").fill(account.email);
         await page.locator("#auth-password").fill("password123");

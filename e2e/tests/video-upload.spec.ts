@@ -43,7 +43,7 @@ test('registered user uploads without thumbnail, finds the video and actually pl
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
   await page.goto('/');
   // Navigate through the server's existing search rather than expecting a position in a paginated catalog.
-  await page.getByRole('searchbox', { name: /search/i }).fill(title);
+  await page.getByRole('searchbox', { name: /buscar vídeos/i }).fill(title);
   await expect(page.getByRole('link', { name: `Ver ${title}` })).toHaveAttribute('href', destination!);
 });
 
