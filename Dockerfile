@@ -6,7 +6,11 @@ COPY backend/src backend/src
 COPY frontend frontend
 WORKDIR /workspace/backend
 # Tests run separately with Docker/Testcontainers; the image build has no Docker socket.
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -Pprod -DskipTests package
+# Central can rate-limit shared CI runners; retry transfers and refresh cached failures.
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -U \
+    -Daether.connector.http.retryHandler.count=5 \
+    -Daether.connector.http.retryHandler.interval=15000 \
+    -Pprod -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
