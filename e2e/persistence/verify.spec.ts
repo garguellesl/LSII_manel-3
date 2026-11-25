@@ -34,6 +34,8 @@ test('verify persistence after container recreation: login, profile, avatar, vid
   await page.getByLabel('Email').fill(seed.user.email);
   await page.getByLabel('Contraseña', { exact: true }).fill(seed.user.password);
   await page.getByRole('button', { name: /iniciar sesión|enviando/i }).click();
+  // The account lives behind the avatar menu on the home page; open it before "Mi perfil" is visible.
+  await page.getByRole('button', { name: /^Cuenta de / }).click();
   await expect(page.getByRole('link', { name: 'Mi perfil' })).toBeVisible();
 
   // page.request shares the browser context's session cookie set by the UI
