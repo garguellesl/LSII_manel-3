@@ -195,6 +195,24 @@ class VideoImportServiceTest {
     }
 
     @Test
+    void importedCountersRemainInSourceMetadataAndNeverBecomeProTubeInteractions() throws Exception {
+        String source = """
+                {"title":"Imported popular video","duration":10,"view_count":999999,"like_count":99999,
+                 "meta":{"description":"Imported","tags":[]}}
+                """;
+        Files.writeString(storeDirectory.resolve("metrics.json"), source);
+        Files.writeString(storeDirectory.resolve("metrics.mp4"), "");
+        Files.writeString(storeDirectory.resolve("metrics.webp"), "");
+        stubLegacyOwner(owner("imported@protube.local", "imported-videos", 7));
+        importer.importFromStore(storeDirectory);
+        var request = ArgumentCaptor.forClass(CreateVideoRequest.class);
+        verify(videoService).createVideo(request.capture());
+        assertEquals("Imported popular video", request.getValue().title());
+        verifyNoMoreInteractions(videoService);
+        assertEquals(source, Files.readString(storeDirectory.resolve("metrics.json")));
+    }
+
+    @Test
     void discardsInvalidTagsWithSanitizedWarnLogWhileKeepingValidOnes() throws Exception {
         String controlCharacterTag = "tag" + (char) 7 + "name";
         String json = new ObjectMapper().writeValueAsString(Map.of(
