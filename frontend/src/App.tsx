@@ -91,6 +91,14 @@ function AppRoutes() {
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route
+            path="/liked"
+            element={
+              <HomeLayout>
+                <LikedVideosCatalog />
+              </HomeLayout>
+            }
+          />
+          <Route
             path="/history"
             element={
               <HomeLayout>

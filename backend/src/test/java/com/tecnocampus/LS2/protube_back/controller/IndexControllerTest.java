@@ -29,6 +29,15 @@ class IndexControllerTest {
     }
 
     @Test
+    void directNavigationToAccountCataloguesServesReactApplication() throws Exception {
+        for (String path : new String[] {"/history", "/liked"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(forwardedUrl("/index.html"));
+        }
+    }
+
+    @Test
     void directVideoNavigationServesReactApplication() throws Exception {
         mockMvc.perform(get("/videos/7"))
                 .andExpect(status().isOk())
