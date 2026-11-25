@@ -144,6 +144,17 @@ Cuando una persona visite un vídeo, el sistema deberá mostrar los contadores p
 - Las mutaciones de sesión conservarán la protección CSRF vigente. Lecturas públicas de catálogo, detalle, medios, comentarios, etiquetas y categorías seguirán disponibles sin login.
 - Caducidad de sesión y falta de permisos mostrarán errores claros sin guardar cambios parciales. El registro de reproducción público no expondrá información privada ni abrirá el resto de escrituras.
 
+### RF-11 - Confirmación accesible de borrado y tombstone de importación
+
+Cuando el propietario confirme el borrado de su vídeo desde el reproductor, el editor o su perfil, el sistema deberá mostrar un diálogo accesible antes de eliminar, y un vídeo importado borrado no deberá reaparecer al reiniciar.
+
+- Un diálogo con `role="dialog"`, foco inicial en Cancelar y cierre con Escape sustituirá a `window.confirm` en las tres superficies (reproductor, editor, perfil).
+- Un fallo de borrado mantendrá el diálogo abierto con un error en línea, sin perder el intento del usuario.
+- Tras un borrado exitoso desde el reproductor o el editor, el catálogo mostrará un mensaje de confirmación una sola vez; desde el perfil, la lista propia se actualizará sin navegar.
+- El borrado seguirá siendo exclusivo del propietario (RF-9), sin introducir ningún rol de administrador.
+- Un vídeo cuyo origen no sea una subida explícita del propietario (es decir, cualquier vídeo no marcado `UPLOAD`) no se reintroducirá en un reinicio posterior aunque su JSON/MP4/WebP sigan presentes en `ENV_PROTUBE_IMPORT_DIR`.
+- No se añade borrado físico de archivos; se conserva la política vigente de sprint-2 (ver "Fuera de alcance", sin modificarla).
+
 ## Requisitos no funcionales
 
 - Arquitectura: Controller → Service → Repository, DTOs públicos y acceso frontend mediante hooks/clientes; mantener el stack actual y justificar dependencias nuevas.

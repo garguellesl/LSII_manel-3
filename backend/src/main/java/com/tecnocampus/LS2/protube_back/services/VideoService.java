@@ -16,6 +16,7 @@ import com.tecnocampus.LS2.protube_back.model.VideoPage;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.repositories.CommentRepository;
+import com.tecnocampus.LS2.protube_back.repositories.DeletedMediaPathRepository;
 import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository;
 import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository.VideoCount;
 import com.tecnocampus.LS2.protube_back.repositories.TagRepository;
@@ -56,11 +57,13 @@ public class VideoService {
     private final VideoLikeRepository videoLikeRepository;
     private final WatchHistoryRepository watchHistoryRepository;
     private final VideoPlayRepository videoPlayRepository;
+    private final DeletedMediaPathRepository deletedMediaPathRepository;
 
     public VideoService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                         TagRepository tagRepository, CommentRepository commentRepository,
                         VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository,
-                        VideoPlayRepository videoPlayRepository, CatalogueMetricsRepository catalogueMetrics) {
+                        VideoPlayRepository videoPlayRepository, DeletedMediaPathRepository deletedMediaPathRepository,
+                        CatalogueMetricsRepository catalogueMetrics) {
         this.catalogueMetrics = catalogueMetrics;
         this.videoPlayRepository = videoPlayRepository;
         this.videoRepository = videoRepository;
@@ -69,6 +72,7 @@ public class VideoService {
         this.commentRepository = commentRepository;
         this.videoLikeRepository = videoLikeRepository;
         this.watchHistoryRepository = watchHistoryRepository;
+        this.deletedMediaPathRepository = deletedMediaPathRepository;
     }
 
     @Transactional(readOnly = true)
@@ -151,7 +155,14 @@ public class VideoService {
     public void deleteVideo(Long id, Long actorId) {
         Video video = findDetailedVideo(id);
         requireSameUser(video.getOwner().getId(), actorId);
+        String mediaPath = video.getMediaPath();
+        // Only videos not explicitly uploaded by their owner (source != UPLOAD) can be
+        // reintroduced by the startup importer from the read-only import directory.
+        boolean reimportable = !"UPLOAD".equals(video.getSource());
         videoRepository.delete(video);
+        if (reimportable) {
+            deletedMediaPathRepository.insertIfAbsent(mediaPath);
+        }
     }
 
     @Transactional

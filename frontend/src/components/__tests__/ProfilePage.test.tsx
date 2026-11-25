@@ -5,6 +5,7 @@ import { AccountMenu } from '../AccountMenu';
 import { ProfilePage } from '../ProfilePage';
 import { AuthError, authClient } from '../../utils/authClient';
 import { AVATAR_LIMIT, userClient } from '../../utils/userClient';
+import { videoClient } from '../../utils/videoClient';
 
 jest.mock('../../utils/authClient', () => ({
   ...jest.requireActual('../../utils/authClient'),
@@ -14,9 +15,14 @@ jest.mock('../../utils/userClient', () => ({
   ...jest.requireActual('../../utils/userClient'),
   userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn(), likedVideos: jest.fn() },
 }));
+jest.mock('../../utils/videoClient', () => ({
+  ...jest.requireActual('../../utils/videoClient'),
+  videoClient: { deleteVideo: jest.fn() },
+}));
 
 const auth = authClient as jest.Mocked<typeof authClient>;
 const users = userClient as jest.Mocked<typeof userClient>;
+const videos = videoClient as jest.Mocked<typeof videoClient>;
 const user = {
   id: 4,
   email: 'ada@example.test',
@@ -242,6 +248,68 @@ describe('ProfilePage', () => {
     expect(await screen.findByRole('region', { name: 'Tu canal' })).toBeInTheDocument();
     expect(screen.getByText(/Todavía no has publicado ningún vídeo/)).toBeInTheDocument();
     expect(screen.getByText(/Aún no has visto ningún vídeo/)).toBeInTheDocument();
+  });
+
+  it('offers Editar and Eliminar per owned video', async () => {
+    users.analytics.mockResolvedValue([
+      { videoId: 1, title: 'Primero', viewsCount: 12, likesCount: 2, commentsCount: 1 },
+    ]);
+    renderProfile();
+    const channel = await screen.findByRole('region', { name: 'Tu canal' });
+    expect(within(channel).getByRole('link', { name: 'Editar' })).toHaveAttribute('href', '/videos/1/edit');
+    expect(within(channel).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+  });
+
+  it('deletes a video from the profile list and refreshes it in place without navigating', async () => {
+    users.analytics
+      .mockResolvedValueOnce([
+        { videoId: 1, title: 'Primero', viewsCount: 12, likesCount: 2, commentsCount: 1 },
+        { videoId: 2, title: 'Segundo', viewsCount: 34, likesCount: 3, commentsCount: 0 },
+      ])
+      .mockResolvedValueOnce([{ videoId: 2, title: 'Segundo', viewsCount: 34, likesCount: 3, commentsCount: 0 }]);
+    videos.deleteVideo.mockResolvedValue(undefined);
+    renderProfile();
+    const channel = await screen.findByRole('region', { name: 'Tu canal' });
+    const row = within(channel).getByRole('link', { name: 'Primero' }).closest('li') as HTMLElement;
+    fireEvent.click(within(row).getByRole('button', { name: 'Eliminar' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Primero');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar', exact: true }));
+    await waitFor(() => expect(videos.deleteVideo).toHaveBeenCalledWith(1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tu canal' })).toHaveFocus();
+    expect(screen.queryByRole('link', { name: 'Primero' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Segundo' })).toBeInTheDocument();
+  });
+
+  it("cancels deletion on Escape without calling the API, returning focus to that row's button", async () => {
+    users.analytics.mockResolvedValue([
+      { videoId: 1, title: 'Primero', viewsCount: 12, likesCount: 2, commentsCount: 1 },
+    ]);
+    renderProfile();
+    const channel = await screen.findByRole('region', { name: 'Tu canal' });
+    const trigger = within(channel).getByRole('button', { name: 'Eliminar' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(videos.deleteVideo).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('keeps the delete dialog open with an inline error when deletion fails', async () => {
+    users.analytics.mockResolvedValue([
+      { videoId: 1, title: 'Primero', viewsCount: 12, likesCount: 2, commentsCount: 1 },
+    ]);
+    videos.deleteVideo.mockRejectedValue(new Error('failed'));
+    renderProfile();
+    const channel = await screen.findByRole('region', { name: 'Tu canal' });
+    fireEvent.click(within(channel).getByRole('button', { name: 'Eliminar' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar', exact: true }));
+    await screen.findByRole('alert');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Primero' })).toBeInTheDocument();
   });
 
   it('shows the latest likes as a carousel with links to each video and to the full list', async () => {

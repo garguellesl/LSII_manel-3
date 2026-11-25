@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { VideoTagEditor } from './VideoTagEditor';
 import { Recommendations } from './Recommendations';
 import { CommentSection } from './CommentSection';
+import { ConfirmDialog } from './ConfirmDialog';
 import { UserAvatar } from './UserAvatar';
 import { CreatorSubscription } from './CreatorSubscription';
 import { newPlayId, videoClient } from '../utils/videoClient';
@@ -72,8 +73,10 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
   const [reactionError, setReactionError] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
   const media = useRef<HTMLVideoElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   // One id per opening of this page (the player is keyed by video). The first time playback
   // really starts it is reported once; pause/resume, seeking and replays reuse the same
@@ -123,6 +126,16 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
     setMediaFailed(false);
     // Reload the same source: a transient media failure must not need a page reload.
     media.current?.load();
+  };
+
+  const handleDeleteVideo = () => {
+    setDeleting(true);
+    setDeleteError('');
+    videoClient
+      .deleteVideo(value.id)
+      .then(() => navigate('/', { state: { flash: 'Vídeo eliminado.' } }))
+      .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+      .finally(() => setDeleting(false));
   };
 
   return (
@@ -176,24 +189,26 @@ function VideoPlayer({ video: value, editable }: { video: VideoDetail; editable:
         {editable && (
           <div className="video-owner-actions">
             {/* RF-2 owner editing lives in its own route; this is its entry point. */}
-            <Link to={`/videos/${value.id}/edit`}>{t('upload.editVideoDetails')}</Link>
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={() => {
-                if (!window.confirm(t('player.deleteThisVideoTheFileInTheStoreWillBe'))) return;
-                setDeleting(true);
-                setDeleteError('');
-                videoClient
-                  .deleteVideo(value.id)
-                  .then(() => navigate('/'))
-                  .catch(() => setDeleteError(t('player.couldNotDeleteTheVideoTryAgain')))
-                  .finally(() => setDeleting(false));
-              }}
-            >
-              {deleting ? t('player.deleting') : t('player.deleteVideo')}
+            <Link to={`/videos/${value.id}/edit`}>Editar datos del vídeo</Link>
+            <button ref={deleteButtonRef} type="button" disabled={deleting} onClick={() => setConfirmDeleteOpen(true)}>
+              Eliminar vídeo
             </button>
-            {deleteError && <p role="alert">{localizeMessage(deleteError)}</p>}
+            <ConfirmDialog
+              open={confirmDeleteOpen}
+              title="¿Eliminar este vídeo?"
+              description="El archivo del almacén se conservará."
+              confirmLabel="Eliminar"
+              cancelLabel="Cancelar"
+              busy={deleting}
+              busyLabel="Eliminando…"
+              error={deleteError}
+              onConfirm={handleDeleteVideo}
+              onCancel={() => {
+                setConfirmDeleteOpen(false);
+                setDeleteError('');
+                deleteButtonRef.current?.focus();
+              }}
+            />
           </div>
         )}
         <VideoDescription videoId={value.id} text={value.description} />

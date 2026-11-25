@@ -1,4 +1,5 @@
 import { test, expect, request as pwRequest } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { registerUser, createOwnVideo } from '../fixtures/api';
 import { uniqueUser } from '../fixtures/users';
 
@@ -17,8 +18,10 @@ test.describe('search by title or description', () => {
     const api = await pwRequest.newContext({ baseURL });
     const owner = uniqueUser('search');
     await registerUser(api, owner);
-    const titleToken = `E2E-Search-Title-${Date.now()}`;
-    const descriptionToken = `E2E-Search-Desc-${Date.now()}`;
+    // Parallel tests can seed in the same millisecond; a random suffix keeps titles unique.
+    const nonce = randomUUID().slice(0, 8);
+    const titleToken = `E2E-Search-Title-${Date.now()}-${nonce}`;
+    const descriptionToken = `E2E-Search-Desc-${Date.now()}-${nonce}`;
     const video = await createOwnVideo(api, {
       title: titleToken,
       description: `Unrelated filler text, then the marker ${descriptionToken} inside the description.`,

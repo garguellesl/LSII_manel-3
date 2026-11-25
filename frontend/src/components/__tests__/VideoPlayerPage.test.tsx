@@ -189,14 +189,38 @@ describe('VideoPlayerPage', () => {
   });
 
   it('offers deletion only to the owner and navigates away after confirmation', async () => {
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
     mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
     mockedVideoClient.deleteVideo.mockResolvedValue(undefined);
     renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
     fireEvent.click(await screen.findByRole('button', { name: 'Eliminar vídeo' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
     await waitFor(() => expect(mockedVideoClient.deleteVideo).toHaveBeenCalledWith(7));
     expect(await screen.findByText('Home page')).toBeInTheDocument();
-    confirm.mockRestore();
+  });
+
+  it('cancels deletion on Escape without calling the API, returning focus to the trigger', async () => {
+    mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
+    const trigger = await screen.findByRole('button', { name: 'Eliminar vídeo' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockedVideoClient.deleteVideo).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('keeps the dialog open with an inline error when deletion fails', async () => {
+    mockedAxios.get.mockResolvedValue({ status: 200, data: videoDetail });
+    mockedVideoClient.deleteVideo.mockRejectedValue(new Error('failed'));
+    renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: owner }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar vídeo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await screen.findByRole('alert');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).not.toBeDisabled();
   });
 
   it('does not expose owner actions to a visitor', async () => {

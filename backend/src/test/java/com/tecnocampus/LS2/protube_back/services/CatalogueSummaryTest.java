@@ -20,7 +20,8 @@ class CatalogueSummaryTest {
     private final CatalogueMetricsRepository metrics = mock(CatalogueMetricsRepository.class);
     private final VideoService service = new VideoService(repository, mock(UserAccountRepository.class),
             mock(TagRepository.class), mock(CommentRepository.class), mock(VideoLikeRepository.class),
-            mock(WatchHistoryRepository.class), mock(VideoPlayRepository.class), metrics);
+            mock(WatchHistoryRepository.class), mock(VideoPlayRepository.class),
+            mock(DeletedMediaPathRepository.class), metrics);
 
     @Test
     void attachesRowsByIdAndPreservesSearchOrderAndJavaTagOrdering() {

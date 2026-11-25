@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tecnocampus.LS2.protube_back.configuration.DemoAdminSettings;
 import com.tecnocampus.LS2.protube_back.entities.UserAccount;
 import com.tecnocampus.LS2.protube_back.model.CreateVideoRequest;
+import com.tecnocampus.LS2.protube_back.repositories.DeletedMediaPathRepository;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,13 +41,14 @@ class VideoImportServiceTest {
     @Mock UserAccountRepository userAccountRepository;
     @Mock VideoService videoService;
     @Mock PasswordEncoder passwordEncoder;
+    @Mock DeletedMediaPathRepository deletedMediaPathRepository;
     VideoImportService importer;
 
     @BeforeEach
     void setUp() {
         importer = new VideoImportService(videoRepository, userAccountRepository, videoService, passwordEncoder,
                 new ObjectMapper(), new DemoAdminSettings(new MockEnvironment()
-                .withProperty("pro_tube.demo-admin.password", "demo-password")));
+                .withProperty("pro_tube.demo-admin.password", "demo-password")), deletedMediaPathRepository);
     }
 
     private UserAccount owner(String email, String name, long id) {
@@ -144,7 +146,7 @@ class VideoImportServiceTest {
         for (String password : new String[]{"", "short", "é".repeat(37)}) {
             var settings = new DemoAdminSettings(new MockEnvironment().withProperty("pro_tube.demo-admin.password", password));
             var noPassword = new VideoImportService(videoRepository, userAccountRepository, videoService,
-                    passwordEncoder, new ObjectMapper(), settings);
+                    passwordEncoder, new ObjectMapper(), settings, deletedMediaPathRepository);
             assertThrows(IllegalStateException.class, () -> noPassword.importFromStore(storeDirectory));
         }
     }
@@ -156,9 +158,24 @@ class VideoImportServiceTest {
                 .thenReturn(Optional.of(owner("admin@protube.local", "admin", 8)));
         var settings = new DemoAdminSettings(new MockEnvironment());
         new VideoImportService(videoRepository, userAccountRepository, videoService, passwordEncoder,
-                new ObjectMapper(), settings).importFromStore(storeDirectory);
+                new ObjectMapper(), settings, deletedMediaPathRepository).importFromStore(storeDirectory);
         verifyNoInteractions(passwordEncoder);
         verify(userAccountRepository, never()).save(any());
+    }
+
+    @Test
+    void skipsReimportingATombstonedMediaPathWithoutReadingItsMetadata() throws Exception {
+        Files.writeString(storeDirectory.resolve("9.json"), """
+                {"title":"Deleted video","duration":1,"meta":{"description":"d"}}
+                """);
+        Files.writeString(storeDirectory.resolve("9.mp4"), "");
+        Files.writeString(storeDirectory.resolve("9.webp"), "");
+        when(deletedMediaPathRepository.existsById("9.mp4")).thenReturn(true);
+
+        importer.importFromStore(storeDirectory);
+
+        verifyNoInteractions(videoService);
+        verify(videoRepository, never()).existsByMediaPath(any());
     }
 
     @Test

@@ -21,8 +21,8 @@ test('owner edits metadata, sees it after refresh, then deletes metadata without
   await expect(page.getByRole('heading', { name: `${video.title} edited` })).toBeVisible();
   await expect(page.getByText('After edit', { exact: true })).toBeVisible();
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Eliminar vídeo' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   expect((await request.get(`/api/videos/${video.id}`)).status()).toBe(404);
   expect((await request.get(video.videoUrl)).status()).toBe(200);
@@ -43,8 +43,8 @@ test('owner edits metadata, sees it after refresh, then deletes metadata without
     await expect(page.getByRole('heading', { name: 'Registered existing media' })).toBeVisible();
     await expect(page.getByText('Created from the existing media store')).toBeVisible();
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Eliminar vídeo' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
     await expect(page).toHaveURL(/\/$/);
     expect((await request.get(mediaUrl)).status()).toBe(200);
   } finally {

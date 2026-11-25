@@ -1,5 +1,5 @@
 import { localizeMessage, t, useLocale } from '../i18n/locale';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -7,6 +7,7 @@ import { useVideo } from '../useVideo';
 import { useAvailableTags } from '../useAvailableTags';
 import { AuthError } from '../utils/authClient';
 import { videoClient } from '../utils/videoClient';
+import { ConfirmDialog } from './ConfirmDialog';
 
 type Metadata = { title: string; description: string; tags: string };
 
@@ -60,6 +61,10 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [tagQuery, setTagQuery] = useState('');
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const available = useAvailableTags(true);
   // The text field stays the source of truth (it also accepts new tags); the dropdown
   // only adds or removes existing ones in it.
@@ -110,6 +115,16 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteVideo = () => {
+    setDeleting(true);
+    setDeleteError('');
+    videoClient
+      .deleteVideo(videoId!)
+      .then(() => navigate('/', { state: { flash: 'Vídeo eliminado.' } }))
+      .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+      .finally(() => setDeleting(false));
   };
 
   return (
@@ -215,7 +230,30 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
         <button className="auth-submit" type="submit" disabled={saving}>
           {saving ? t('profile.saving') : t('upload.save')}
         </button>
-        <Link to={mode === 'edit' && videoId ? `/videos/${videoId}` : '/'}>{t('profile.cancel')}</Link>
+        <Link to={mode === 'edit' && videoId ? `/videos/${videoId}` : '/'}>Cancelar</Link>
+        {mode === 'edit' && videoId && (
+          <>
+            <button ref={deleteButtonRef} type="button" disabled={deleting} onClick={() => setConfirmDeleteOpen(true)}>
+              Eliminar vídeo
+            </button>
+            <ConfirmDialog
+              open={confirmDeleteOpen}
+              title="¿Eliminar este vídeo?"
+              description="El archivo del almacén se conservará."
+              confirmLabel="Eliminar"
+              cancelLabel="Cancelar"
+              busy={deleting}
+              busyLabel="Eliminando…"
+              error={deleteError}
+              onConfirm={handleDeleteVideo}
+              onCancel={() => {
+                setConfirmDeleteOpen(false);
+                setDeleteError('');
+                deleteButtonRef.current?.focus();
+              }}
+            />
+          </>
+        )}
       </form>
     </main>
   );

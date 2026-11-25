@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { AuthContext } from '../../auth/AuthContext';
 import type { AuthValue } from '../../auth/AuthContext';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -63,6 +63,7 @@ function renderAt(path: string) {
     <AuthContext.Provider value={auth}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
+          <Route path="/" element={<p>Home page</p>} />
           <Route path="/videos/new" element={<NewVideoMetadataPage />} />
           <Route path="/videos/:id/edit" element={<EditVideoMetadataPage />} />
           <Route path="/videos/:id" element={<p>Video detail</p>} />
@@ -163,6 +164,43 @@ describe('Video metadata pages', () => {
     renderAt('/videos/7/edit');
     expect(screen.getByRole('alert')).toHaveTextContent('No tienes permiso');
     expect(screen.queryByLabelText('Título')).not.toBeInTheDocument();
+  });
+
+  it('only offers deletion in edit mode', () => {
+    renderAt('/videos/new');
+    expect(screen.queryByRole('button', { name: 'Eliminar vídeo' })).not.toBeInTheDocument();
+  });
+
+  it('deletes the video from the editor and navigates to the catalog with a confirmation message', async () => {
+    mockedUseVideo.mockReturnValue({ loading: 'success', value: detail, message: '' });
+    mockedClient.deleteVideo.mockResolvedValue(undefined);
+    renderAt('/videos/7/edit');
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar vídeo' }));
+    const dialog = screen.getByRole('dialog');
+    expect(screen.getByRole('button', { name: 'Cancelar', exact: true })).toHaveFocus();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(mockedClient.deleteVideo).toHaveBeenCalledWith(7));
+    expect(await screen.findByText('Home page')).toBeInTheDocument();
+  });
+
+  it('cancels editor deletion on Escape without calling the API', () => {
+    mockedUseVideo.mockReturnValue({ loading: 'success', value: detail, message: '' });
+    renderAt('/videos/7/edit');
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar vídeo' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockedClient.deleteVideo).not.toHaveBeenCalled();
+  });
+
+  it('keeps the delete dialog open with an inline error when deletion fails', async () => {
+    mockedUseVideo.mockReturnValue({ loading: 'success', value: detail, message: '' });
+    mockedClient.deleteVideo.mockRejectedValue(new Error('failed'));
+    renderAt('/videos/7/edit');
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar vídeo' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+    await screen.findByRole('alert');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('shows backend validation errors and retains the submitted draft', async () => {

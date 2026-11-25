@@ -1,0 +1,4 @@
+CREATE TABLE deleted_media_paths (
+    media_path VARCHAR(500) PRIMARY KEY,
+    deleted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
