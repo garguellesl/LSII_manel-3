@@ -68,6 +68,6 @@ test('verify persistence after container recreation: login, profile, avatar, vid
   // imported sample videos already seeded, so a freshly created video is not
   // on page 1; search for it by title instead (same approach as search.spec.ts).
   await page.goto('/');
-  await page.getByRole('searchbox', { name: 'Search videos by title or description' }).fill(seed.video.title);
-  await expect(page.getByRole('link', { name: `Watch ${seed.video.title}` })).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Buscar vídeos por título o descripción' }).fill(seed.video.title);
+  await expect(page.getByRole('link', { name: `Ver ${seed.video.title}` })).toBeVisible();
 });

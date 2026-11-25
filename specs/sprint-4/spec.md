@@ -214,6 +214,12 @@ A user enters a text query, selects several tags and an audience filter, chooses
 - **RF-08.AC7:** Results contain no duplicate videos, and totals use the same filters as the returned page.
 - **RF-08.AC8:** Stale requests do not overwrite newer searches; invalid sort values receive a controlled validation response.
 
+**RF-08 search-state clarification (2026-11-25 user request):** Changing sort resets pagination to the first page without removing text, tags or audience. The URL preserves those criteria, sort and page across reload and browser back/forward. Positive likes and persisted ProTube reproductions exclude imported source counters; existing imported JSON counters retain their source meaning. Date sorts remain RF-09.
+
+**Catalogue UI refinement (2026-11-25):** Audience offers only All audiences and For children. Tags, audience and sort controls appear only on `/`; other routes retain the text search bar without these filters. Historical NOT_CHILDREN catalogue URLs fall back to ALL. Existing stored classifications and backend API remain compatible.
+
+**Search bar placement refinement:** The text search bar appears on `/` and on video playback routes `/videos/:id`. Login, register, profile/avatar settings, video creation/editing and other pages omit it.
+
 ### RF-09 — Sort Search Results by Newest and Oldest
 
 When an eligible actor invokes this capability, the system shall sort the entire filtered dataset by ProTube publication date before pagination. The observable scenarios and exceptions below define this requirement.
@@ -408,7 +414,7 @@ A user selects a language, navigates through the application, submits forms and 
 
 - **RF-16.AC1:** Users can select any of the three languages from the application interface.
 - **RF-16.AC2:** A manual selection takes precedence and persists across navigation and reloads when browser storage is available.
-- **RF-16.AC3:** On first use, a supported browser language is selected; otherwise Spanish is used as the proposed fallback.
+- **RF-16.AC3:** Registration accepts an optional preferred language (es, ca or en). On registration, sign-in and session restoration, that account's language is the default. Accounts without an assigned language and visitors without a manual preference default to Spanish, regardless of browser language. A later manual selection persists per account/browser without leaking between accounts.
 - **RF-16.AC4:** Application-controlled text in the agreed screens is translated; translation keys and unintended mixed-language messages are not shown.
 - **RF-16.AC5:** Accessible labels, document language, plural forms, dates and numbers match the selected language.
 - **RF-16.AC6:** Changing language preserves entered form values, filters, queue state and current playback.

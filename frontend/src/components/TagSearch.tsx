@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n/locale';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useAvailableTags } from '../useAvailableTags';
 
@@ -7,6 +8,7 @@ type TagSearchProps = {
 };
 
 export function TagSearch({ tags, onChange }: TagSearchProps) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -34,7 +36,9 @@ export function TagSearch({ tags, onChange }: TagSearchProps) {
   return (
     <div className="tag-search" ref={root}>
       <button ref={trigger} type="button" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
-        Tags{tags.length > 0 ? ` (${tags.length})` : ''}
+        {' '}
+        {t('catalogue.tags')}
+        {tags.length > 0 ? ` (${tags.length})` : ''}
       </button>
       {open && <TagPanel id={panelId} tags={tags} onChange={onChange} />}
     </div>
@@ -42,6 +46,7 @@ export function TagSearch({ tags, onChange }: TagSearchProps) {
 }
 
 function TagPanel({ id, tags, onChange }: TagSearchProps & { id: string }) {
+  useLocale();
   const [query, setQuery] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const { loading, error, tags: available, reload } = useAvailableTags(true);
@@ -54,8 +59,8 @@ function TagPanel({ id, tags, onChange }: TagSearchProps & { id: string }) {
   }, []);
 
   return (
-    <section id={id} className="tag-panel" aria-label="Tag filters">
-      <label htmlFor={`${id}-search`}>Find a tag</label>
+    <section id={id} className="tag-panel" aria-label={t('catalogue.tagFilters')}>
+      <label htmlFor={`${id}-search`}>{t('catalogue.findATag')}</label>
       <input
         ref={input}
         id={`${id}-search`}
@@ -63,20 +68,21 @@ function TagPanel({ id, tags, onChange }: TagSearchProps & { id: string }) {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
-      <small>Matches any selected tag. Videos matching more tags appear first.</small>
+      <small>{t('catalogue.matchesAnySelectedTagVideosMatchingMoreTagsAppearFirst')}</small>
       {loading ? (
-        <p role="status">Loading tags...</p>
+        <p role="status">{t('catalogue.loadingTags')}</p>
       ) : error ? (
         <div>
-          <p role="alert">Unable to load tags.</p>
+          <p role="alert">{t('catalogue.unableToLoadTags')}</p>
           <button type="button" onClick={reload}>
-            Retry tags
+            {' '}
+            {t('catalogue.retryTags')}{' '}
           </button>
         </div>
       ) : available.length === 0 ? (
-        <p role="status">No tags are available.</p>
+        <p role="status">{t('catalogue.noTagsAreAvailable')}</p>
       ) : options.length === 0 ? (
-        <p role="status">No tags match your search.</p>
+        <p role="status">{t('catalogue.noTagsMatchYourSearch')}</p>
       ) : (
         <ul className="tag-options">
           {options.map((tag) => (
@@ -94,9 +100,10 @@ function TagPanel({ id, tags, onChange }: TagSearchProps & { id: string }) {
           ))}
         </ul>
       )}
-      {tags.length >= 40 && <p role="status">Use at most 40 tag filters.</p>}
+      {tags.length >= 40 && <p role="status">{t('catalogue.useAtMost40TagFilters')}</p>}
       <button type="button" disabled={tags.length === 0} onClick={() => onChange([])}>
-        Clear tag filters
+        {' '}
+        {t('catalogue.clearTagFilters')}{' '}
       </button>
     </section>
   );

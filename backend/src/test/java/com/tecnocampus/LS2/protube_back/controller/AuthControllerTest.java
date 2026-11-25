@@ -57,7 +57,8 @@ class AuthControllerTest {
                         ))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.accountName").value("user"));
+                .andExpect(jsonPath("$.accountName").value("user"))
+                .andExpect(jsonPath("$.preferredLanguage").isEmpty());
     }
 
     @Test
@@ -72,6 +73,31 @@ class AuthControllerTest {
                                 "password", "password123"
                         ))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"es", "ca", "en"})
+    void registerAcceptsAndReturnsPreferredLanguage(String language) throws Exception {
+        when(userService.register(any())).thenAnswer(invocation -> {
+            var request = invocation.getArgument(0, com.tecnocampus.LS2.protube_back.model.RegisterRequest.class);
+            org.junit.jupiter.api.Assertions.assertEquals(language, request.preferredLanguage());
+            return new UserResponse(1L, request.email(), request.accountName(), request.firstName(), request.lastName(),
+                    LocalDateTime.now(), request.accountName(), null, null, language);
+        });
+        mockMvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("email", "language@example.test", "accountName", "language",
+                                "firstName", "First", "lastName", "Last", "password", "password123", "preferredLanguage", language))))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.preferredLanguage").value(language));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"fr", "", "en-US", "ES"})
+    void registerRejectsUnsupportedPreferredLanguage(String language) throws Exception {
+        mockMvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("email", "language@example.test", "accountName", "language",
+                                "firstName", "First", "lastName", "Last", "password", "password123", "preferredLanguage", language))))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.preferredLanguage").exists());
+        org.mockito.Mockito.verifyNoInteractions(userService);
     }
 
     @Test

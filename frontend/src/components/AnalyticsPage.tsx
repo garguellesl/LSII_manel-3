@@ -1,16 +1,19 @@
+import { formatNumber, t, useLocale } from '../i18n/locale';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useVideoAnalytics } from '../useVideoAnalytics';
 import type { VideoAnalytics } from '../utils/userClient';
 
-const format = (value: number) => value.toLocaleString('es-ES');
+const format = formatNumber;
 
 export function AnalyticsPage() {
+  useLocale();
   const auth = useAuth();
   if (auth.status === 'loading') {
     return (
       <p className="page-status" role="status">
-        Comprobando sesión…
+        {' '}
+        {t('catalogue.checkingSession')}{' '}
       </p>
     );
   }
@@ -18,10 +21,11 @@ export function AnalyticsPage() {
   if (auth.status === 'error' || !auth.user) {
     return (
       <main className="auth-card">
-        <h1>Analíticas</h1>
-        <p role="alert">No se ha podido comprobar tu sesión. Comprueba tu conexión.</p>
+        <h1>{t('profile.analytics')}</h1>
+        <p role="alert">{t('profile.couldNotCheckYourSessionCheckYourConnection')}</p>
         <button className="auth-submit" type="button" onClick={() => void auth.refresh()}>
-          Reintentar
+          {' '}
+          {t('profile.tryAgain')}{' '}
         </button>
       </main>
     );
@@ -31,35 +35,40 @@ export function AnalyticsPage() {
 }
 
 function AnalyticsView({ userId }: { userId: number }) {
+  useLocale();
   const analytics = useVideoAnalytics(userId);
 
   return (
     <main className="profile-page analytics-page">
       <header className="analytics-header">
         <div>
-          <p className="profile-eyebrow">Tu canal</p>
-          <h1 className="analytics-title">Analíticas</h1>
-          <p className="profile-panel-hint">Actividad en ProTube de los vídeos de tu cuenta. Solo tú puedes verla.</p>
+          <p className="profile-eyebrow">{t('profile.yourChannel')}</p>
+          <h1 className="analytics-title">{t('profile.analytics')}</h1>
+          <p className="profile-panel-hint">{t('profile.activityOnYourProtubeVideosOnlyYouCanSeeIt')}</p>
         </div>
         <Link className="profile-action" to="/profile">
-          Volver al perfil
+          {' '}
+          {t('profile.backToProfile')}{' '}
         </Link>
       </header>
 
       {analytics.status === 'loading' && (
         <section className="profile-panel" aria-busy="true">
           <p className="profile-panel-hint" role="status">
-            Cargando analíticas…
+            {' '}
+            {t('profile.loadingAnalytics')}{' '}
           </p>
         </section>
       )}
       {analytics.status === 'error' && (
         <section className="profile-panel">
           <p role="alert" className="profile-form-error">
-            No se han podido cargar tus analíticas.
+            {' '}
+            {t('profile.couldNotLoadYourAnalytics')}{' '}
           </p>
           <button className="profile-retry" type="button" onClick={analytics.retry}>
-            Reintentar
+            {' '}
+            {t('profile.tryAgain')}{' '}
           </button>
         </section>
       )}
@@ -69,6 +78,7 @@ function AnalyticsView({ userId }: { userId: number }) {
 }
 
 function AnalyticsContent({ videos }: { videos: VideoAnalytics[] }) {
+  useLocale();
   // Totals are derived from the listed rows so they always equal the sum shown below.
   const totals = videos.reduce(
     (sum, video) => ({
@@ -79,10 +89,10 @@ function AnalyticsContent({ videos }: { videos: VideoAnalytics[] }) {
     { views: 0, likes: 0, comments: 0 }
   );
   const stats = [
-    { label: 'Vídeos', value: videos.length },
-    { label: 'Reproducciones', value: totals.views },
-    { label: 'Me gusta', value: totals.likes },
-    { label: 'Comentarios', value: totals.comments },
+    { label: t('profile.videos'), value: videos.length },
+    { label: t('profile.plays'), value: totals.views },
+    { label: t('profile.likes'), value: totals.likes },
+    { label: t('profile.comments'), value: totals.comments },
   ];
   const ranked = [...videos].sort((a, b) => b.viewsCount - a.viewsCount || a.videoId - b.videoId);
   const top = Math.max(1, ...videos.map((video) => video.viewsCount));
@@ -90,7 +100,7 @@ function AnalyticsContent({ videos }: { videos: VideoAnalytics[] }) {
   return (
     <>
       <section className="profile-panel" aria-labelledby="analytics-summary">
-        <h2 id="analytics-summary">Resumen</h2>
+        <h2 id="analytics-summary">{t('profile.summary')}</h2>
         <ul className="profile-stats">
           {stats.map((stat) => (
             <li key={stat.label}>
@@ -102,27 +112,31 @@ function AnalyticsContent({ videos }: { videos: VideoAnalytics[] }) {
       </section>
 
       <section className="profile-panel" aria-labelledby="analytics-videos">
-        <h2 id="analytics-videos">Por vídeo</h2>
+        <h2 id="analytics-videos">{t('profile.byVideo')}</h2>
         {videos.length === 0 ? (
           <p className="profile-empty">
-            Todavía no has publicado ningún vídeo, así que no hay datos que mostrar.{' '}
-            <Link to="/upload">Sube tu primer vídeo</Link>
+            {' '}
+            {t('profile.youHaventPublishedAnyVideosYetSoThereIsNo')}{' '}
+            <Link to="/upload">{t('profile.uploadYourFirstVideo')}</Link>
           </p>
         ) : (
           <div className="analytics-table-scroll">
             <table className="analytics-table">
-              <caption className="visually-hidden">Métricas de cada vídeo, ordenadas por reproducciones</caption>
+              <caption className="visually-hidden">{t('profile.metricsForEachVideoOrderedByPlays')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Vídeo</th>
+                  <th scope="col">{t('profile.video')}</th>
                   <th scope="col" className="analytics-number">
-                    Reproducciones
+                    {' '}
+                    {t('profile.plays')}{' '}
                   </th>
                   <th scope="col" className="analytics-number">
-                    Me gusta
+                    {' '}
+                    {t('profile.likes')}{' '}
                   </th>
                   <th scope="col" className="analytics-number">
-                    Comentarios
+                    {' '}
+                    {t('profile.comments')}{' '}
                   </th>
                 </tr>
               </thead>
@@ -145,7 +159,7 @@ function AnalyticsContent({ videos }: { videos: VideoAnalytics[] }) {
               </tbody>
               <tfoot>
                 <tr>
-                  <th scope="row">Total</th>
+                  <th scope="row">{t('profile.total')}</th>
                   <td className="analytics-number">{format(totals.views)}</td>
                   <td className="analytics-number">{format(totals.likes)}</td>
                   <td className="analytics-number">{format(totals.comments)}</td>

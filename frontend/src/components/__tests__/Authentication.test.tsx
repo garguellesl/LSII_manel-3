@@ -78,7 +78,7 @@ describe('Authentication navigation and pages', () => {
     client.currentUser.mockReturnValue(new Promise(() => {}));
     const page = renderPage();
     expect(screen.getByRole('status', { name: 'Comprobando sesión' })).toBeInTheDocument();
-    expect(screen.getByText('No videos are available.')).toBeInTheDocument();
+    expect(screen.getByText('No hay vídeos disponibles.')).toBeInTheDocument();
     page.unmount();
     client.currentUser.mockResolvedValue(null);
     renderPage();
@@ -126,9 +126,9 @@ describe('Authentication navigation and pages', () => {
     await screen.findByRole('link', { name: 'Registrarse' });
     fillRegister();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Revisa los datos');
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido completar la operación');
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByText('Email no válido')).toBeInTheDocument();
+    expect(screen.getByText('Revisa este campo.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });

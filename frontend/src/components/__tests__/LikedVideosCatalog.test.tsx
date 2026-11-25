@@ -35,9 +35,9 @@ describe('LikedVideosCatalog', () => {
     renderLiked();
 
     expect(await screen.findByRole('heading', { name: 'Vídeos que me gustan' })).toBeInTheDocument();
-    const links = screen.getAllByRole('link', { name: /^Watch / });
+    const links = screen.getAllByRole('link', { name: /^Ver / });
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/videos/30', '/videos/20']);
-    expect(screen.getByRole('navigation', { name: 'Video pages' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Páginas de vídeos' })).toBeInTheDocument();
   });
 
   it('sends guests to sign in and explains an empty list', async () => {

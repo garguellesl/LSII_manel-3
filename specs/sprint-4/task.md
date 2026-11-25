@@ -506,54 +506,71 @@ The [SCRUM-48 handoff](../../docs/ai/tasks/scrum-48.md) records the affected are
 
 Requirement: RF-08 (all AC). Design: [P08](plan.md#p08). Integration dependencies: P00 search contract; P12 filter contract; P17 measurements.
 
-- [ ] T08.01 — Define the shared search sort allowlist.
+- [x] T08.01 — Define the shared search sort allowlist.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: relevance/likes/views/newest/oldest and invalid-value behaviour are documented.
-  - Evidence: pending.
-- [ ] T08.02 — Add request parsing for sort.
+  - Evidence: P08 documents active relevance/likes/views, reserved P09 newest/oldest and controlled 400. Existing English catalogue labels/native controls retained; global P16 locale work is separate.
+- [x] T08.02 — Add request parsing for sort.
   - Estimate: 15–20 min. Depends on: T08.01.
   - Done when: Unknown values return 400 and default preserves relevance.
-  - Evidence: pending.
-- [ ] T08.03 — Create a known-metrics search fixture.
+  - Evidence: VideosControllerTest verifies omitted defaults, all active choices, invalid/case-mismatched/date sorts, invalid audience and page offset overflow; existing error DTO is retained.
+- [x] T08.03 — Create a known-metrics search fixture.
   - Estimate: 15–20 min. Depends on: T08.02.
   - Done when: Likes/views/ties/zero counts have expected IDs.
-  - Evidence: pending.
-- [ ] T08.04 — Add likes aggregate to the search query.
+  - Evidence: PopularitySearchTest fixture has eight videos with known positive/negative reactions, plays, history, tags and all audience classes in isolated PostgreSQL.
+- [x] T08.04 — Add likes aggregate to the search query.
   - Estimate: 15–20 min. Depends on: T08.03.
   - Done when: Counts represent positive ProTube reactions without join multiplication.
-  - Evidence: pending.
-- [ ] T08.05 — Add view aggregate to the search query.
+  - Evidence: Correlated VideoLike COUNT filters LIKE; positiveLikesOverrideRelevanceAcrossPagesWithStableTiesAndExactTotals verifies dislike exclusion, no multi-tag multiplication and summary counts.
+- [x] T08.05 — Add view aggregate to the search query.
   - Estimate: 15–20 min. Depends on: T08.04.
   - Done when: Imported counters remain excluded.
-  - Evidence: pending.
-- [ ] T08.06 — Implement explicit popularity ordering.
+  - Evidence: Correlated VideoPlay COUNT excludes watch history; persistedPlaysOverrideRelevanceAndHistoryIncludingZeros verifies it. VideoImportServiceTest.importedCountersRemainInSourceMetadataAndNeverBecomeProTubeInteractions verifies source JSON is preserved and only metadata registration occurs.
+- [x] T08.06 — Implement explicit popularity ordering.
   - Estimate: 15–20 min. Depends on: T08.05.
   - Done when: Selected metric precedes stable ID ties.
-  - Evidence: pending.
-- [ ] T08.07 — Share predicates between rows and COUNT.
+  - Evidence: PopularitySearchTest traverses four one-item pages for each metric with ties and zeros, ordering metric DESC then video ID ASC before database limit/offset; relevance regression also passes.
+- [x] T08.07 — Share predicates between rows and COUNT.
   - Estimate: 15–20 min. Depends on: T08.06.
   - Done when: Text/tags/audience constraints match totalElements.
-  - Evidence: pending.
-- [ ] T08.08 — Serialize sort in the catalogue client.
+  - Evidence: VideoSearchRepositoryImpl shares filters for rows/count. PopularitySearchTest verifies case-normalized tag OR with text AND, exact audiences, unclassified inclusion only in ALL, empty/out-of-range pages, totals and no duplicates.
+- [x] T08.08 — Serialize sort in the catalogue client.
   - Estimate: 15–20 min. Depends on: T08.07.
   - Done when: Existing repeated tags and page parameters remain intact.
-  - Evidence: pending.
-- [ ] T08.09 — Render the sort selector.
+  - Evidence: app.test.tsx asserts serialized sort/audience, repeated tags, query and page; relevance/ALL preserve omitted API defaults.
+- [x] T08.09 — Render the sort selector.
   - Estimate: 15–20 min. Depends on: T08.08.
   - Done when: Selection changes sort and resets page to zero.
-  - Evidence: pending.
-- [ ] T08.10 — Synchronise catalogue criteria with the URL.
+  - Evidence: app.test.tsx verifies named native selectors, preservation of filters, reset to page zero, retry and audience-filtered empty state. Chromium confirms focus and no overflow at five widths.
+- [x] T08.10 — Synchronise catalogue criteria with the URL.
   - Estimate: 15–20 min. Depends on: T08.09.
   - Done when: Back/forward restores query/tags/audience/sort/page.
-  - Evidence: pending.
-- [ ] T08.11 — Test a combined text/tag/popularity request.
+  - Evidence: app.test.tsx verifies deep-link initialization, back/forward and pagination; searchCriteria.test.ts verifies round-trip and malformed URL fallback. Chromium verifies reload and back/forward with real requests.
+- [x] T08.11 — Test a combined text/tag/popularity request.
   - Estimate: 15–20 min. Depends on: T08.10.
   - Done when: Expected global ordering holds beyond the first page.
-  - Evidence: pending.
-- [ ] T08.12 — Test stale search-response rejection.
+  - Evidence: PopularitySearchTest plus e2e/tests/popularity-search.spec.ts verify complete filtered ordering across one-item API pages with stable ties; full command/results below.
+- [x] T08.12 — Test stale search-response rejection.
   - Estimate: 15–20 min. Depends on: T08.11.
   - Done when: An older request cannot replace the current results.
-  - Evidence: pending.
+  - Evidence: app.test.tsx tests both late success and late rejection after sort changes, verifies abort and preserves newer empty results; existing tag/text stale-response tests pass.
+
+### RF-08 local verification (2026-11-25)
+
+UI follow-up requested on the same date: only All audiences/For children remain in the catalogue selector; old NOT_CHILDREN frontend URLs fall back to ALL. Tags, audience and sorting controls render only on `/`; the player and all other routes retain text search. App tests verify exact choices, login/register/unknown-route visibility and player-to-search transitions. Re-ran `npm run build`, `npm run lint`, and `npm test -- --coverage --watchAll=false --ci`: all passed, 37 suites/257 tests/one snapshot and coverage gates met. Log: `backend/target/rf08-ui-refinement.log`. No backend changes or repeated backend checks; the Chromium results below precede this UI refinement.
+
+Navigation regression follow-up: user observed filters lingering after in-app navigation but disappearing on F5. `localhost:8080` served the current bundle (`index-Dywoekcs.js`); `cd e2e; E2E_BASE_URL=http://localhost:8080 npx playwright test tests/catalog-controls-navigation.spec.ts --workers=1` passed in Chromium. The test clicks a video, Register and Login from `/`, checks each destination has only text search, and uses mocked video API responses so no development records are changed. Directly loaded current code behaves correctly; an already-open tab retains its previous in-memory JavaScript until reloaded. No backend or routing change was indicated by the reproduced case.
+
+Search bar placement follow-up: user restricted text search to catalogue and playback. App now renders it on `/` and numeric `/videos/:id` only; tests cover login, register, profile/avatar settings, upload, new/edit video and unknown routes. The first run revealed `/videos/new` matched a broad video path, so the predicate was narrowed to numeric IDs. Final `cd frontend; npm run build; npm run lint; npm run test -- --coverage --watchAll=false --ci` passed: 37 suites/261 tests/one snapshot and coverage gates. `cd e2e; E2E_BASE_URL=http://localhost:5174 npx playwright test tests/catalog-controls-navigation.spec.ts --workers=1` passed against updated Vite assets, with mocked video API and no development data changes. Backend unchanged and not rerun.
+
+Scope: user-authorized RF-08 on `feat/improve-sorting-video`, baseline `3c266c4` plus local changes; [handoff](../../docs/ai/tasks/rf08-search-sorting.md), [prompt](../../prompts/37-popularity-search.md). T08 completion is local implementation/validation, not sprint-wide completion, shared assignment release, remote CI, peer review or merge. P00 search/error/page contracts and existing P12 V10 classification are reused; audience assignment and date sorts remain separate. Batched SCRUM-58 summaries are preserved; no broad performance benchmark claimed.
+
+- Java 21: `mvn -B -ntp -Dtest=PopularitySearchTest,VideosControllerTest,VideoServiceTest test-compile surefire:test`: 57 passed against isolated PostgreSQL. Initial attempt was blocked by stopped Docker; rerun after starting Docker passed.
+- Java 21: `mvn -B -ntp clean verify`: BUILD SUCCESS; 214 tests, zero failures/errors, one existing host-dependent symlink test skipped; all JaCoCo gates met. Maven was invoked via the installed executable because no wrapper/global Maven command exists. Logs retained locally under `backend/target/rf08-backend-verify.log` and `backend/target/rf08-focused-backend.log` (generated, not committed).
+- `cd frontend; npm run build; npm run lint; npm run test -- --coverage --watchAll=false --ci`: all passed; 37 suites, 253 tests, one snapshot; configured 75% global coverage gates passed. Focused app/URL run: 33 passed. Local test log: `backend/target/rf08-frontend-tests.log`.
+- Isolated runner from e2e/README.md: `docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env up -d --wait --build` succeeded, with no development database mutation. `cd e2e; npx playwright test tests/popularity-search.spec.ts tests/search.spec.ts --workers=2`: four Chromium tests passed, including real metrics and filtered pagination, source URL reload/history, controlled 400 and visible native controls without horizontal overflow at 320/375/768/1024/1440 px. Only these relevant E2E flows were run, not the full unrelated sprint suite.
+- User AC1/2/3/5/6/7/8: PopularitySearchTest and real API E2E. AC4: app tests and E2E. AC9: late success/error tests. AC10: controller tests and E2E. URL/page reset: app tests/URL unit tests/E2E. This maps to the spec's grouped RF-08.AC1–8.
+- Remaining external work: team review, remote CI/PR/merge. No deployment to shared/staging environments.
 
 ## P09 — Sort Search Results by Newest and Oldest
 
@@ -1045,58 +1062,58 @@ Requirement: RF-15 (all AC). Design: [P15](plan.md#p15). Integration dependencie
 
 Requirement: RF-16 (all AC). Design: [P16](plan.md#p16). Integration dependencies: P00 locale contract.
 
-- [ ] T16.01 — Inventory hardcoded text by route.
+- [x] T16.01 — Inventory hardcoded text by route.
   - Estimate: 15–20 min. Depends on: T00.07 and the group contract dependencies.
   - Done when: Strings are grouped into navigation, account, catalogue, player and library namespaces.
-  - Evidence: pending.
-- [ ] T16.02 — Choose a minimal localisation adapter.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.02 — Choose a minimal localisation adapter.
   - Estimate: 15–20 min. Depends on: T16.01.
   - Done when: Existing dependencies are checked and any new dependency is justified.
-  - Evidence: pending.
-- [ ] T16.03 — Create typed catalogue keys and Spanish fallback.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.03 — Create typed catalogue keys and Spanish fallback.
   - Estimate: 15–20 min. Depends on: T16.02.
   - Done when: Unknown keys have a controlled fallback and missing-key detection.
-  - Evidence: pending.
-- [ ] T16.04 — Create Catalan catalogue skeleton.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.04 — Create Catalan catalogue skeleton.
   - Estimate: 15–20 min. Depends on: T16.03.
   - Done when: Key parity with the fallback catalogue is enforced.
-  - Evidence: pending.
-- [ ] T16.05 — Create English catalogue skeleton.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.05 — Create English catalogue skeleton.
   - Estimate: 15–20 min. Depends on: T16.04.
   - Done when: Key parity with the fallback catalogue is enforced.
-  - Evidence: pending.
-- [ ] T16.06 — Implement locale preference resolution.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.06 — Implement locale preference resolution.
   - Estimate: 15–20 min. Depends on: T16.05.
-  - Done when: Manual preference precedes supported browser language and Spanish fallback.
-  - Evidence: pending.
-- [ ] T16.07 — Add persistent locale selection.
+  - Done when: An account-scoped manual preference precedes the optional account language and Spanish fallback; browser language is not used.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.07 — Add persistent locale selection.
   - Estimate: 15–20 min. Depends on: T16.06.
   - Done when: Storage failure keeps the current locale in memory.
-  - Evidence: pending.
-- [ ] T16.08 — Render global language selector.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.08 — Render global language selector.
   - Estimate: 15–20 min. Depends on: T16.07.
   - Done when: Three language names and keyboard selection are accessible.
-  - Evidence: pending.
-- [ ] T16.09 — Update document language on selection.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.09 — Update document language on selection.
   - Estimate: 15–20 min. Depends on: T16.08.
   - Done when: html.lang reflects es/ca/en.
-  - Evidence: pending.
-- [ ] T16.10 — Add shared date/number/plural formatting helpers.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.10 — Add shared date/number/plural formatting helpers.
   - Estimate: 15–20 min. Depends on: T16.09.
   - Done when: Formatting uses the current locale without changing stored data.
-  - Evidence: pending.
-- [ ] T16.11 — Map API error codes to translation keys.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.11 — Map API error codes to translation keys.
   - Estimate: 15–20 min. Depends on: T16.10.
   - Done when: Known errors never display raw technical messages.
-  - Evidence: pending.
-- [ ] T16.12 — Test locale switch during playback/form editing.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.12 — Test locale switch during playback/form editing.
   - Estimate: 15–20 min. Depends on: T16.11.
   - Done when: Video and unsaved values remain intact.
-  - Evidence: pending.
-- [ ] T16.13 — Test missing-key fallback and catalogue parity.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.13 — Test missing-key fallback and catalogue parity.
   - Estimate: 15–20 min. Depends on: T16.12.
   - Done when: Missing translations are reported before delivery.
-  - Evidence: pending.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
 
 ## P17 — Optimise Database Queries and Supabase Performance
 
@@ -1227,150 +1244,150 @@ T17.02 remains partial because the full workload includes library operations. T1
 
 Depend on T16.13 and the corresponding UI group. Each slice covers at most 15 short strings; repeat with stable child IDs when a namespace is larger.
 
-- [ ] T16.14 — navigation: extract-keys for one <=15-string batch.
+- [x] T16.14 — navigation: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.15 — navigation: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.15 — navigation: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.16 — navigation: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.16 — navigation: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.17 — navigation: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.17 — navigation: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.18 — account: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.18 — account: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.19 — account: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.19 — account: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.20 — account: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.20 — account: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.21 — account: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.21 — account: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.22 — catalogue: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.22 — catalogue: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.23 — catalogue: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.23 — catalogue: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.24 — catalogue: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.24 — catalogue: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.25 — catalogue: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.25 — catalogue: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.26 — player: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.26 — player: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.27 — player: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.27 — player: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.28 — player: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.28 — player: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.29 — player: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.29 — player: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.30 — comments: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.30 — comments: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.31 — comments: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.31 — comments: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.32 — comments: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.32 — comments: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.33 — comments: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.33 — comments: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.34 — creator-management: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.34 — creator-management: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.35 — creator-management: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.35 — creator-management: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.36 — creator-management: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.36 — creator-management: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.37 — creator-management: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.37 — creator-management: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.38 — subscriptions: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.38 — subscriptions: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.39 — subscriptions: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.39 — subscriptions: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.40 — subscriptions: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.40 — subscriptions: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.41 — subscriptions: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.41 — subscriptions: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.42 — personal-library: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.42 — personal-library: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.43 — personal-library: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.43 — personal-library: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.44 — personal-library: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.44 — personal-library: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.45 — personal-library: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.45 — personal-library: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.46 — voice-and-errors: extract-keys for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.46 — voice-and-errors: extract-keys for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded batch of hardcoded labels is replaced with stable keys without remounting UI.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.47 — voice-and-errors: Spanish for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.47 — voice-and-errors: Spanish for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Spanish translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.48 — voice-and-errors: Catalan for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.48 — voice-and-errors: Catalan for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded Catalan translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
-- [ ] T16.49 — voice-and-errors: English for one <=15-string batch.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
+- [x] T16.49 — voice-and-errors: English for one <=15-string batch.
   - Estimate: 15–20 min. Depends on: T16.13 and the implemented namespace controls; translation follows key extraction for that namespace.
   - Done when: One bounded English translation batch includes visible and accessible labels and is reviewed in context.
-  - Evidence: pending; record covered keys and remaining batches.
+  - Evidence: [RF-16 local validation](#rf-16-local-validation); typed catalogues and route/client changes. Missing future UI is excluded below.
 
 ## Integration and release checks
 
@@ -1478,7 +1495,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-05 | T05.* + relevant QA | ReactionTransitions + StaleResponse; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-06 | T06.* + relevant QA | ThreadResponsive + DraftFailure; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-07 | T07.* + relevant QA | Subscription uniqueness, private-list isolation, creator navigation and restart | [SCRUM-48 local validation](#scrum-48-local-validation) | Passed locally |
-| RF-08 | T08.* + relevant QA | CombinedPopularitySearch + MultiPageTies; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-08 | T08.* + relevant QA | PopularitySearchTest, VideosControllerTest, app/URL tests and Chromium search | [RF-08 local verification](#rf-08-local-verification-2026-11-25) | Passed locally; review/remote CI/merge pending |
 | RF-09 | T09.* + relevant QA | PublicationSort + EditPreservesDate; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-10 | T10.* + relevant QA | Own-list isolation, pagination, player toggle, deletion and reload | [SCRUM-51 local validation](#scrum-51-local-validation) | Passed locally |
 | RF-11 | T11.* + relevant QA | OwnerMetadataDelete + SafeMediaCleanup; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
@@ -1486,7 +1503,7 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 | RF-13 | T13.* + relevant QA | HistoryHideMetrics + SavedPersistence + QueueOrder; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-14 | T14.* + relevant QA | RoutePlaybackContinuity + SinglePlayId; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
 | RF-15 | T15.* + relevant QA | KeyboardReaderJourney + VoiceFailures; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
-| RF-16 | T16.* + relevant QA | LocaleParity + PreserveState; verify every numbered AC | Focused command/case to record; full area checks in plan.md | Not run |
+| RF-16 | T16.* + relevant QA | LocaleParity + PreserveState and optional account default | [Local evidence](#rf-16-local-validation) | Passed locally; expanded browser assertions typechecked but final rerun stopped by user. |
 | RF-17 | T17.* + relevant QA | RepeatableBenchmark + QueryCountBound | [Catalogue checkpoint](#scrum-58-catalogue-checkpoint) | Catalogue verified locally; collections, concurrent writes, remote/cold environment and integration/review pending. |
 
 ## Documentation handoff and current verdict
@@ -1497,3 +1514,41 @@ Proposed scenario IDs below are planning identifiers, not claims of existing tes
 - Team approval/ownership/remote CI/merge/staging: unverified or pending; no reservation claimed.
 - Next step: select the first implementation slice and establish P00 contracts/ownership before changing runtime code.
 - Verdict: planning documents prepared; Sprint 4 features not validated.
+
+
+## RF-16 local validation
+
+2026-11-25, Europe/Madrid; feature/LanguageLocalisation, baseline 3c266c4. User-authorized local implementation and publication; no team approval or remote CI claimed.
+
+- T16.01–T16.11: `frontend/src/i18n/catalogues.ts` supplies Spanish, Catalan and English with typed key parity. The adapter uses existing React/Intl dependencies, account-scoped browser preferences, optional account defaults, Spanish fallback, document language, controlled errors, dates, numbers and plurals. Built-in category labels are translated without changing API values. Failed storage retains the current selection in memory.
+- T16.12–T16.13: `locale.test.tsx` and `LocalisationFlows.test.tsx` cover key/parameter parity, missing/unknown fallback, invalid/missing language, all profile languages, registration payloads, account isolation, storage failures, dates/numbers/plurals, preserved forms, user content and the same media element/current time.
+- T16.14–T16.49 translation slices: navigation/appearance in App, AccountMenu, AppearanceControls, LanguageSelector; account in AuthPage/AuthProvider; catalogue in SearchBar/TagSearch/VideoCard/Pagination; player and comments in their components; creator management in UploadVideoPage/VideoMetadataPage/ProfilePage/AnalyticsPage; subscriptions via the shared subscriptionMessages adapter; personal library in LikedVideosSection and profile history; errors in clients and the shared adapter. Each catalogue has the same reviewed strings and placeholders. Autonyms Español/Català/English remain native. User-authored text remains unchanged. Unimplemented speech, Watch Later, queue and mini-player controls are outside this slice, with the adapter ready for their future keys.
+- Account extension: optional `preferredLanguage` es/ca/en in RegisterRequest and private UserResponse; nullable V11 column with a database constraint. Existing users retain null. Account-created/session-failed responses have a stable code. No shared database or deployment was modified.
+
+| Criteria | Evidence | Result |
+| --- | --- | --- |
+| AC1–AC3 | Locale unit tests, registration/session component flows; AuthControllerTest and UserServiceTest; profile persistence through dev/prod restarts | Passed locally |
+| AC4–AC5 | Typed catalogues, key/value/placeholder parity; date/number/plural/category tests; build and lint | Passed locally |
+| AC6, AC8 | Form drafts, selected account language, untouched titles/descriptions and media identity/current time in Jest; native canvas-stream playback continuity in Chromium | Passed locally; no new queue feature introduced |
+| AC7 | Unknown-key controlled fallback and missing-key/value tests | Passed locally |
+| AC9 | Chrome: 18 tests, es/ca/en at 1280px and 375px; keyboard selector, reload, registration/login/profile, drafts and active native playback; overflow assertions and screenshots | Passed for the executed browser version. Final additions for upload files/categories, analytics and subscriptions were typechecked but their rerun was stopped at the user's request |
+
+Commands actually completed:
+
+- Backend Java 21: `mvn -B -ntp clean verify`: 216 tests, 0 failures/errors, 1 existing opt-in skip; JaCoCo passed. Additional `mvn -B -ntp -Dtest=AuthControllerTest,PostgreSqlPersistenceTest test`: 18 passed, including legacy null-language/invalid-value checks and restart persistence.
+- Frontend: `npm run build` and `npm run lint`: passed. `npm run test -- --coverage --watchAll=false --ci --runInBand`: 38 suites, 264 tests, 1 snapshot passed; configured coverage thresholds met.
+- Browser: `node node_modules/@playwright/test/cli.js test --config playwright.locale.config.ts`: 18 passed in the executed version, with isolated mocked APIs and a native canvas MediaStream. This does not claim full-stack media decoding or shared/staging verification. The final requested repetition was rejected/stopped by the user; no further browser run performed.
+- Scoped E2E TypeScript check for localisation.spec.ts and playwright.locale.config.ts passed, reusing frontend Node types. The broad pre-existing E2E typecheck reports a multipart type mismatch in fixtures/api.ts and missing DOM.Iterable in appearance.spec.ts; those unrelated issues remain. Existing integration selectors were updated for Spanish; the entire Docker E2E suite was not rerun.
+
+Remote CI, shared task ownership, team review and staging remain unverified. No audit was performed, per user request. Next action: commit and integrate into the user's existing feature branch, then push that branch as explicitly requested.
+
+### CI Docker build: Maven Central HTTP 429 (2026-11-25)
+
+PR #45 job 139102078402 failed before browser execution: Maven Central returned HTTP 429 for the Spring Boot 3.3.3 parent POM. The same run's build-and-test job passed. This is separate from the older local PKIX error.
+
+- Dockerfile retains Maven 3.9.9, Central and normal TLS validation. Native HTTP settings allow five retries, with an initial 15-second interval and the resolver's increasing waits/Retry-After handling. `-U` retries missing artifacts despite a cached failed resolution. Compilation/package failures still propagate.
+- A temporary Python HTTP fixture and fresh official Maven 3.9.9 containers verified the exact Dockerfile retry flags: four 429 responses followed by success returned exit 0 after five parent requests; persistent 429 returned exit 1 after six requests; an invalid POM returned exit 1 with zero repository requests. The fixture used Retry-After: 1 to avoid long test delays, and was removed afterward.
+- `docker build --progress=plain -t protube:e2e-maven-retry-check .`: passed, including backend compilation, production frontend build and executable jar packaging. Tests are skipped inside the image as before; this does not claim a fresh Maven test/coverage run.
+- `npm ci` in e2e and installation of the matching Chromium completed. The separately tagged image ran through the existing Compose files plus a temporary image-only override, with e2e/e2e.env and project protube-e2e. `npx playwright test --workers=2`: 53 passed in 2.0 minutes, without retries. This includes the original six failures.
+- `npx playwright test --config=persistence/playwright.config.ts seed.spec.ts`: 1 passed. Both app/db container IDs changed after `up -d --force-recreate --wait --no-build`; volumes were retained. The first verify run reached catalogue search after the account/profile/file-hash checks, then failed on the old English searchbox name. Corrected only the searchbox/card-link expectations in e2e/persistence/verify.spec.ts to Spanish. Repeating `npx playwright test --config=persistence/playwright.config.ts verify.spec.ts`: 1 passed in 4.2 seconds, including login/profile and avatar/video/thumbnail byte hashes after recreation.
+- Removed only this session's protube-e2e containers, network and two test volumes with the scoped Compose `down -v`. Removed temporary fixture/override files; preserved production containers/volumes and the production image tag. No remote CI success or publication claimed. Scope/handoff: [language-localisation](../../docs/ai/tasks/language-localisation.md); [prompt 40](../../prompts/40-maven-central-rate-limit.md).

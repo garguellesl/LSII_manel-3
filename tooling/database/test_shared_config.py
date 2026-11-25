@@ -17,7 +17,7 @@ FIXTURE = {
 }
 
 
-def resolve(filename="compose.supabase.yaml", overrides=None):
+def resolve(filename=None, overrides=None):
     environment = {
         key: value for key, value in os.environ.items()
         if not key.startswith(("SUPABASE_", "ENV_PROTUBE_", "PROTUBE_", "COMPOSE_"))
@@ -32,7 +32,7 @@ def resolve(filename="compose.supabase.yaml", overrides=None):
         env_file = Path(empty.name)
     try:
         return subprocess.run(
-            ["docker", "compose", "--env-file", str(env_file), "-f", filename, "config", "--format", "json"],
+            ["docker", "compose", "--env-file", str(env_file)] + ([] if filename is None else ["-f", filename]) + ["config", "--format", "json"],
             cwd=ROOT, env=environment, capture_output=True, text=True, timeout=30,
         )
     finally:
@@ -40,7 +40,7 @@ def resolve(filename="compose.supabase.yaml", overrides=None):
 
 
 class SharedDatabaseConfigTest(unittest.TestCase):
-    def configuration(self, filename="compose.supabase.yaml", overrides=None):
+    def configuration(self, filename=None, overrides=None):
         result = resolve(filename, overrides)
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
@@ -86,7 +86,7 @@ class SharedDatabaseConfigTest(unittest.TestCase):
         self.assertEqual(env["ENV_PROTUBE_DEMO_ADMIN_PASSWORD"], "")
 
     def test_local_delivery_keeps_its_database_and_initial_import(self):
-        config = self.configuration("compose.yaml")
+        config = self.configuration("compose.local.yaml")
         self.assertEqual(set(config["services"]), {"app", "db"})
         app = config["services"]["app"]
         self.assertEqual(app["environment"]["ENV_PROTUBE_DB_HOST"], "db")

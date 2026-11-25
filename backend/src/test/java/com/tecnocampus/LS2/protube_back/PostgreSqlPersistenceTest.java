@@ -108,6 +108,10 @@ class PostgreSqlPersistenceTest {
             jdbc.update("INSERT INTO comments (id,video_id,user_id,text,created_at,updated_at) VALUES (10,1,1,'historical',timestamp '2020-01-01',timestamp '2020-02-01')");
             org.flywaydb.core.Flyway.configure().dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword()).load().migrate();
             assertEquals("historical", jdbc.queryForObject("select text from comments where id=10", String.class));
+            org.junit.jupiter.api.Assertions.assertNull(jdbc.queryForObject(
+                    "select preferred_language from app_users where id=1", String.class));
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> jdbc.update("update app_users set preferred_language='fr' where id=1"));
             assertEquals(2020, jdbc.queryForObject("select extract(year from created_at) from comments where id=10", Integer.class));
             assertTrue(jdbc.queryForObject("select parent_id is null and deleted_at is null from comments where id=10", Boolean.class));
             org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
@@ -165,7 +169,7 @@ class PostgreSqlPersistenceTest {
 
             try (var application = startApplication(database, "dev")) {
                 var user = application.getBean(UserService.class).register(new RegisterRequest(
-                        "persist@example.com", "persistent", "Persist", "User", "password123"
+                        "persist@example.com", "persistent", "Persist", "User", "password123", "ca"
                 ));
                 userId = user.id();
                 var videos = application.getBean(VideoService.class);
@@ -188,7 +192,7 @@ class PostgreSqlPersistenceTest {
                 application.getBean(CreatorSubscriptionService.class).subscribe(userId, creatorId);
 
                 var jdbc = application.getBean(JdbcTemplate.class);
-                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"), jdbc.queryForList(
+                assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), jdbc.queryForList(
                         "select version from flyway_schema_history where success order by installed_rank",
                         String.class));
                 assertEquals("PostgreSQL", jdbc.execute(
@@ -207,6 +211,8 @@ class PostgreSqlPersistenceTest {
                         .content().isEmpty());
                 var persistedUser = users.findById(userId).orElseThrow();
                 assertEquals("persist@example.com", persistedUser.getEmail());
+                assertEquals("ca", persistedUser.getPreferredLanguage());
+                assertEquals("ca", application.getBean(UserService.class).getProfile(userId).preferredLanguage());
                 assertEquals("Persist", persistedUser.getFirstName());
                 assertEquals("User", persistedUser.getLastName());
                 var persistedVideo = videos.getVideo(videoId).orElseThrow();

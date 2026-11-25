@@ -39,11 +39,8 @@ class SupabaseLauncherTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory(prefix="protube-connection-test-")
         self.project = Path(self.directory.name)
         self.addCleanup(self.directory.cleanup)
-        for filename in ("compose.yaml", "compose.supabase.yaml"):
+        for filename in ("compose.yaml", ".env.example"):
             shutil.copyfile(ROOT / filename, self.project / filename)
-        (self.project / "tooling/database").mkdir(parents=True)
-        shutil.copyfile(ROOT / "tooling/database/supabase.env.example",
-                        self.project / "tooling/database/supabase.env.example")
         self.environment = {key: value for key, value in os.environ.items()
                             if not key.startswith(("SUPABASE_", "ENV_PROTUBE_", "PROTUBE_", "COMPOSE_"))}
 
@@ -57,7 +54,7 @@ class SupabaseLauncherTest(unittest.TestCase):
         text = ("SUPABASE_DB_HOST=pooler.example.test\nSUPABASE_DB_PORT=5432\n"
                 "SUPABASE_DB_NAME=postgres\nSUPABASE_DB_USER=postgres.example\n"
                 "SUPABASE_DB_PASSWORD='" + password + "'\n")
-        (self.project / ".env.supabase").write_text(text, encoding="utf-8")
+        (self.project / ".env").write_text(text, encoding="utf-8")
         return text
 
     def test_existing_configuration_is_preserved_without_prompt_or_secret_output(self):
@@ -66,27 +63,27 @@ class SupabaseLauncherTest(unittest.TestCase):
         result = self.run_launcher("--configure")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(secret, result.stdout + result.stderr)
-        self.assertEqual((self.project / ".env.supabase").read_text(encoding="utf-8"), original)
+        self.assertEqual((self.project / ".env").read_text(encoding="utf-8"), original)
 
     def test_missing_password_without_secure_console_does_not_read_plain_stdin(self):
         self.write_connection()
         result = self.run_launcher("--configure")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Terminal", result.stderr)
-        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env.supabase").read_text(encoding="utf-8"))
+        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env").read_text(encoding="utf-8"))
 
     def test_new_connection_template_has_no_password_and_unattended_check_fails(self):
         result = self.run_launcher("--check")
         self.assertNotEqual(result.returncode, 0)
-        self.assertTrue((self.project / ".env.supabase").exists())
-        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env.supabase").read_text(encoding="utf-8"))
+        self.assertTrue((self.project / ".env").exists())
+        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env").read_text(encoding="utf-8"))
 
     def test_saved_password_round_trips_symbols_through_real_compose(self):
         for secret in ("synthetic-$-#-quotes-'\"-backslash-\\", "synthetic-${VARIABLE}-\\n-ñ-😀"):
             with self.subTest(symbols=True):
                 original = self.write_connection()
                 saved = subprocess.run([
-                    "java", "-cp", str(self.classes), "SaveSupabasePassword", str(self.project / ".env.supabase"),
+                    "java", "-cp", str(self.classes), "SaveSupabasePassword", str(self.project / ".env"),
                 ], env={**self.environment, "SYNTHETIC_TEST_PASSWORD": secret},
                     capture_output=True, text=True, timeout=15)
                 self.assertEqual(saved.returncode, 0, saved.stderr)
@@ -94,14 +91,14 @@ class SupabaseLauncherTest(unittest.TestCase):
                 result = self.run_launcher("--check")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 config = subprocess.run([
-                    "docker", "compose", "--env-file", ".env.supabase", "-f", "compose.supabase.yaml",
+                    "docker", "compose",
                     "config", "--format", "json",
                 ], cwd=self.project, env=self.environment, capture_output=True, text=True, timeout=30, encoding="utf-8")
                 self.assertEqual(config.returncode, 0, config.stderr)
                 import json
                 password = json.loads(config.stdout)["services"]["app"]["environment"]["ENV_PROTUBE_DB_PASS"]
                 self.assertEqual(password.replace("$$", "$"), secret)
-                self.assertNotEqual((self.project / ".env.supabase").read_text(encoding="utf-8"), original)
+                self.assertNotEqual((self.project / ".env").read_text(encoding="utf-8"), original)
 
     def test_environment_password_works_without_saving_it(self):
         self.write_connection()
@@ -109,12 +106,28 @@ class SupabaseLauncherTest(unittest.TestCase):
         result = self.run_launcher("--check", environment={"SUPABASE_DB_PASSWORD": secret})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(secret, result.stdout + result.stderr)
-        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env.supabase").read_text(encoding="utf-8"))
+        self.assertIn("SUPABASE_DB_PASSWORD=''", (self.project / ".env").read_text(encoding="utf-8"))
+
+    def test_legacy_configuration_is_copied_once_without_changing_the_original(self):
+        original = self.write_connection("synthetic-legacy-password")
+        (self.project / ".env").rename(self.project / ".env.supabase")
+        result = self.run_launcher("--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.project / ".env").read_text(encoding="utf-8"), original)
+        self.assertEqual((self.project / ".env.supabase").read_text(encoding="utf-8"), original)
+        self.assertNotIn("synthetic-legacy-password", result.stdout + result.stderr)
+
+    def test_existing_dotenv_takes_precedence_over_legacy_configuration(self):
+        original = self.write_connection("synthetic-current-password")
+        (self.project / ".env.supabase").write_text("BROKEN='", encoding="utf-8")
+        result = self.run_launcher("--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.project / ".env").read_text(encoding="utf-8"), original)
 
     def test_invalid_configuration_does_not_expose_its_contents(self):
         secret = "synthetic-malformed-password"
         self.write_connection()
-        with (self.project / ".env.supabase").open("a", encoding="utf-8") as output:
+        with (self.project / ".env").open("a", encoding="utf-8") as output:
             output.write("BROKEN='" + secret)
         result = self.run_launcher("--check", environment={"SUPABASE_DB_PASSWORD": "synthetic"})
         self.assertNotEqual(result.returncode, 0)
@@ -123,7 +136,7 @@ class SupabaseLauncherTest(unittest.TestCase):
     def test_unknown_arguments_do_not_create_configuration(self):
         result = self.run_launcher("--unknown")
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse((self.project / ".env.supabase").exists())
+        self.assertFalse((self.project / ".env").exists())
 
 
 if __name__ == "__main__":

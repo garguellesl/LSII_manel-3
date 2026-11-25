@@ -40,7 +40,7 @@ describe('uploadClient', () => {
       });
       await expect(uploadClient.upload(metadata, video, image, jest.fn())).rejects.toMatchObject({
         status,
-        fields: { title: 'invalid' },
+        fields: { title: 'Revisa este campo.' },
       });
     }
     expect((http.post.mock.calls[0][1] as FormData).get('thumbnail')).toBe(image);

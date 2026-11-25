@@ -1,3 +1,4 @@
+import { t } from './i18n/locale';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { commentClient, commentError } from './utils/commentClient';
 import type { Comment } from './utils/commentClient';
@@ -101,7 +102,14 @@ export function useComments(videoId: number, onSessionExpired: () => Promise<voi
         (unused, current) =>
           current.map((comment) =>
             comment.id === id
-              ? { ...comment, deleted: true, text: 'Comment deleted', canEdit: false, likedByMe: false, likesCount: 0 }
+              ? {
+                  ...comment,
+                  deleted: true,
+                  text: t('comments.commentDeleted'),
+                  canEdit: false,
+                  likedByMe: false,
+                  likesCount: 0,
+                }
               : comment
           )
       ),

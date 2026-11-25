@@ -1,0 +1,10 @@
+# Entrega predeterminada con Supabase
+
+- Petición directa del usuario: unificar el arranque para el profesor en compose.yaml, 2026-11-25, Europe/Madrid. Ante la distinción remoto/local, pide que pueda ejecutarlo; se conserva el Supabase remoto existente.
+- Responsable de ejecución: Codex para el usuario; revisor/ticket compartido no asignados. Consulta de PR abiertas: ninguna. No se afirma reserva entre clones.
+- Rama de preparación: feature/docker-supabase-default, worktree separado de main, baseline 2e3d79c. Estado: review local; sin publicación ni reserva liberada.
+- Alcance: Compose de entrega y local, plantilla/ignorados, lanzador y tests de configuración, referencias DEV/CI/E2E, documentación y spec 003. Sin código de producto, API, migraciones, credenciales publicadas ni cambios de datos remotos.
+- Contrato: compose.yaml + .env automático para Supabase; compose.local.yaml para DEV/E2E aislados. [Requisitos/plan/evidencia](../../../specs/003-shared-database/tasks.md).
+- Resultado: Compose principal autónomo para Supabase y .env automático; archivo alternativo retirado. Modo local y consumidores DEV/CI/E2E preservados mediante compose.local.yaml. Credenciales antiguas importadas solo si .env no existe. 19 pruebas de configuración/lanzador, build Docker, HTTP remoto/Stop-Start y 7 E2E aislados satisfactorios; evidencia en la spec.
+- Traspaso completado: cambios aplicados a la carpeta habitual sin cambiar su rama main abierta; .env local reutiliza la configuración existente y sigue ignorado. docker compose up --build -d --wait completó tras reintentar un timeout transitorio de npm. El contenedor habitual está healthy en 8080, asociado a compose.yaml y conserva lsii_manel-3_uploaded_media; catálogo remoto de 75 vídeos. Entornos de prueba retirados. Sin commit/push; siguiente paso: revisión y commit en la rama feature antes de preparar la PR del equipo.
+- Prompt: [41-default-compose-supabase.md](../../../prompts/41-default-compose-supabase.md), pendiente de revisión del equipo.

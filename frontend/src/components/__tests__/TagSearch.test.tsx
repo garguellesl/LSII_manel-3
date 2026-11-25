@@ -19,12 +19,12 @@ describe('TagSearch', () => {
 
   it('loads only when opened, sorts options, filters locally and preserves selections when closing', async () => {
     render(<Filters />);
-    const trigger = screen.getByRole('button', { name: 'Tags' });
+    const trigger = screen.getByRole('button', { name: 'Etiquetas' });
     expect(mockedAxios.get).not.toHaveBeenCalled();
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     fireEvent.click(trigger);
-    expect(screen.getByRole('status')).toHaveTextContent('Loading tags');
-    const search = screen.getByRole('searchbox', { name: 'Find a tag' });
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando etiquetas');
+    const search = screen.getByRole('searchbox', { name: 'Buscar etiqueta' });
     expect(search).toHaveFocus();
     await screen.findByRole('checkbox', { name: 'rock' });
     expect(screen.getAllByRole('checkbox').map((item) => item.closest('label')?.textContent)).toEqual([
@@ -33,12 +33,12 @@ describe('TagSearch', () => {
       'rock',
     ]);
     fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
-    expect(trigger).toHaveTextContent('Tags (1)');
+    expect(trigger).toHaveTextContent('Etiquetas (1)');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     fireEvent.change(search, { target: { value: ' AB ' } });
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     fireEvent.click(screen.getByRole('checkbox', { name: 'abba' }));
-    expect(trigger).toHaveTextContent('Tags (2)');
+    expect(trigger).toHaveTextContent('Etiquetas (2)');
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(search, { key: 'Escape' });
     expect(trigger).toHaveFocus();
@@ -47,31 +47,31 @@ describe('TagSearch', () => {
     expect(await screen.findByRole('checkbox', { name: 'rock' })).toBeChecked();
     fireEvent.click(screen.getByRole('checkbox', { name: 'rock' }));
     expect(screen.getByRole('checkbox', { name: 'rock' })).not.toBeChecked();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear tag filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar filtros de etiquetas' }));
     expect(screen.getByRole('checkbox', { name: 'abba' })).not.toBeChecked();
-    expect(trigger).toHaveTextContent(/^Tags$/);
+    expect(trigger).toHaveTextContent(/^Etiquetas$/);
     fireEvent.pointerDown(document.body);
-    expect(screen.queryByRole('region', { name: 'Tag filters' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Filtros de etiquetas' })).not.toBeInTheDocument();
   });
 
   it('shows empty options and local search without matches', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: [] });
     render(<Filters />);
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
-    await screen.findByText('No tags are available.');
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
+    await screen.findByText('No hay etiquetas disponibles.');
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
     await screen.findByRole('checkbox', { name: 'rock' });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'missing' } });
-    expect(screen.getByRole('status')).toHaveTextContent('No tags match your search.');
+    expect(screen.getByRole('status')).toHaveTextContent('Ninguna etiqueta coincide con la búsqueda.');
   });
 
   it('supports retry after a failed request and cancels when closed', async () => {
     mockedAxios.get.mockRejectedValueOnce(new Error('offline'));
     render(<Filters />);
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load tags.');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se han podido cargar las etiquetas.');
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar etiquetas' }));
     await screen.findByRole('checkbox', { name: 'rock' });
     const signal = mockedAxios.get.mock.calls[1][1]?.signal;
     fireEvent.pointerDown(document.body);
@@ -86,9 +86,9 @@ describe('TagSearch', () => {
       })
     );
     render(<Filters />);
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
     fireEvent.pointerDown(document.body);
-    fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas' }));
     await screen.findByRole('checkbox', { name: 'rock' });
     await act(async () => resolve({ data: ['obsolete'] }));
     expect(screen.queryByRole('checkbox', { name: 'obsolete' })).not.toBeInTheDocument();
@@ -98,12 +98,12 @@ describe('TagSearch', () => {
     const initial = Array.from({ length: 40 }, (_, i) => `tag${i}`);
     mockedAxios.get.mockResolvedValue({ data: [...initial, 'extra'] });
     render(<Filters initial={initial} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Tags (40)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Etiquetas (40)' }));
     expect(await screen.findByRole('checkbox', { name: 'extra' })).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent('at most 40');
+    expect(screen.getByRole('status')).toHaveTextContent('como máximo 40');
     fireEvent.click(screen.getByRole('checkbox', { name: 'tag0' }));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'extra' })).toBeEnabled());
     fireEvent.click(screen.getByRole('checkbox', { name: 'extra' }));
-    expect(screen.getByRole('button', { name: 'Tags (40)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Etiquetas (40)' })).toBeInTheDocument();
   });
 });

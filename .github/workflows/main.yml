@@ -109,7 +109,7 @@ jobs:
         run: npx playwright install chromium
 
       - name: Start isolated E2E deployment
-        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml up -d --wait --build
+        run: docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml up -d --wait --build
 
       - name: Run E2E tests
         working-directory: e2e
@@ -138,7 +138,7 @@ jobs:
 
       - name: Recreate containers without deleting volumes (RF-8)
         run: |
-          COMPOSE="docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml"
+          COMPOSE="docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml"
           APP_ID_BEFORE=$($COMPOSE ps -q app)
           DB_ID_BEFORE=$($COMPOSE ps -q db)
           $COMPOSE up -d --force-recreate --wait
@@ -173,4 +173,4 @@ jobs:
 
       - name: Tear down isolated E2E deployment
         if: always()
-        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml down -v
+        run: docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml down -v

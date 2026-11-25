@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface VideoSearchRepository {
     Page<Video> searchByTags(String query, List<String> tags, Pageable pageable);
+    Page<Video> searchFiltered(String query, List<String> tags, String sort, String audience, Pageable pageable);
 }

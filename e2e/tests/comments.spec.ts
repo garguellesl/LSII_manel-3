@@ -26,7 +26,7 @@ async function setup(baseURL: string, browser: Browser) {
   return { ownerApi, owner, video, context };
 }
 
-const row = (page: Page, text: string) => page.getByRole('article', { name: /^Comment by / }).filter({ has: page.getByText(text, { exact: true }) });
+const row = (page: Page, text: string) => page.getByRole('article', { name: /^Comentario de / }).filter({ has: page.getByText(text, { exact: true }) });
 
 test.describe('comments, replies and likes', () => {
   test('visitors read safe text and existing likes and are prompted to sign in', async ({ browser, page, baseURL }) => {
@@ -36,14 +36,14 @@ test.describe('comments, replies and likes', () => {
       const root = await add(fixture.ownerApi, fixture.video.id, text);
       await mutation(fixture.ownerApi, 'POST', `/api/comments/${root.id}/likes`);
       await page.goto(`/videos/${fixture.video.id}`);
-      await expect(page.getByRole('heading', { name: 'Comments', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: "Comentarios", exact: true })).toBeVisible();
       await expect(page.getByText(text, { exact: true })).toBeVisible();
-      await expect(row(page, text).getByText('1 likes', { exact: true })).toBeVisible();
+      await expect(row(page, text).getByText("1 me gusta", { exact: true })).toBeVisible();
       await expect(row(page, text).locator('img, script')).toHaveCount(0);
       expect(await page.evaluate(() => Reflect.get(window, 'commentXss'))).toBeUndefined();
-      await expect(page.getByRole('button', { name: 'Reply', exact: true })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Like comment', exact: true })).toHaveCount(0);
-      await page.getByRole('region', { name: 'Comments' }).getByRole('link', { name: 'Sign in', exact: true }).click();
+      await expect(page.getByRole('button', { name: "Responder", exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: "Me gusta el comentario", exact: true })).toHaveCount(0);
+      await page.getByRole('region', { name: "Comentarios" }).getByRole('link', { name: "Iniciar sesión", exact: true }).click();
       await expect(page).toHaveURL(/\/login$/);
     } finally { await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });
@@ -56,24 +56,24 @@ test.describe('comments, replies and likes', () => {
     try {
       const page = await fixture.context.newPage();
       await page.goto(`/videos/${fixture.video.id}`);
-      await expect(page.getByText('No comments yet. Start the discussion.')).toBeVisible();
-      await page.getByLabel('Add a comment', { exact: true }).fill('First root');
-      await page.getByRole('button', { name: 'Post comment', exact: true }).click();
+      await expect(page.getByText("Todavía no hay comentarios. Inicia la conversación.")).toBeVisible();
+      await page.getByLabel("Añadir un comentario", { exact: true }).fill('First root');
+      await page.getByRole('button', { name: "Publicar comentario", exact: true }).click();
       await expect(row(page, 'First root')).toBeVisible();
-      await page.getByLabel('Add a comment', { exact: true }).fill('Second root');
-      await page.getByRole('button', { name: 'Post comment', exact: true }).click();
+      await page.getByLabel("Añadir un comentario", { exact: true }).fill('Second root');
+      await page.getByRole('button', { name: "Publicar comentario", exact: true }).click();
       await expect(row(page, 'Second root')).toBeVisible();
-      await row(page, 'First root').getByRole('button', { name: 'Reply', exact: true }).click();
-      await page.getByLabel(`Reply to ${fixture.owner.accountName}`, { exact: true }).fill('Child reply');
-      await page.getByRole('button', { name: 'Post reply', exact: true }).click();
+      await row(page, 'First root').getByRole('button', { name: "Responder", exact: true }).click();
+      await page.getByLabel(`Responder a ${fixture.owner.accountName}`, { exact: true }).fill('Child reply');
+      await page.getByRole('button', { name: "Publicar respuesta", exact: true }).click();
       await expect(row(page, 'Child reply')).toBeVisible();
-      await row(page, 'Child reply').getByRole('button', { name: 'Reply', exact: true }).click();
-      await page.getByLabel(`Reply to ${fixture.owner.accountName}`, { exact: true }).fill('Grandchild reply');
-      await page.getByRole('button', { name: 'Post reply', exact: true }).click();
+      await row(page, 'Child reply').getByRole('button', { name: "Responder", exact: true }).click();
+      await page.getByLabel(`Responder a ${fixture.owner.accountName}`, { exact: true }).fill('Grandchild reply');
+      await page.getByRole('button', { name: "Publicar respuesta", exact: true }).click();
       await expect(row(page, 'Grandchild reply')).toBeVisible();
-      await row(page, 'First root').getByRole('button', { name: 'Edit', exact: true }).click();
-      await page.getByLabel('Edit comment', { exact: true }).fill('Edited root');
-      await page.getByRole('button', { name: 'Save comment', exact: true }).click();
+      await row(page, 'First root').getByRole('button', { name: "Editar", exact: true }).click();
+      await page.getByLabel("Editar comentario", { exact: true }).fill('Edited root');
+      await page.getByRole('button', { name: "Guardar comentario", exact: true }).click();
       await expect(row(page, 'Edited root')).toBeVisible();
       await page.reload();
       await expect(page.locator('.comment-text')).toHaveText(['Edited root', 'Child reply', 'Grandchild reply', 'Second root']);
@@ -81,27 +81,27 @@ test.describe('comments, replies and likes', () => {
       const otherPage = await otherContext.newPage();
       await otherPage.goto(`/videos/${fixture.video.id}`);
       await expect(row(otherPage, 'Edited root')).toBeVisible();
-      await expect(row(otherPage, 'Edited root').getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
-      await expect(row(otherPage, 'Edited root').getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
-      await row(otherPage, 'Child reply').getByRole('button', { name: 'Like comment', exact: true }).click();
-      await expect(row(otherPage, 'Child reply').getByRole('button', { name: 'Unlike comment', exact: true })).toHaveText('Liked · 1');
+      await expect(row(otherPage, 'Edited root').getByRole('button', { name: "Editar", exact: true })).toHaveCount(0);
+      await expect(row(otherPage, 'Edited root').getByRole('button', { name: "Eliminar", exact: true })).toHaveCount(0);
+      await row(otherPage, 'Child reply').getByRole('button', { name: "Me gusta el comentario", exact: true }).click();
+      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true })).toHaveText('Te gusta · 1');
       await otherPage.reload();
-      await expect(row(otherPage, 'Child reply').getByRole('button', { name: 'Unlike comment', exact: true })).toHaveAttribute('aria-pressed', 'true');
-      await row(otherPage, 'Child reply').getByRole('button', { name: 'Unlike comment', exact: true }).click();
-      await expect(row(otherPage, 'Child reply').getByRole('button', { name: 'Like comment', exact: true })).toHaveText('Like · 0');
+      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true }).click();
+      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Me gusta el comentario", exact: true })).toHaveText("Me gusta · 0");
       await otherPage.reload();
-      await expect(row(otherPage, 'Child reply').getByRole('button', { name: 'Like comment', exact: true })).toHaveText('Like · 0');
+      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Me gusta el comentario", exact: true })).toHaveText("Me gusta · 0");
 
       await page.reload();
-      await row(page, 'Edited root').getByRole('button', { name: 'Delete', exact: true }).click();
-      await row(page, 'Edited root').getByRole('button', { name: 'Confirm delete', exact: true }).click();
-      await expect(row(page, 'Comment deleted')).toBeVisible();
+      await row(page, 'Edited root').getByRole('button', { name: "Eliminar", exact: true }).click();
+      await row(page, 'Edited root').getByRole('button', { name: "Confirmar eliminación", exact: true }).click();
+      await expect(row(page, "Comentario eliminado")).toBeVisible();
       await page.reload();
-      await expect(page.locator('.comment-text')).toHaveText(['Comment deleted', 'Child reply', 'Grandchild reply', 'Second root']);
-      await expect(row(page, 'Comment deleted').getByRole('button', { name: /^(Reply|Edit|Delete|Like comment)$/ })).toHaveCount(0);
-      await row(page, 'Comment deleted').getByRole('button', { name: 'Hide replies', exact: true }).click();
+      await expect(page.locator('.comment-text')).toHaveText(["Comentario eliminado", 'Child reply', 'Grandchild reply', 'Second root']);
+      await expect(row(page, "Comentario eliminado").getByRole('button', { name: /^(Responder|Editar|Eliminar|Me gusta el comentario)$/ })).toHaveCount(0);
+      await row(page, "Comentario eliminado").getByRole('button', { name: "Ocultar respuestas", exact: true }).click();
       await expect(row(page, 'Child reply')).toHaveCount(0);
-      await row(page, 'Comment deleted').getByRole('button', { name: 'Show replies', exact: true }).click();
+      await row(page, "Comentario eliminado").getByRole('button', { name: "Mostrar respuestas", exact: true }).click();
       await expect(row(page, 'Grandchild reply')).toBeVisible();
     } finally {
       await otherContext.close(); await otherApi.dispose(); await fixture.context.close(); await fixture.ownerApi.dispose();
@@ -152,10 +152,10 @@ test.describe('comments, replies and likes', () => {
       const page = await fixture.context.newPage();
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(`/videos/${fixture.video.id}`);
-      const expandPreview = page.getByRole('button', { name: 'Show more comments', exact: true });
+      const expandPreview = page.getByRole('button', { name: "Mostrar más comentarios", exact: true });
       await expect(expandPreview).toHaveAttribute('aria-expanded', 'false');
       await expandPreview.click();
-      await expect(page.getByRole('button', { name: 'Show fewer comments', exact: true })).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByRole('button', { name: "Mostrar menos comentarios", exact: true })).toHaveAttribute('aria-expanded', 'true');
       const deepest = page.locator(`#comment-${long.id}`);
       await deepest.scrollIntoViewIfNeeded();
       await expect(deepest).toBeVisible();
@@ -165,23 +165,23 @@ test.describe('comments, replies and likes', () => {
         const bounds = await deepest.boundingBox();
         expect(bounds!.width).toBeGreaterThan(180);
       }
-      const reply = deepest.getByRole('button', { name: 'Reply', exact: true });
+      const reply = deepest.getByRole('button', { name: "Responder", exact: true });
       await reply.focus();
       await page.keyboard.press('Enter');
-      const input = page.getByLabel(`Reply to ${fixture.owner.accountName}`, { exact: true });
+      const input = page.getByLabel(`Responder a ${fixture.owner.accountName}`, { exact: true });
       await expect(input).toBeFocused();
       await page.keyboard.type('Keyboard reply on mobile');
       await page.keyboard.press('Tab');
-      await expect(page.getByRole('button', { name: 'Post reply', exact: true })).toBeFocused();
+      await expect(page.getByRole('button', { name: "Publicar respuesta", exact: true })).toBeFocused();
       await page.keyboard.press('Enter');
       await expect(row(page, 'Keyboard reply on mobile')).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath('discussion-mobile.png'), fullPage: true });
       await page.screenshot({ path: testInfo.outputPath('discussion-mobile-viewport.png') });
       await page.reload();
-      const reloadedPreview = page.getByRole('button', { name: 'Show more comments', exact: true });
+      const reloadedPreview = page.getByRole('button', { name: "Mostrar más comentarios", exact: true });
       await expect(reloadedPreview).toHaveAttribute('aria-expanded', 'false');
       await reloadedPreview.click();
-      await expect(page.getByRole('button', { name: 'Show fewer comments', exact: true })).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByRole('button', { name: "Mostrar menos comentarios", exact: true })).toHaveAttribute('aria-expanded', 'true');
       await expect(row(page, 'Keyboard reply on mobile')).toBeVisible();
     } finally { await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });
@@ -198,17 +198,17 @@ test.describe('comments, replies and likes', () => {
         return route.continue();
       });
       await page.goto(`/videos/${fixture.video.id}`);
-      await expect(page.getByText('Could not load comments.', { exact: true })).toBeVisible();
-      await expect(page.getByText('No comments yet. Start the discussion.')).toHaveCount(0);
+      await expect(page.getByText("No se han podido cargar los comentarios.", { exact: true })).toBeVisible();
+      await expect(page.getByText("Todavía no hay comentarios. Inicia la conversación.")).toHaveCount(0);
       failRead = false;
-      await page.getByRole('button', { name: 'Retry comments', exact: true }).click();
-      await expect(page.getByText('No comments yet. Start the discussion.')).toBeVisible();
-      await page.getByLabel('Add a comment', { exact: true }).fill('Retained draft');
-      await page.getByRole('button', { name: 'Post comment', exact: true }).click();
-      await expect(page.getByRole('alert')).toHaveText('Could not save your changes. Please try again.');
-      await expect(page.getByLabel('Add a comment', { exact: true })).toHaveValue('Retained draft');
+      await page.getByRole('button', { name: "Reintentar comentarios", exact: true }).click();
+      await expect(page.getByText("Todavía no hay comentarios. Inicia la conversación.")).toBeVisible();
+      await page.getByLabel("Añadir un comentario", { exact: true }).fill('Retained draft');
+      await page.getByRole('button', { name: "Publicar comentario", exact: true }).click();
+      await expect(page.getByRole('alert')).toHaveText("No se han podido guardar los cambios. Inténtalo de nuevo.");
+      await expect(page.getByLabel("Añadir un comentario", { exact: true })).toHaveValue('Retained draft');
       failWrite = false;
-      await page.getByRole('button', { name: 'Post comment', exact: true }).click();
+      await page.getByRole('button', { name: "Publicar comentario", exact: true }).click();
       await expect(row(page, 'Retained draft')).toBeVisible();
     } finally { await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });

@@ -39,12 +39,18 @@ public class VideosController {
     public ResponseEntity<VideoPage> getVideos(
             @RequestParam(defaultValue = "") String q,
             @RequestParam(required = false) List<String> tag,
+            @RequestParam(defaultValue = "relevance") String sort,
+            @RequestParam(defaultValue = "ALL") String audience,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "24") int size) {
-        if (page < 0 || size < 1 || size > 100 || q.length() > 500) {
+        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE || q.length() > 500) {
             throw new IllegalArgumentException("Expected page >= 0, size between 1 and 100, and q at most 500 characters");
         }
-        return ResponseEntity.ok(videoService.getVideos(q, tag == null ? List.of() : tag, page, size));
+        if (!List.of("relevance", "likes", "views").contains(sort)
+                || !List.of("ALL", "CHILDREN", "NOT_CHILDREN").contains(audience)) {
+            throw new IllegalArgumentException("Expected sort relevance/likes/views and audience ALL/CHILDREN/NOT_CHILDREN");
+        }
+        return ResponseEntity.ok(videoService.getVideos(q, tag == null ? List.of() : tag, page, size, sort, audience));
     }
 
     @GetMapping("/{id}/recommendations")

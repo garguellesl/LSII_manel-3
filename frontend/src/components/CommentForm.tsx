@@ -1,3 +1,4 @@
+import { localizeMessage, t, useLocale, formatNumber } from '../i18n/locale';
 import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function CommentForm({ label, submitLabel, initialText = '', pending, onSubmit, onCancel }: Props) {
+  useLocale();
   const id = useId();
   const [text, setText] = useState(initialText);
   const [validation, setValidation] = useState('');
@@ -18,7 +20,7 @@ export function CommentForm({ label, submitLabel, initialText = '', pending, onS
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!text.trim() || text.length > 2000) {
-      setValidation('Enter a comment between 1 and 2,000 characters.');
+      setValidation(t('comments.enterACommentBetween1And2000Characters'));
       return;
     }
     setValidation('');
@@ -38,19 +40,22 @@ export function CommentForm({ label, submitLabel, initialText = '', pending, onS
         aria-invalid={Boolean(validation)}
         onChange={(event) => setText(event.target.value)}
       />
-      <small id={`${id}-count`}>{text.length}/2000</small>
+      <small id={`${id}-count`}>
+        {formatNumber(text.length)}/{formatNumber(2000)}
+      </small>
       {validation && (
         <p id={`${id}-error`} role="alert">
-          {validation}
+          {localizeMessage(validation)}
         </p>
       )}
       <div className="comment-actions">
         <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : submitLabel}
+          {pending ? t('comments.saving') : submitLabel}
         </button>
         {onCancel && (
           <button type="button" disabled={pending} onClick={onCancel}>
-            Cancel
+            {' '}
+            {t('comments.cancel')}{' '}
           </button>
         )}
       </div>

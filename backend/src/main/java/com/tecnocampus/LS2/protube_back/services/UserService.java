@@ -70,6 +70,7 @@ public class UserService {
                 request.lastName().trim(),
                 passwordEncoder.encode(request.password())
         );
+        user.setPreferredLanguage(request.preferredLanguage());
         try {
             return toResponse(userAccountRepository.saveAndFlush(user));
         } catch (DataIntegrityViolationException exception) {
@@ -242,7 +243,8 @@ public class UserService {
                 user.getPublicName(),
                 user.getDescription(),
                 PublicAuthor.of(user.getId(), user.getPublicName(), user.getAvatarPath()).avatarUrl(),
-                bannerUrl(user.getBannerPath())
+                bannerUrl(user.getBannerPath()),
+                user.getPreferredLanguage()
         );
     }
 }

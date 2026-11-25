@@ -77,6 +77,6 @@ describe('useUpdateVideoTags', () => {
       await expect(result.current.save(['pop'])).rejects.toThrow('Network Error');
     });
 
-    expect(result.current.errors).toEqual({ general: 'Network error, please try again.', perTag: {} });
+    expect(result.current.errors).toEqual({ general: 'Error de conexión. Inténtalo de nuevo.', perTag: {} });
   });
 });

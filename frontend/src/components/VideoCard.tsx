@@ -1,3 +1,4 @@
+import { t, useLocale, formatNumber } from '../i18n/locale';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { VideoSummary } from '../useAllVideos';
 import { toMediaUrl } from '../utils/media';
@@ -8,12 +9,17 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video, compact = false }: VideoCardProps) {
+  useLocale();
   const [params] = useSearchParams();
   const audience = params.get('audience');
   const search = audience ? '?' + new URLSearchParams({ audience }) : '';
   return (
     <li className={compact ? 'video-card video-card--compact' : 'video-card'}>
-      <Link to={`/videos/${video.id}${search}`} className="video-card-link" aria-label={`Watch ${video.title}`}>
+      <Link
+        to={`/videos/${video.id}${search}`}
+        className="video-card-link"
+        aria-label={t('player.watch', { title: video.title })}
+      >
         {video.thumbnailUrl ? (
           <img src={toMediaUrl(video.thumbnailUrl)} alt="" className="video-card-thumbnail" />
         ) : (
@@ -24,13 +30,8 @@ export function VideoCard({ video, compact = false }: VideoCardProps) {
         <h2 className="video-card-title">{video.title}</h2>
       </Link>
       {!compact && (
-        <p aria-label="Video reactions">
-          <span aria-hidden="true">
-            👍 {video.likesCount ?? 0} · 👎 {video.dislikesCount ?? 0}
-          </span>
-          <span className="visually-hidden">
-            {`${video.likesCount ?? 0} likes, ${video.dislikesCount ?? 0} dislikes`}
-          </span>
+        <p aria-label={t('catalogue.videoReactions')}>
+          👍 {formatNumber(video.likesCount ?? 0)} · 👎 {formatNumber(video.dislikesCount ?? 0)}
         </p>
       )}
     </li>

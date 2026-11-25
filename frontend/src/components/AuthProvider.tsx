@@ -1,3 +1,4 @@
+import { t, setAccountLocale } from '../i18n/locale';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AuthContext } from '../auth/AuthContext';
@@ -22,11 +23,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const user = await authClient.currentUser();
       if (request === version.current) {
+        setAccountLocale(user);
         setState(user ? { status: 'authenticated', user, error: null } : anonymous);
       }
     } catch {
       if (request === version.current) {
-        setState({ status: 'error', user: null, error: 'No se ha podido comprobar tu sesión.' });
+        setState({ status: 'error', user: null, error: t('account.couldNotCheckYourSession') });
       }
     }
   }, []);
@@ -47,7 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(anonymous);
     try {
       const user = await operation();
-      if (request === version.current) setState({ status: 'authenticated', user, error: null });
+      if (request === version.current) {
+        setAccountLocale(user);
+        setState({ status: 'authenticated', user, error: null });
+      }
     } finally {
       --mutations.current;
     }
@@ -61,10 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'loading', user: null, error: null });
     try {
       await authClient.logout();
-      if (request === version.current) setState(anonymous);
+      if (request === version.current) {
+        setAccountLocale(null);
+        setState(anonymous);
+      }
     } catch (error) {
       if (request === version.current) {
-        setState({ status: 'error', user: null, error: 'No se ha podido confirmar el cierre de sesión.' });
+        setState({ status: 'error', user: null, error: t('account.couldNotConfirmSignout') });
       }
       throw error;
     } finally {

@@ -45,8 +45,8 @@ describe('HistoryPage', () => {
     renderHistory();
 
     expect(await screen.findByRole('heading', { name: 'Historial' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Watch Visto varias veces' })).toHaveLength(1);
-    expect(screen.getByRole('link', { name: 'Watch Visto una vez' })).toHaveAttribute('href', '/videos/12');
+    expect(screen.getAllByRole('link', { name: 'Ver Visto varias veces' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Ver Visto una vez' })).toHaveAttribute('href', '/videos/12');
   });
 
   it('sends guests to sign in and shows an empty message without history', async () => {

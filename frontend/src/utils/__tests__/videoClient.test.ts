@@ -34,7 +34,7 @@ describe('videoClient', () => {
     });
 
     await expect(videoClient.updateTags(7, [''])).rejects.toMatchObject({
-      fields: { 'tags[0]': 'tag must not be blank' },
+      fields: { 'tags[0]': 'Revisa este campo.' },
       status: 400,
     });
   });
@@ -43,7 +43,7 @@ describe('videoClient', () => {
     http.get.mockResolvedValue({ data: csrf });
     http.patch.mockRejectedValue({ response: { status: 403, data: { error: 'Access denied', code: 'FORBIDDEN' } } });
 
-    await expect(videoClient.updateTags(7, ['pop'])).rejects.toThrow('Access denied');
+    await expect(videoClient.updateTags(7, ['pop'])).rejects.toThrow('No tienes permiso para realizar esta acción.');
   });
 
   it('falls back to a generic message for an unreachable server', async () => {
@@ -51,7 +51,9 @@ describe('videoClient', () => {
     http.patch.mockRejectedValue(new Error('Network Error'));
 
     await expect(videoClient.updateTags(7, ['pop'])).rejects.toBeInstanceOf(AuthError);
-    await expect(videoClient.updateTags(7, ['pop'])).rejects.toThrow('Could not save the tags. Please try again.');
+    await expect(videoClient.updateTags(7, ['pop'])).rejects.toThrow(
+      'No se han podido guardar las etiquetas. Inténtalo de nuevo.'
+    );
   });
 
   it('registers an existing relative media file through the JSON API', async () => {

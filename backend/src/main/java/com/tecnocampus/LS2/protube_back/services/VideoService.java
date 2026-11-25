@@ -78,6 +78,15 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoPage getVideos(String query, List<String> tags, int page, int size) {
+        return getVideos(query, tags, page, size, "relevance", "ALL");
+    }
+
+    @Transactional(readOnly = true)
+    public VideoPage getVideos(String query, List<String> tags, int page, int size, String sort, String audience) {
+        if (!List.of("relevance", "likes", "views").contains(sort)
+                || !List.of("ALL", "CHILDREN", "NOT_CHILDREN").contains(audience)) {
+            throw new IllegalArgumentException("Invalid search sort or audience");
+        }
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
         var filters = tags.stream().filter(Objects::nonNull).map(String::trim)
                 .map(tag -> tag.toLowerCase(Locale.ROOT)).filter(tag -> !tag.isEmpty()).distinct().toList();
@@ -85,7 +94,9 @@ public class VideoService {
             throw new IllegalArgumentException("Expected at most 40 distinct tag filters, each at most 80 characters");
         }
         var pageable = PageRequest.of(page, size);
-        var result = filters.isEmpty() ? videoRepository.search(normalized, pageable)
+        var result = !"relevance".equals(sort) || !"ALL".equals(audience)
+                ? videoRepository.searchFiltered(normalized, filters, sort, audience, pageable)
+                : filters.isEmpty() ? videoRepository.search(normalized, pageable)
                 : videoRepository.searchByTags(normalized, filters, pageable);
         return new VideoPage(toSummaries(result.getContent()),
                 page, size, result.hasNext(), result.getTotalElements());

@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { localizeMessage, t, useLocale } from '../i18n/locale';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from './UserAvatar';
 import { AccountChip } from './AccountChip';
+import { subscriptionMessages } from '../utils/subscriptionMessages';
 
 // Pages other than the catalogue: a "+" to add videos and the avatar for the account, each opening one small panel.
 export function AccountMenu({ compact = false }: { compact?: boolean }) {
+  useLocale();
   const auth = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -18,20 +21,22 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
       await auth.signOut();
       navigate('/');
     } catch {
-      setError('No se ha podido cerrar sesión. Comprueba tu conexión y vuelve a intentarlo.');
+      setError(t('catalogue.couldNotSignOutCheckYourConnectionAndTryAgain'));
     }
   };
 
   return (
-    <nav className="account-bar" aria-label="Cuenta de usuario">
-      {auth.status === 'loading' && <span role="status">Comprobando sesión…</span>}
+    <nav className="account-bar" aria-label={t('catalogue.userAccount')}>
+      {auth.status === 'loading' && <span role="status">{t('catalogue.checkingSession')}</span>}
       {auth.status === 'anonymous' && (
         <>
           <Link className="account-link" to="/login">
-            Iniciar sesión
+            {' '}
+            {t('catalogue.signIn')}{' '}
           </Link>
           <Link className="account-link account-link--primary" to="/register">
-            Registrarse
+            {' '}
+            {t('catalogue.register')}{' '}
           </Link>
         </>
       )}
@@ -41,10 +46,10 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
             {(close) => (
               <>
                 <Link to="/upload" onClick={close}>
-                  Subir vídeo
+                  {t('catalogue.uploadVideo')}
                 </Link>
                 <Link to="/videos/new" onClick={close}>
-                  Registrar vídeo existente
+                  {t('catalogue.registerExistingVideo')}
                 </Link>
               </>
             )}
@@ -56,13 +61,13 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
             {(close) => (
               <>
                 <Link to="/profile" onClick={close}>
-                  Mi perfil
+                  {t('catalogue.myProfile')}
                 </Link>
                 <Link to="/subscriptions" onClick={close}>
-                  Mis suscripciones
+                  {subscriptionMessages().subscriptions}
                 </Link>
                 <button type="button" onClick={() => void logout().finally(close)}>
-                  Cerrar sesión
+                  {t('catalogue.signOut')}
                 </button>
               </>
             )}
@@ -71,13 +76,14 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
       )}
       {auth.status === 'error' && (
         <>
-          <span>Sesión sin comprobar</span>
+          <span>{t('catalogue.sessionNotChecked')}</span>
           <button className="account-link" type="button" onClick={() => void auth.refresh()}>
-            Reintentar sesión
+            {' '}
+            {t('catalogue.retrySession')}{' '}
           </button>
         </>
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{localizeMessage(error)}</p>}
     </nav>
   );
 }
