@@ -2496,3 +2496,38 @@
   box-sizing: border-box;
   overflow-wrap: anywhere;
 }
+
+/* Profile page: one container sets the width; every block fills it, with the same edges and spacing. */
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-sizing: border-box;
+  width: min(92%, 64rem);
+  margin: 0.5rem auto 3rem;
+}
+.profile-page > * {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+}
+.profile-page .profile-form {
+  max-width: none;
+}
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.profile-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 720px) {
+  .profile-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
