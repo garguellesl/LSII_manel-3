@@ -126,3 +126,13 @@ Local change on feature/add_documentacion_sprint-4: reaction controls expose a n
 ## RF-04 player recommendations
 
 Local feature branch `feat/improve-videoplay-page-buttons-UIX` adds a public, session-aware recommendations endpoint capped at eight. The player measures five rendered description lines and previews the three most-liked comments in portrait. V10 adds audience eligibility with a legacy default of UNCLASSIFIED. [Scope and verification](tasks/rf04-player-recommendations.md).
+
+## RF-08 popularity search (2026-11-25)
+
+Local changes on `feat/improve-sorting-video`, baseline `3c266c4`: GET /api/videos accepts sort=relevance/likes/views and audience=ALL/CHILDREN/NOT_CHILDREN. Likes use positive ProTube reactions; views use persisted VideoPlay rows, excluding imported JSON counters and watch history. Explicit popularity ordering precedes SQL pagination with ID ascending ties, exact tag OR/text AND and shared row/count predicates. Existing default relevance and batched summary queries are preserved. V10 audience is read without assigning/changing classifications; ALL includes UNCLASSIFIED. Unknown choices return 400; newest/oldest remain RF-09.
+
+App catalogue controls use q/repeated tag/audience/sort/page in the URL, reset page on criterion changes and restore state on reload/back/forward. useAllVideos includes sort/audience in request identity and cancellation. Local Maven verification, frontend build/lint/tests and four isolated Chromium search flows passed; see [RF-08 evidence and limits](tasks/rf08-search-sorting.md). No shared deployment or merge claim.
+
+User-requested UI refinement: catalogue audience selector offers only All audiences and For children. Tags, audience and sorting controls render only at `/`; other routes retain only the text search controls. Legacy NOT_CHILDREN frontend URLs normalize to ALL; persisted classifications and the backend API are unchanged.
+
+Search bar placement refinement: text search now renders at `/` and numeric `/videos/:id` playback routes; login, register, profile/avatar settings and other routes omit it. Frontend build/lint and 261 tests plus updated-assets Chromium navigation passed; see RF-08 task evidence.

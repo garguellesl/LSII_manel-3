@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { getEnv } from './utils/Env';
+import type { SearchSort, Audience } from './utils/searchCriteria';
 
 type LoadingState = 'loading' | 'success' | 'error';
 export type VideoSummary = {
@@ -21,13 +22,21 @@ export type VideoPage = {
 const VIDEOS_URL = `${getEnv().API_BASE_URL}/videos`;
 const NO_TAGS: string[] = [];
 
-export function useAllVideos(query: string, page: number, tags: string[] = NO_TAGS) {
+export function useAllVideos(
+  query: string,
+  page: number,
+  tags: string[] = NO_TAGS,
+  sort: SearchSort = 'relevance',
+  audience: Audience = 'ALL'
+) {
   const q = query.trim();
   const tagKey = JSON.stringify([...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))].sort());
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{
     q: string;
     tagKey: string;
+    sort: SearchSort;
+    audience: Audience;
     page: number;
     attempt: number;
     loading: LoadingState;
@@ -39,6 +48,8 @@ export function useAllVideos(query: string, page: number, tags: string[] = NO_TA
   }>({
     q: '',
     tagKey: '[]',
+    sort: 'relevance',
+    audience: 'ALL',
     page: 0,
     attempt: 0,
     loading: 'loading',
@@ -57,7 +68,14 @@ export function useAllVideos(query: string, page: number, tags: string[] = NO_TA
       async () => {
         try {
           const response = await axios.get<VideoPage>(VIDEOS_URL, {
-            params: { q, page, size: 24, ...(filters.length > 0 ? { tag: filters } : {}) },
+            params: {
+              q,
+              page,
+              size: 24,
+              ...(filters.length > 0 ? { tag: filters } : {}),
+              ...(sort !== 'relevance' ? { sort } : {}),
+              ...(audience !== 'ALL' ? { audience } : {}),
+            },
             paramsSerializer: { indexes: null },
             signal: controller.signal,
           });
@@ -65,6 +83,8 @@ export function useAllVideos(query: string, page: number, tags: string[] = NO_TA
             setResult({
               q,
               tagKey,
+              sort,
+              audience,
               page,
               attempt,
               loading: 'success',
@@ -79,6 +99,8 @@ export function useAllVideos(query: string, page: number, tags: string[] = NO_TA
             setResult({
               q,
               tagKey,
+              sort,
+              audience,
               page,
               attempt,
               loading: 'error',
@@ -97,9 +119,15 @@ export function useAllVideos(query: string, page: number, tags: string[] = NO_TA
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [q, tagKey, page, attempt]);
+  }, [q, tagKey, page, sort, audience, attempt]);
 
-  const current = result.q === q && result.tagKey === tagKey && result.page === page && result.attempt === attempt;
+  const current =
+    result.q === q &&
+    result.tagKey === tagKey &&
+    result.page === page &&
+    result.sort === sort &&
+    result.audience === audience &&
+    result.attempt === attempt;
   return {
     loading: current ? result.loading : ('loading' as LoadingState),
     value: current ? result.value : [],
