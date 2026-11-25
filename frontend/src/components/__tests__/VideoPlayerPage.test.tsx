@@ -86,6 +86,15 @@ const renderPlayer = (path = '/videos/7', auth: AuthValue = buildAuth()) =>
 const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status } });
 
+it('keeps the player video in the page by disabling browser picture-in-picture', async () => {
+  mockedAxios.get.mockImplementation((url: string) =>
+    Promise.resolve({ data: url.endsWith('/reaction') ? { liked: false, disliked: false } : videoDetail })
+  );
+  const { container } = renderPlayer('/videos/7', buildAuth({ status: 'authenticated', user: otherUser }));
+  await screen.findByRole('button', { name: 'Like 0' });
+  expect(container.querySelector('video')).toHaveAttribute('disablepictureinpicture');
+});
+
 describe('VideoPlayerPage', () => {
   it('exposes a named reaction group and selected state without changing button names', async () => {
     mockedAxios.get.mockImplementation((url: string) =>
