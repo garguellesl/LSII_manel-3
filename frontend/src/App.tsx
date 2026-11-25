@@ -1,5 +1,4 @@
 import { localizeMessage, t, useLocale } from './i18n/locale';
-import { useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -37,9 +36,6 @@ function App() {
 
 function AppRoutes() {
   useLocale();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [page, setPage] = useState(0);
   const location = useLocation();
   const isSearchPage = location.pathname === '/';
   const showSearchBar = isSearchPage || /^\/videos\/\d+$/.test(location.pathname);
@@ -148,10 +144,8 @@ interface ContentAppProps {
   onPageChange: (page: number) => void;
 }
 
-function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) {
-  useLocale();
-  const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page, tags);
 function ContentApp({ searchQuery, tags, page, sort, audience, onPageChange }: ContentAppProps) {
+  useLocale();
   const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(
     searchQuery,
     page,
@@ -192,10 +186,8 @@ function ContentApp({ searchQuery, tags, page, sort, audience, onPageChange }: C
         return (
           <>
             <p className="empty-search-message" role="status">
-              {tags.length > 0
-                ? t('catalogue.noVideosFoundMatchingTheSelectedFilters')
               {tags.length > 0 || audience !== 'ALL'
-                ? 'No videos found matching the selected filters.'
+                ? t('catalogue.noVideosFoundMatchingTheSelectedFilters')
                 : searchQuery.trim()
                   ? t('catalogue.noResults', { query: searchQuery })
                   : t('catalogue.noVideosAreAvailable')}

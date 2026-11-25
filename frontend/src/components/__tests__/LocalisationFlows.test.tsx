@@ -70,7 +70,7 @@ describe('Localisation user flows', () => {
       client.currentUser.mockResolvedValue({ ...user, preferredLanguage });
       page('/');
       await waitFor(() => expect(document.documentElement.lang).toBe(preferredLanguage));
-      const selector = screen.getByRole('combobox');
+      const selector = screen.getByRole('combobox', { name: /Idioma|Language/ });
       expect(selector).toHaveValue(preferredLanguage);
       fireEvent.change(selector, { target: { value: 'ca' } });
       await act(async () => {
