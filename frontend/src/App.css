@@ -2212,7 +2212,7 @@
   padding: 0;
   border: 2px solid transparent;
   border-radius: 50%;
-  background: transparent;
+  background: var(--pt-inset);
   color: var(--pt-text);
   cursor: pointer;
 }
@@ -2539,6 +2539,8 @@
   .profile-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
 .language-selector {
   display: flex;
   align-items: center;
@@ -2561,4 +2563,15 @@
 }
 .header-brand-controls {
   flex-wrap: wrap;
+}
+
+/* Header bar stays inside the viewport: its controls wrap instead of pushing the page wider. */
+.header-toolbar {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+.header-brand-controls {
+  min-width: 0;
+  max-width: 100%;
 }

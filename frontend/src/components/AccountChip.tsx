@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { t, useLocale } from '../i18n/locale';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from './UserAvatar';
 
 // Home header: only the profile avatar. Account details live behind it, not in the bar.
 export function AccountChip() {
+  useLocale();
   const auth = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -88,13 +90,13 @@ export function AccountChip() {
           </dl>
           <div className="account-chip-actions">
             <Link to="/profile" onClick={() => setOpen(false)}>
-              Modificar perfil
+              {t('catalogue.myProfile')}
             </Link>
             <Link to="/upload" onClick={() => setOpen(false)}>
-              Subir vídeo
+              {t('catalogue.uploadVideo')}
             </Link>
             <button type="button" onClick={() => void logout()}>
-              Cerrar sesión
+              {t('catalogue.signOut')}
             </button>
           </div>
           {error && <p role="alert">{error}</p>}

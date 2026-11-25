@@ -45,7 +45,7 @@ describe('AccountChip', () => {
     expect(button).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('ana@example.com')).toBeInTheDocument();
     expect(screen.getByText('@ana')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Modificar perfil' })).toHaveAttribute('href', '/profile');
+    expect(screen.getByRole('link', { name: 'Mi perfil' })).toHaveAttribute('href', '/profile');
   });
 
   it('signs out from the panel and keeps the panel closed on Escape', () => {

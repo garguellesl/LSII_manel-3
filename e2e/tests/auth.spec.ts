@@ -20,6 +20,7 @@ test('register with automatic session, view profile, logout, then log back in', 
 
   // Registro con sesión automática: redirige a "/" ya autenticado, sin pasar por login.
   await expect(page).toHaveURL('/');
+  await page.getByRole('button', { name: /^Cuenta de / }).click();
   await expect(page.getByRole('link', { name: 'Mi perfil' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Mi perfil' }).click();
