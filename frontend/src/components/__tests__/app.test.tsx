@@ -724,8 +724,8 @@ describe('App Component', () => {
     );
     await screen.findByText('No hay vídeos disponibles.');
     expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
-    fireEvent.click(screen.getByRole('link', { name: 'Registrarse' }));
-    await screen.findByRole('button', { name: 'Crear cuenta' });
+    fireEvent.click(screen.getByRole('link', { name: 'Iniciar sesión' }));
+    await screen.findByRole('heading', { name: 'Bienvenido de nuevo' });
     expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
   });
 
@@ -738,8 +738,8 @@ describe('App Component', () => {
     );
     await screen.findByText('No hay vídeos disponibles.');
     expect(container.querySelector('.app-flash')).toHaveTextContent('Vídeo eliminado.');
-    fireEvent.click(screen.getByRole('link', { name: 'Registrarse' }));
-    await screen.findByRole('button', { name: 'Crear cuenta' });
+    fireEvent.click(screen.getByRole('link', { name: 'Iniciar sesión' }));
+    await screen.findByRole('heading', { name: 'Bienvenido de nuevo' });
     fireEvent.click(screen.getByRole('link', { name: 'Ir al inicio' }));
     await screen.findByText('No hay vídeos disponibles.');
     expect(container.querySelector('.app-flash')).not.toHaveClass('app-flash--visible');
