@@ -310,8 +310,8 @@ describe('Authentication navigation and pages', () => {
     expect(channel.getByText('Comentarios').previousSibling).toHaveTextContent('5');
     expect(channel.getByRole('link', { name: 'My first video' })).toHaveAttribute('href', '/videos/7');
     const history = within(screen.getByRole('list', { name: 'Historial reciente' }));
-    expect(history.getAllByRole('link')).toHaveLength(5);
-    expect(history.getByRole('link', { name: 'Watched 1' })).toHaveAttribute('href', '/videos/20');
+    expect(history.getAllByRole('link')).toHaveLength(7);
+    expect(history.getByRole('link', { name: /Watched 1/ })).toHaveAttribute('href', '/videos/20');
     expect(users.analytics).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
     expect(users.watchHistory).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
   });

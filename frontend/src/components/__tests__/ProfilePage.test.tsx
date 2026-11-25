@@ -232,7 +232,7 @@ describe('ProfilePage', () => {
     expect(within(channel).getByText('5')).toBeInTheDocument();
     expect(within(channel).getByRole('link', { name: 'Ver analíticas' })).toHaveAttribute('href', '/analytics');
     expect(within(channel).getByRole('link', { name: 'Primero' })).toHaveAttribute('href', '/videos/1');
-    expect(screen.getByRole('link', { name: 'Visto' })).toHaveAttribute('href', '/videos/5');
+    expect(screen.getByRole('link', { name: /^Visto/ })).toHaveAttribute('href', '/videos/5');
   });
 
   it('reports an activity failure without hiding the profile and retries it', async () => {

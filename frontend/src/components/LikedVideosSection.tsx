@@ -1,11 +1,10 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useCarousel } from '../useCarousel';
 import { useLikedVideos } from '../useLikedVideos';
 import { toMediaUrl } from '../utils/media';
+import { CarouselNav } from './CarouselNav';
+import './carousel.css';
 import './likedVideos.css';
-
-// Stable reference: the hook refetches whenever this callback changes identity.
-const keepFirstPage = () => undefined;
 
 // The profile shows the latest likes as a horizontal carousel; the full, paginated list lives at /liked.
 export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boolean }) {
@@ -22,10 +21,13 @@ export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boo
   );
 }
 
+// Stable reference: the hook refetches whenever this callback changes identity.
+const keepFirstPage = () => undefined;
+
 function LikedCarousel() {
   // The first page holds the most recent likes; the carousel never pages.
   const { data, retry } = useLikedVideos(0, keepFirstPage);
-  const track = useRef<HTMLUListElement>(null);
+  const { track, scrollBy } = useCarousel<HTMLUListElement>();
 
   if (data === undefined) return <Loading />;
   if (data === null) {
@@ -48,38 +50,29 @@ function LikedCarousel() {
     );
   }
 
-  const scrollBy = (direction: 1 | -1) => {
-    const element = track.current;
-    if (!element) return;
-    element.scrollBy({ left: direction * element.clientWidth * 0.8, behavior: 'smooth' });
-  };
-
   return (
     <>
-      <ul ref={track} className="liked-carousel" tabIndex={0} aria-label="Últimos vídeos con Me gusta">
+      <ul ref={track} className="carousel-track" tabIndex={0} aria-label="Últimos vídeos con Me gusta">
         {data.content.map((video) => (
           <li key={video.id}>
-            <Link to={`/videos/${video.id}`} className="liked-video-link">
+            <Link to={`/videos/${video.id}`} className="carousel-card">
               {video.thumbnailUrl ? (
-                <img className="liked-video-thumbnail" src={toMediaUrl(video.thumbnailUrl)} alt="" loading="lazy" />
+                <img className="carousel-card-thumbnail" src={toMediaUrl(video.thumbnailUrl)} alt="" loading="lazy" />
               ) : (
-                <span className="liked-video-thumbnail" aria-hidden="true">
+                <span className="carousel-card-thumbnail" aria-hidden="true">
                   ▶
                 </span>
               )}
-              <span>{video.title}</span>
+              <span className="carousel-card-title">{video.title}</span>
             </Link>
           </li>
         ))}
       </ul>
-      <div className="liked-carousel-nav">
-        <button type="button" className="profile-action" aria-label="Ver los anteriores" onClick={() => scrollBy(-1)}>
-          ‹ Anteriores
-        </button>
-        <button type="button" className="profile-action" aria-label="Ver los siguientes" onClick={() => scrollBy(1)}>
-          Siguientes ›
-        </button>
-      </div>
+      <CarouselNav
+        onPrevious={() => scrollBy(-1)}
+        onNext={() => scrollBy(1)}
+        labels={{ previous: 'Ver los anteriores', next: 'Ver los siguientes' }}
+      />
     </>
   );
 }

@@ -6,10 +6,14 @@ import { useProfileActivity } from '../useProfileActivity';
 import type { User } from '../utils/authClient';
 import { toMediaUrl } from '../utils/media';
 import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar, validateBanner } from '../utils/userClient';
+import { useCarousel } from '../useCarousel';
+import type { WatchHistoryEntry } from '../utils/userClient';
+import { CarouselNav } from './CarouselNav';
 import { LikedVideosSection } from './LikedVideosSection';
 import { UserAvatar } from './UserAvatar';
+import './carousel.css';
 
-const RECENT_HISTORY = 5;
+const RECENT_HISTORY = 10;
 
 export function ProfilePage() {
   const auth = useAuth();
@@ -466,18 +470,42 @@ function ProfileActivity({ userId }: { userId: number }) {
             Aún no has visto ningún vídeo. <Link to="/">Explora el catálogo</Link>
           </p>
         ) : (
-          <ul className="profile-list" aria-label="Historial reciente">
-            {recent.map((entry) => (
-              <li key={entry.id}>
-                <Link to={`/videos/${entry.videoId}`}>{entry.videoTitle}</Link>
-                <span>
-                  {new Date(entry.watchedAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <RecentHistory entries={recent} />
         )}
       </section>
     </div>
+  );
+}
+
+// Recently watched videos as a smaller carousel; each video appears once (the server keeps the latest view).
+function RecentHistory({ entries }: { entries: WatchHistoryEntry[] }) {
+  const { track, scrollBy } = useCarousel<HTMLUListElement>();
+  return (
+    <>
+      <ul ref={track} className="carousel-track carousel-track--small" tabIndex={0} aria-label="Historial reciente">
+        {entries.map((entry) => (
+          <li key={entry.id}>
+            <Link to={`/videos/${entry.videoId}`} className="carousel-card">
+              {entry.thumbnailUrl ? (
+                <img className="carousel-card-thumbnail" src={toMediaUrl(entry.thumbnailUrl)} alt="" loading="lazy" />
+              ) : (
+                <span className="carousel-card-thumbnail" aria-hidden="true">
+                  ▶
+                </span>
+              )}
+              <span className="carousel-card-title">{entry.videoTitle}</span>
+              <span className="carousel-card-meta">
+                {new Date(entry.watchedAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <CarouselNav
+        onPrevious={() => scrollBy(-1)}
+        onNext={() => scrollBy(1)}
+        labels={{ previous: 'Ver los anteriores vídeos vistos', next: 'Ver los siguientes vídeos vistos' }}
+      />
+    </>
   );
 }

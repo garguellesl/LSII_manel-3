@@ -1,0 +1,91 @@
+/* Shared horizontal carousel: cards scroll sideways inside their column and snap to each card. */
+.carousel-track {
+  display: flex;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 1rem 0 0;
+  padding: 0.25rem 0 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+}
+
+.carousel-track > li {
+  flex: 0 0 min(13rem, 72%);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+/* Smaller variant for secondary blocks such as recently watched videos. */
+.carousel-track--small {
+  gap: 0.6rem;
+}
+
+.carousel-track--small > li {
+  flex-basis: min(9.5rem, 64%);
+}
+
+.carousel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--pt-border-subtle);
+  border-radius: 0.625rem;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.carousel-card:hover .carousel-card-title,
+.carousel-card:focus-visible .carousel-card-title {
+  text-decoration: underline;
+}
+
+.carousel-card:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 2px;
+}
+
+.carousel-card-thumbnail {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.4rem;
+  object-fit: cover;
+  background: var(--pt-inset);
+  color: var(--pt-secondary);
+}
+
+.carousel-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.carousel-track--small .carousel-card-title {
+  font-size: 0.85rem;
+}
+
+.carousel-card-meta {
+  color: var(--pt-muted);
+  font-size: 0.8rem;
+}
+
+.carousel-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-track {
+    scroll-behavior: auto;
+  }
+}
