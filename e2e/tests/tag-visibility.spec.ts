@@ -37,8 +37,8 @@ test.describe('tag visibility for non-owners and anonymous visitors', () => {
     await page.goto(`/videos/${video.id}`);
 
     await expect(page.getByText('sample-tag')).toBeVisible();
-    await expect(page.getByLabel('Add a tag')).toHaveCount(0);
-    await expect(page.getByLabel('Remove tag sample-tag')).toHaveCount(0);
+    await expect(page.getByLabel("Añadir etiqueta")).toHaveCount(0);
+    await expect(page.getByLabel("Eliminar etiqueta sample-tag")).toHaveCount(0);
   });
 
   test('an anonymous visitor sees the tags read-only, without the editor', async ({ browser, baseURL }) => {
@@ -50,7 +50,7 @@ test.describe('tag visibility for non-owners and anonymous visitors', () => {
     await page.goto(`/videos/${video.id}`);
 
     await expect(page.getByText('sample-tag')).toBeVisible();
-    await expect(page.getByLabel('Add a tag')).toHaveCount(0);
-    await expect(page.getByLabel('Remove tag sample-tag')).toHaveCount(0);
+    await expect(page.getByLabel("Añadir etiqueta")).toHaveCount(0);
+    await expect(page.getByLabel("Eliminar etiqueta sample-tag")).toHaveCount(0);
   });
 });

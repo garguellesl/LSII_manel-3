@@ -12,6 +12,31 @@ import java.util.Optional;
 
 public interface VideoRepository extends JpaRepository<Video, Long>, VideoSearchRepository {
 
+    @Query(value = """
+            with recent as (
+                select video_id from watch_history where user_id = :actor
+                order by watched_at desc, id desc limit 20
+            ), preferences as (
+                select tag_id, count(*) as weight from recent
+                join video_tags using (video_id) group by tag_id
+            ), source_tags as (
+                select tag_id from video_tags where video_id = :id
+            )
+            select v.* from videos v cross join videos source
+            left join video_tags vt on vt.video_id = v.id
+            left join preferences p on p.tag_id = vt.tag_id
+            left join source_tags st on st.tag_id = vt.tag_id
+            where source.id = :id and v.id <> source.id
+              and (:audience = 'ALL' or v.audience = :audience)
+            group by v.id, source.category
+            order by coalesce(sum(p.weight), 0) desc, count(st.tag_id) desc,
+                     case when v.category = source.category then 0 else 1 end,
+                     v.created_at desc, v.id asc
+            limit 8
+            """, nativeQuery = true)
+    List<Video> recommendations(@Param("id") Long id, @Param("actor") Long actor,
+                                @Param("audience") String audience);
+
     boolean existsByMediaPath(String mediaPath);
 
     Optional<Video> findByMediaPath(String mediaPath);

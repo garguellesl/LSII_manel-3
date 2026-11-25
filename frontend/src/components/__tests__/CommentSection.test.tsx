@@ -61,14 +61,16 @@ describe('CommentSection', () => {
     client.list.mockResolvedValue([]);
     const signedIn = auth();
     const { rerender } = render(view(signedIn));
-    await screen.findByText('No comments yet. Start the discussion.');
-    fireEvent.change(screen.getByLabelText('Add a comment'), { target: { value: 'Keep while switching windows' } });
+    await screen.findByText('Todavía no hay comentarios. Inicia la conversación.');
+    fireEvent.change(screen.getByLabelText('Añadir un comentario'), {
+      target: { value: 'Keep while switching windows' },
+    });
     rerender(view({ ...signedIn, status: 'loading', user: null }));
-    expect(screen.getByLabelText('Add a comment')).toHaveValue('Keep while switching windows');
-    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(screen.getByLabelText('Añadir un comentario')).toHaveValue('Keep while switching windows');
+    expect(screen.getByRole('button', { name: 'Guardando…' })).toBeDisabled();
     rerender(view(signedIn));
-    expect(screen.getByLabelText('Add a comment')).toHaveValue('Keep while switching windows');
-    expect(screen.getByRole('button', { name: 'Post comment' })).toBeEnabled();
+    expect(screen.getByLabelText('Añadir un comentario')).toHaveValue('Keep while switching windows');
+    expect(screen.getByRole('button', { name: 'Publicar comentario' })).toBeEnabled();
     expect(client.list).toHaveBeenCalledTimes(1);
   });
 
@@ -81,12 +83,12 @@ describe('CommentSection', () => {
     const request = deferred<Comment[]>();
     client.list.mockReturnValueOnce(request.promise).mockResolvedValueOnce([]);
     render(view(auth(false)));
-    expect(screen.getByRole('status')).toHaveTextContent('Loading comments');
-    expect(screen.queryByText('No comments yet. Start the discussion.')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando comentarios');
+    expect(screen.queryByText('Todavía no hay comentarios. Inicia la conversación.')).not.toBeInTheDocument();
     await act(async () => request.reject(new Error('offline')));
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not load comments');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry comments' }));
-    expect(await screen.findByText('No comments yet. Start the discussion.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se han podido cargar los comentarios');
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar comentarios' }));
+    expect(await screen.findByText('Todavía no hay comentarios. Inicia la conversación.')).toBeInTheDocument();
   });
 
   it('lets visitors read safe text and likes without mutation controls', async () => {
@@ -95,27 +97,27 @@ describe('CommentSection', () => {
     const { container } = render(view(auth(false)));
     expect(await screen.findByText(text)).toBeInTheDocument();
     expect(container.querySelector('script, img')).toBeNull();
-    expect(screen.getByText('2 likes')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Sign in/ })).toHaveAttribute('href', '/login');
-    expect(screen.queryByRole('button', { name: 'Reply' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByText('2 me gusta')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Iniciar sesión/ })).toHaveAttribute('href', '/login');
+    expect(screen.queryByRole('button', { name: 'Responder' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
 
   it('validates blank text, preserves failed drafts and publishes a root', async () => {
     client.create.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(comment(1, { text: 'My draft' }));
     render(view());
-    await screen.findByText('No comments yet. Start the discussion.');
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter a comment');
+    await screen.findByText('Todavía no hay comentarios. Inicia la conversación.');
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Escribe un comentario');
     expect(client.create).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Add a comment'), { target: { value: 'My draft' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
-    await screen.findByText(/Could not save your changes/);
-    expect(screen.getByLabelText('Add a comment')).toHaveValue('My draft');
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
+    fireEvent.change(screen.getByLabelText('Añadir un comentario'), { target: { value: 'My draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }));
+    await screen.findByText(/No se han podido guardar los cambios/);
+    expect(screen.getByLabelText('Añadir un comentario')).toHaveValue('My draft');
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }));
     expect(await screen.findByText('My draft')).toBeInTheDocument();
     expect(client.create).toHaveBeenLastCalledWith(7, 'My draft', null);
-    expect(screen.getByLabelText('Add a comment')).toHaveValue('');
+    expect(screen.getByLabelText('Añadir un comentario')).toHaveValue('');
   });
 
   it('supports replies to replies, stable order, collapse and bounded indentation', async () => {
@@ -138,14 +140,14 @@ describe('CommentSection', () => {
       'comment-5',
     ]);
     expect(screen.getByText('Comment 5').closest('article')).toHaveStyle({ marginInlineStart: '2.25rem' });
-    fireEvent.click(item('Comment 5').getByRole('button', { name: 'Reply' }));
-    fireEvent.change(screen.getByLabelText('Reply to Alice'), { target: { value: 'Deep reply' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Post reply' }));
+    fireEvent.click(item('Comment 5').getByRole('button', { name: 'Responder' }));
+    fireEvent.change(screen.getByLabelText('Responder a Alice'), { target: { value: 'Deep reply' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar respuesta' }));
     await screen.findByText('Deep reply');
     expect(client.create).toHaveBeenCalledWith(7, 'Deep reply', 5);
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Hide replies' }));
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Ocultar respuestas' }));
     expect(screen.queryByText('Deep reply')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Show replies' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuestas' }));
     expect(screen.getByText('Deep reply')).toBeInTheDocument();
   });
 
@@ -154,17 +156,17 @@ describe('CommentSection', () => {
     client.edit.mockResolvedValue(comment(1, { text: 'Updated text', updatedAt: '2026-01-02T10:00:00' }));
     render(view());
     await screen.findByText('Comment 2');
-    expect(item('Comment 2').queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Edit' }));
-    expect(screen.getByLabelText('Edit comment')).toHaveValue('Comment 1');
-    fireEvent.change(screen.getByLabelText('Edit comment'), { target: { value: 'discard' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(item('Comment 2').queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Editar' }));
+    expect(screen.getByLabelText('Editar comentario')).toHaveValue('Comment 1');
+    fireEvent.change(screen.getByLabelText('Editar comentario'), { target: { value: 'discard' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(client.edit).not.toHaveBeenCalled();
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Edit' }));
-    fireEvent.change(screen.getByLabelText('Edit comment'), { target: { value: 'Updated text' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save comment' }));
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Editar' }));
+    fireEvent.change(screen.getByLabelText('Editar comentario'), { target: { value: 'Updated text' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar comentario' }));
     await screen.findByText('Updated text');
-    expect(screen.getByText('Edited')).toBeInTheDocument();
+    expect(screen.getByText('Editado')).toBeInTheDocument();
     expect(screen.getAllByRole('article')[0]).toHaveTextContent('Updated text');
   });
 
@@ -173,15 +175,15 @@ describe('CommentSection', () => {
     client.remove.mockResolvedValue(undefined);
     render(view());
     await screen.findByText('Comment 2');
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Eliminar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(client.remove).not.toHaveBeenCalled();
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
-    await screen.findByText('Comment deleted');
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Eliminar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar eliminación' }));
+    await screen.findByText('Comentario eliminado');
     expect(screen.getByText('Comment 2')).toBeInTheDocument();
-    expect(item('Comment deleted').getAllByRole('button')).toHaveLength(1);
-    expect(item('Comment deleted').getByRole('button', { name: 'Hide replies' })).toBeInTheDocument();
+    expect(item('Comentario eliminado').getAllByRole('button')).toHaveLength(1);
+    expect(item('Comentario eliminado').getByRole('button', { name: 'Ocultar respuestas' })).toBeInTheDocument();
   });
 
   it('waits for confirmed like state and prevents repeated pending clicks', async () => {
@@ -192,31 +194,36 @@ describe('CommentSection', () => {
       .mockResolvedValueOnce({ commentId: 1, likedByMe: false, likesCount: 0 });
     render(view());
     await screen.findByText('Comment 1');
-    const button = item('Comment 1').getByRole('button', { name: 'Like comment' });
+    const button = item('Comment 1').getByRole('button', { name: 'Me gusta el comentario' });
     fireEvent.click(button);
     fireEvent.click(button);
     expect(client.setLike).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
     await act(async () => like.resolve({ commentId: 1, likedByMe: true, likesCount: 1 }));
-    expect(item('Comment 1').getByRole('button', { name: 'Unlike comment' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Unlike comment' }));
-    await waitFor(() => expect(item('Comment 1').getByRole('button', { name: 'Like comment' })).toHaveTextContent('0'));
+    expect(item('Comment 1').getByRole('button', { name: 'Quitar Me gusta del comentario' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(item('Comment 1').getByRole('button', { name: 'Quitar Me gusta del comentario' }));
+    await waitFor(() =>
+      expect(item('Comment 1').getByRole('button', { name: 'Me gusta el comentario' })).toHaveTextContent('0')
+    );
   });
 
   it('refreshes deleted conflicts and asks the auth provider to refresh an expired session', async () => {
     const session = auth();
     client.list
       .mockResolvedValueOnce([comment(1)])
-      .mockResolvedValueOnce([comment(1, { deleted: true, text: 'Comment deleted', canEdit: false })]);
+      .mockResolvedValueOnce([comment(1, { deleted: true, text: 'Comentario eliminado', canEdit: false })]);
     client.setLike.mockRejectedValue({ response: { status: 409 } });
     client.create.mockRejectedValue({ response: { status: 401 } });
     render(view(session));
     await screen.findByText('Comment 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Like comment' }));
-    await screen.findByText('Comment deleted');
-    expect(screen.getByRole('alert')).toHaveTextContent('discussion has been refreshed');
-    fireEvent.change(screen.getByLabelText('Add a comment'), { target: { value: 'draft' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Me gusta el comentario' }));
+    await screen.findByText('Comentario eliminado');
+    expect(screen.getByRole('alert')).toHaveTextContent('La conversación se ha actualizado');
+    fireEvent.change(screen.getByLabelText('Añadir un comentario'), { target: { value: 'draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }));
     await waitFor(() => expect(session.refresh).toHaveBeenCalled());
   });
 
@@ -239,12 +246,12 @@ describe('CommentSection', () => {
     client.create.mockReturnValue(write.promise);
     const { rerender } = render(view());
     await screen.findByText('Comment 1');
-    fireEvent.change(screen.getByLabelText('Add a comment'), { target: { value: 'old draft' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
+    fireEvent.change(screen.getByLabelText('Añadir un comentario'), { target: { value: 'old draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }));
     rerender(view(auth(false)));
-    await screen.findByRole('link', { name: /Sign in/ });
+    await screen.findByRole('link', { name: /Iniciar sesión/ });
     await act(async () => write.resolve(comment(2, { text: 'old draft' })));
     expect(screen.queryByText('old draft')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
 });

@@ -23,6 +23,18 @@ describe('userClient', () => {
     expect(http.get).toHaveBeenCalledWith('other/users/4/watch-history', { withCredentials: true, signal: undefined });
   });
 
+  it('requests a liked videos page using the session and no account identifier', async () => {
+    const page = { content: [], page: 2, size: 24, totalElements: 0, hasNext: false };
+    const signal = new AbortController().signal;
+    http.get.mockResolvedValue({ data: page });
+    expect(await userClient.likedVideos(2, signal)).toEqual(page);
+    expect(http.get).toHaveBeenCalledWith('other/users/me/liked-videos', {
+      withCredentials: true,
+      params: { page: 2 },
+      signal,
+    });
+  });
+
   it('propagates request failures', async () => {
     http.get.mockRejectedValue(new Error('Offline'));
     await expect(userClient.analytics(4)).rejects.toThrow('Offline');

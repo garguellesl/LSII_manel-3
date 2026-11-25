@@ -26,8 +26,8 @@ test.describe('accessible video deletion', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText('Vídeo eliminado.')).toBeVisible();
 
-    await page.getByRole('searchbox', { name: 'Search videos by title or description' }).fill(video.title);
-    await expect(page.getByText(`No videos found matching "${video.title}".`)).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Buscar vídeos por título o descripción' }).fill(video.title);
+    await expect(page.getByText(`No hay vídeos que coincidan con «${video.title}».`)).toBeVisible();
 
     expect((await request.get(`/api/videos/${video.id}`)).status()).toBe(404);
   });

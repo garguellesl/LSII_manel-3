@@ -8,6 +8,7 @@ import type { AuthValue } from '../../auth/AuthContext';
 // The player keeps the real CommentSection here: RF-5 requires a failed discussion
 // to look different from a video that simply has no comments yet.
 jest.mock('axios');
+jest.mock('../Recommendations', () => ({ Recommendations: () => null }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const videoDetail = {
@@ -57,9 +58,9 @@ describe('VideoPlayerPage discussion states', () => {
     route(() => Promise.reject(new Error('Network Error')));
     renderPlayer();
 
-    expect(await screen.findByText('Could not load comments.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry comments' })).toBeInTheDocument();
-    expect(screen.queryByText('No comments yet. Start the discussion.')).not.toBeInTheDocument();
+    expect(await screen.findByText('No se han podido cargar los comentarios.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar comentarios' })).toBeInTheDocument();
+    expect(screen.queryByText('Todavía no hay comentarios. Inicia la conversación.')).not.toBeInTheDocument();
     // The video itself loaded: the failed section must not look like a page failure.
     expect(screen.getByRole('heading', { level: 1, name: 'Uptown Funk' })).toBeInTheDocument();
     expect(screen.queryByText(/Error fetching video/)).not.toBeInTheDocument();
@@ -69,8 +70,8 @@ describe('VideoPlayerPage discussion states', () => {
     route(() => Promise.resolve({ status: 200, data: [] }));
     renderPlayer();
 
-    expect(await screen.findByText('No comments yet. Start the discussion.')).toBeInTheDocument();
-    expect(screen.queryByText('Could not load comments.')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sign in to join the discussion' })).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay comentarios. Inicia la conversación.')).toBeInTheDocument();
+    expect(screen.queryByText('No se han podido cargar los comentarios.')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Iniciar sesión', exact: true })).toHaveAttribute('href', '/login');
   });
 });

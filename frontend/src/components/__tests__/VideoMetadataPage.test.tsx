@@ -209,7 +209,7 @@ describe('Video metadata pages', () => {
     fireEvent.change(screen.getByLabelText('Ruta relativa del archivo'), { target: { value: 'missing.mp4' } });
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Draft title' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-    expect(await screen.findByText('Datos inválidos')).toBeInTheDocument();
+    expect(await screen.findByText('No se ha podido completar la operación. Inténtalo de nuevo.')).toBeInTheDocument();
     expect(screen.getByLabelText('Título')).toHaveValue('Draft title');
   });
 });

@@ -17,6 +17,8 @@ import com.tecnocampus.LS2.protube_back.model.WatchHistoryRequest;
 import com.tecnocampus.LS2.protube_back.model.WatchHistoryResponse;
 import com.tecnocampus.LS2.protube_back.repositories.CommentRepository;
 import com.tecnocampus.LS2.protube_back.repositories.DeletedMediaPathRepository;
+import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository;
+import com.tecnocampus.LS2.protube_back.repositories.CatalogueMetricsRepository.VideoCount;
 import com.tecnocampus.LS2.protube_back.repositories.TagRepository;
 import com.tecnocampus.LS2.protube_back.repositories.UserAccountRepository;
 import com.tecnocampus.LS2.protube_back.repositories.VideoLikeRepository;
@@ -30,7 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
+import com.tecnocampus.LS2.protube_back.model.RecommendedVideo;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Objects;
@@ -42,6 +50,7 @@ import java.util.UUID;
 public class VideoService {
 
     private final VideoRepository videoRepository;
+    private final CatalogueMetricsRepository catalogueMetrics;
     private final UserAccountRepository userAccountRepository;
     private final TagRepository tagRepository;
     private final CommentRepository commentRepository;
@@ -53,7 +62,9 @@ public class VideoService {
     public VideoService(VideoRepository videoRepository, UserAccountRepository userAccountRepository,
                         TagRepository tagRepository, CommentRepository commentRepository,
                         VideoLikeRepository videoLikeRepository, WatchHistoryRepository watchHistoryRepository,
-                        VideoPlayRepository videoPlayRepository, DeletedMediaPathRepository deletedMediaPathRepository) {
+                        VideoPlayRepository videoPlayRepository, DeletedMediaPathRepository deletedMediaPathRepository,
+                        CatalogueMetricsRepository catalogueMetrics) {
+        this.catalogueMetrics = catalogueMetrics;
         this.videoPlayRepository = videoPlayRepository;
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
@@ -71,6 +82,15 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoPage getVideos(String query, List<String> tags, int page, int size) {
+        return getVideos(query, tags, page, size, "relevance", "ALL");
+    }
+
+    @Transactional(readOnly = true)
+    public VideoPage getVideos(String query, List<String> tags, int page, int size, String sort, String audience) {
+        if (!List.of("relevance", "likes", "views").contains(sort)
+                || !List.of("ALL", "CHILDREN", "NOT_CHILDREN").contains(audience)) {
+            throw new IllegalArgumentException("Invalid search sort or audience");
+        }
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
         var filters = tags.stream().filter(Objects::nonNull).map(String::trim)
                 .map(tag -> tag.toLowerCase(Locale.ROOT)).filter(tag -> !tag.isEmpty()).distinct().toList();
@@ -78,9 +98,11 @@ public class VideoService {
             throw new IllegalArgumentException("Expected at most 40 distinct tag filters, each at most 80 characters");
         }
         var pageable = PageRequest.of(page, size);
-        var result = filters.isEmpty() ? videoRepository.search(normalized, pageable)
+        var result = !"relevance".equals(sort) || !"ALL".equals(audience)
+                ? videoRepository.searchFiltered(normalized, filters, sort, audience, pageable)
+                : filters.isEmpty() ? videoRepository.search(normalized, pageable)
                 : videoRepository.searchByTags(normalized, filters, pageable);
-        return new VideoPage(result.getContent().stream().map(this::toSummary).toList(),
+        return new VideoPage(toSummaries(result.getContent()),
                 page, size, result.hasNext(), result.getTotalElements());
     }
 
@@ -176,6 +198,20 @@ public class VideoService {
                 videoLikeRepository.countByVideoIdAndReactionType(videoId, VideoLike.ReactionType.DISLIKE));
     }
 
+    @Transactional(readOnly = true)
+    public List<RecommendedVideo> recommendations(Long id, Long actor, String audience) {
+        if (!List.of("ALL", "CHILDREN", "NOT_CHILDREN").contains(audience)) {
+            throw new IllegalArgumentException("Invalid audience");
+        }
+        if (!videoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Video not found");
+        }
+        return videoRepository.recommendations(id, actor, audience).stream()
+                .map(video -> new RecommendedVideo(
+                        video.getId(), video.getTitle(), urlFor(video.getThumbnailPath())))
+                .toList();
+    }
+
     /**
      * Counts one play per opening of the player page. The client-generated id makes retries and
      * concurrent duplicates harmless. A signed-in viewer also gets one personal history entry
@@ -233,18 +269,33 @@ public class VideoService {
         }
     }
 
-    private VideoSummary toSummary(Video video) {
-        return new VideoSummary(
-                video.getId(),
-                video.getTitle(),
-                urlFor(video.getThumbnailPath()),
-                urlFor(video.getMediaPath()),
-                tagNames(video),
-                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.LIKE),
-                commentRepository.countByVideoIdAndDeletedAtIsNull(video.getId()),
-                videoPlayRepository.countByVideoId(video.getId()),
-                videoLikeRepository.countByVideoIdAndReactionType(video.getId(), VideoLike.ReactionType.DISLIKE)
-        );
+    private List<VideoSummary> toSummaries(List<Video> page) {
+        if (page.isEmpty()) {
+            return List.of();
+        }
+        var ids = page.stream().map(Video::getId).toList();
+        Map<Long, List<String>> tags = new HashMap<>();
+        for (var row : catalogueMetrics.tags(ids)) {
+            tags.computeIfAbsent(row.getVideoId(), key -> new ArrayList<>()).add(row.getName());
+        }
+        tags.values().forEach(names -> names.sort(String::compareTo));
+        var reactions = catalogueMetrics.reactions(ids, VideoLike.ReactionType.LIKE, VideoLike.ReactionType.DISLIKE)
+                .stream().collect(Collectors.toMap(CatalogueMetricsRepository.Reactions::getVideoId, Function.identity()));
+        var comments = countsByVideo(catalogueMetrics.visibleComments(ids));
+        var plays = countsByVideo(catalogueMetrics.plays(ids));
+
+        return page.stream().map(video -> {
+            Long id = video.getId();
+            var reaction = reactions.get(id);
+            return new VideoSummary(id, video.getTitle(), urlFor(video.getThumbnailPath()), urlFor(video.getMediaPath()),
+                    tags.getOrDefault(id, List.of()), reaction == null ? 0 : reaction.getLikes(),
+                    comments.getOrDefault(id, 0L), plays.getOrDefault(id, 0L),
+                    reaction == null ? 0 : reaction.getDislikes());
+        }).toList();
+    }
+
+    private Map<Long, Long> countsByVideo(List<VideoCount> rows) {
+        return rows.stream().collect(Collectors.toMap(VideoCount::getVideoId, VideoCount::getTotal));
     }
 
     private VideoDetail toDetail(Video video) {

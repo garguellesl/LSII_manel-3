@@ -11,7 +11,7 @@ describe('VideoCard', () => {
         </ul>
       </MemoryRouter>
     );
-    expect(screen.getByRole('link', { name: 'Watch No thumbnail' })).toHaveAttribute('href', '/videos/5');
+    expect(screen.getByRole('link', { name: 'Ver No thumbnail' })).toHaveAttribute('href', '/videos/5');
     expect(document.querySelector('img')).toBeNull();
   });
   it('renders the thumbnail and title as a link to the player page', () => {
@@ -23,7 +23,7 @@ describe('VideoCard', () => {
       </MemoryRouter>
     );
 
-    const link = screen.getByRole('link', { name: 'Watch My video' });
+    const link = screen.getByRole('link', { name: 'Ver My video' });
     expect(link).toHaveAttribute('href', '/videos/5');
     expect(screen.getByRole('heading', { name: 'My video' })).toBeInTheDocument();
     expect(link.querySelector('img')).toHaveAttribute('src', 'development/5.webp');
@@ -47,7 +47,7 @@ describe('VideoCard', () => {
         </ul>
       </MemoryRouter>
     );
-    expect(screen.getByLabelText('Video reactions')).toHaveTextContent('👍 12 · 👎 3');
+    expect(screen.getByLabelText('Reacciones al vídeo')).toHaveTextContent('👍 12 · 👎 3');
     expect(screen.queryByText(/@|user/i)).not.toBeInTheDocument();
   });
 });

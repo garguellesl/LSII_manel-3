@@ -148,6 +148,8 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
   await page.keyboard.press("Space");
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Tab");
+  await expect(page.locator(".language-selector select")).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(
     page.getByRole("link", { name: "Iniciar sesión", exact: true }),
   ).toBeFocused();
@@ -160,7 +162,7 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
         history.pushState(null, "", "/not-a-page");
         dispatchEvent(new PopStateEvent("popstate"));
       });
-      await expect(page.getByRole("alert")).toHaveText("Page not found.");
+      await expect(page.getByRole("alert")).toHaveText("Página no encontrada.");
     } else await page.goto(path);
     for (const theme of ["light", "dark"] as const) {
       await chooseTheme(page, theme);
@@ -319,12 +321,12 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     expect(instantColors.actual).toBe(instantColors.expected);
     await chooseTheme(page, theme);
     await page.goto("/");
-    await page.getByRole("button", { name: /^Tags/ }).click();
+    await page.getByRole("button", { name: /^Etiquetas/ }).click();
     await expect(page.locator(".tag-panel")).toHaveCSS(
       "background-color",
       palette[theme].surface,
     );
-    await expect(page.getByRole("searchbox", { name: "Find a tag" })).toHaveCSS(
+    await expect(page.getByRole("searchbox", { name: "Buscar etiqueta" })).toHaveCSS(
       "color",
       palette[theme].text,
     );
@@ -332,11 +334,11 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     await expect(
       page.getByText("Theme test comment", { exact: true }),
     ).toBeVisible();
-    const comment = page.getByLabel("Add a comment", { exact: true });
+    const comment = page.getByLabel("Añadir un comentario", { exact: true });
     await comment.fill("Unsent comment");
-    await page.getByLabel("Add a tag", { exact: true }).fill("unsent-tag");
+    await page.getByLabel("Añadir etiqueta", { exact: true }).fill("unsent-tag");
     await expect(
-      page.getByRole("button", { name: "Post comment", exact: true }),
+      page.getByRole("button", { name: "Publicar comentario", exact: true }),
     ).toHaveCSS(
       "background-color",
       await page.evaluate(() => {
@@ -349,7 +351,7 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
       }),
     );
     const submitComment = page.getByRole("button", {
-      name: "Post comment",
+      name: "Publicar comentario",
       exact: true,
     });
     await submitComment.hover();
@@ -357,11 +359,11 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
     await submitComment.focus();
     await assertRenderedContrast(submitComment);
     const activeReaction = page.getByRole("button", {
-      name: "Like 1",
+      name: "Me gusta 1",
       exact: true,
     });
     const inactiveReaction = page.getByRole("button", {
-      name: "Dislike 0",
+      name: "No me gusta 0",
       exact: true,
     });
     await expect(activeReaction).toHaveAttribute("aria-pressed", "true");
@@ -410,7 +412,7 @@ test("themes authenticated profile, upload, menus, tags and comments while prese
       await player.evaluate((element: HTMLVideoElement) => element.paused),
     ).toBe(false);
     await expect(comment).toHaveValue("Unsent comment");
-    await expect(page.getByLabel("Add a tag", { exact: true })).toHaveValue(
+    await expect(page.getByLabel("Añadir etiqueta", { exact: true })).toHaveValue(
       "unsent-tag",
     );
     await expect(player).toHaveCSS("filter", "none");

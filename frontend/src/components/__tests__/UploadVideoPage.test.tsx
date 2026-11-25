@@ -59,7 +59,7 @@ const renderWithSession = () =>
     </MemoryRouter>
   );
 const fill = async () => {
-  await screen.findByRole('option', { name: 'Music' });
+  await screen.findByRole('option', { name: 'Música' });
   fireEvent.change(screen.getByLabelText('Título'), { target: { value: ' Title ' } });
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'Music' } });
   fireEvent.change(screen.getByLabelText('Archivo de vídeo'), { target: { files: [video] } });
@@ -137,7 +137,7 @@ describe('UploadVideoPage', () => {
     await fill();
     session.currentUser.mockResolvedValue({ ...user, id: 9, accountName: 'other' });
     await act(async () => fireEvent(window, new Event('focus')));
-    await screen.findByRole('option', { name: 'Music' });
+    await screen.findByRole('option', { name: 'Música' });
     expect(screen.getByLabelText('Título')).toHaveValue('');
     expect(screen.getByLabelText('Categoría')).toHaveValue('');
     expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files).toHaveLength(0);
@@ -156,7 +156,7 @@ describe('UploadVideoPage', () => {
     } else {
       expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido comprobar tu sesión');
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar sesión' }));
-      await screen.findByRole('option', { name: 'Music' });
+      await screen.findByRole('option', { name: 'Música' });
       expect(screen.getByLabelText('Título')).toHaveValue('');
       expect((screen.getByLabelText('Archivo de vídeo') as HTMLInputElement).files).toHaveLength(0);
     }
@@ -255,9 +255,9 @@ describe('UploadVideoPage', () => {
     const image = new File(['image'], 'image.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Miniatura (opcional)'), { target: { files: [image] } });
     fireEvent.submit(screen.getByRole('form', { name: 'Subir vídeo' }));
-    await screen.findByText('Error de guardado');
+    await screen.findByText('No se ha podido completar la operación. Inténtalo de nuevo.');
     expect(screen.getByLabelText('Título')).toHaveValue(' Title ');
-    expect(screen.getByText('title: Invalid title')).toBeInTheDocument();
+    expect(screen.getByText('title: No se ha podido completar la operación. Inténtalo de nuevo.')).toBeInTheDocument();
     client.upload.mockRejectedValueOnce(new Error('network'));
     fireEvent.submit(screen.getByRole('form', { name: 'Subir vídeo' }));
     await waitFor(() => expect(client.upload).toHaveBeenCalledTimes(2));

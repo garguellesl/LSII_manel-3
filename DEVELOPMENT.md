@@ -93,7 +93,7 @@ and media paths in local configuration, not shared `.run` files.
 
 The frontend uses a strict port: if 5174 is occupied, stop the old frontend instead of opening a different URL.
 Stop the frontend/backend processes from IntelliJ's Run/Services controls. PostgreSQL runs detached and retains
-its data; stop it separately with `docker compose stop db` when needed. No volume deletion is required.
+its data; stop it separately with `docker compose -f compose.local.yaml stop db` when needed. No volume deletion is required.
 
 ### Backend separately
 
@@ -199,6 +199,10 @@ To only preview the production frontend bundle, without the backend: `cd fronten
 
 ### Using PostgreSQL
 
+For a shared hosted database, follow [Shared PostgreSQL with Supabase](docs/SHARED_DATABASE.md).
+The default `compose.yaml` and **Production** configuration now use that shared destination, loading credentials automatically from a local `.env`. The professor uses the same Compose file and can restart the created project from Docker Desktop. See `.env.example` for setup. **Production [Supabase]** remains an optional hidden-input configuration helper; it imports an existing `.env.supabase` only if `.env` is absent.
+
+Development and automated tests explicitly select `compose.local.yaml`, preserving their isolated PostgreSQL database and volumes.
 Both application profiles use PostgreSQL; H2 is not a dependency. From the repository root, set the application
 variables in your current shell or your uncommitted IDE configuration. For example, in PowerShell, use your
 chosen database/user and enter the password without printing it:
@@ -209,7 +213,7 @@ $env:ENV_PROTUBE_DB = 'protube'
 $env:ENV_PROTUBE_DB_USER = 'protube'
 $databasePassword = Read-Host 'PostgreSQL password' -AsSecureString
 $env:ENV_PROTUBE_DB_PASS = [System.Net.NetworkCredential]::new('', $databasePassword).Password
-docker compose up -d --wait db
+docker compose -f compose.local.yaml up -d --wait db
 ```
 
 Use the same shell/environment to start Maven or the jar. Configure `ENV_PROTUBE_STORE_DIR` for your external
@@ -221,8 +225,8 @@ Compose creates the PostgreSQL database/user on the first initialization of `pos
 healthcheck. Changing these variables later does not rename an existing database or rotate an existing user's
 password. Keep the credentials of an existing volume; do not delete its data to resolve a connection error.
 
-Check availability with `docker compose ps`. Stop/start the service with `docker compose stop db` and
-`docker compose up -d --wait db`; these retain the named volume. `docker compose down -v` deletes persisted
+Check availability with `docker compose -f compose.local.yaml ps`. Stop/start the service with `docker compose -f compose.local.yaml stop db` and
+`docker compose -f compose.local.yaml up -d --wait db`; these retain the named volume. `docker compose -f compose.local.yaml down -v` deletes persisted
 application data and is not part of normal restart or verification.
 
 ## 6. Workflow reminders
@@ -254,7 +258,7 @@ From a checkout with Docker Desktop running (Linux containers), use:
 docker compose up --build -d --wait
 ```
 
-The professor can open http://localhost:8080 without configuring IntelliJ or installing host Java/Node. The first build downloads Maven/frontend dependencies. The runtime image contains the production jar and a Java 21 JRE, runs as an unprivileged user, and checks `/api/videos` for readiness. Compose waits for PostgreSQL before starting the app. `/` and direct `/videos/{id}` navigation serve React; API/media use relative URLs on the same origin.
+The professor can open http://localhost:8080 without configuring IntelliJ or installing host Java/Node. The first build downloads Maven/frontend dependencies. The runtime image contains the production jar and a Java 21 JRE, runs as an unprivileged user, and checks `/api/videos` for readiness. The default Compose connects to Supabase using `.env`; it starts no local database. Copy `.env.example` to `.env` and enter the password privately before the first run. After creation, Docker Desktop Start/Stop reuses the saved container environment; rerun Compose after editing `.env`. `/` and direct `/videos/{id}` navigation serve React; API/media use relative URLs on the same origin.
 
 ### Accounts, sessions and permissions
 
@@ -264,16 +268,16 @@ The top-right account links open `/register`, `/login` and the protected `/profi
 
 Catalog, detail, comment reads and media are public. API writes, history and analytics require a server identity; owner operations reject another user with 403. Missing authentication returns 401; missing/invalid CSRF returns 403 with `CSRF_INVALID` and may be rejected before authentication. Supplied user/owner IDs do not select the authenticated actor. The demo account has the same owner rules as every other account.
 
-Compose provides the local demonstration account: name `admin`, login email `admin@protube.local`, password `admin1234`. The importer converts its legacy synthetic owner in place, retaining its ID, creation date and video associations; subsequent starts reuse it without changing its hash. Other accounts are never merged or overwritten. An identity collision or a configured password that differs from an existing demo account stops import with a clear error. Changing an environment value is not a password reset. Public registration reserves the demo identity. A first import on the host needs `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`; an existing demo owner can be reused without that variable. No global administrator role or video editor UI is introduced here.
+Only isolated `compose.local.yaml` provides the local demonstration account: name `admin`, login email `admin@protube.local`, password `admin1234`. The importer converts its legacy synthetic owner in place, retaining its ID, creation date and video associations; subsequent starts reuse it without changing its hash. Other accounts are never merged or overwritten. An identity collision or a configured password that differs from an existing demo account stops import with a clear error. Changing an environment value is not a password reset. Public registration reserves the demo identity. A first import on the host needs `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`; an existing demo owner can be reused without that variable. No global administrator role or video editor UI is introduced here.
 
 ### Configuration
 
-- Compose shares its existing local demonstration database defaults with the app. Optional overrides are `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, `ENV_PROTUBE_DB_PASS`; use matching credentials for an existing volume. Changing environment settings does not rotate the password already stored in PostgreSQL.
-- `ENV_PROTUBE_DB_PORT` changes the published host database port (default 5432); the app container always connects to `db:5432`. `ENV_PROTUBE_DB_HOST` from the host is deliberately not used inside the container.
+- `compose.yaml` requires SUPABASE_DB_HOST/USER/PASSWORD, uses the Session pooler (default 5432), TLS and private schema protube. `compose.local.yaml` shares its existing local demonstration database defaults with the app. Optional overrides are `ENV_PROTUBE_DB`, `ENV_PROTUBE_DB_USER`, `ENV_PROTUBE_DB_PASS`; use matching credentials for an existing volume. Changing environment settings does not rotate the password already stored in PostgreSQL.
+- In `compose.local.yaml`, `ENV_PROTUBE_DB_PORT` changes the published host database port (default 5432); the app container always connects to `db:5432`. `ENV_PROTUBE_DB_HOST` from the host is deliberately not used inside the container.
 - `PROTUBE_HTTP_PORT` changes the web host port (default 8080).
-- `PROTUBE_MEDIA_DIR` selects a host directory; the existing `./videos` is the demonstration default. Compose mounts it read-only at `/media-store/` and passes that container path through `ENV_PROTUBE_STORE_DIR`. This differs from starting Java on the host, where ENV_PROTUBE_STORE_DIR must be a host path.
+- `PROTUBE_MEDIA_DIR` selects a host directory; the existing `./videos` is the demonstration default. Compose mounts originals read-only at `/media-store/imports` and the writable uploaded_media volume at `/media-store/` and passes that container path through `ENV_PROTUBE_STORE_DIR`. This differs from starting Java on the host, where ENV_PROTUBE_STORE_DIR must be a host path.
 - The media directory must already exist; Compose fails rather than silently creating a directory for a typo. Use an external store for your own media. The image build excludes all media and local environment files.
-- Only the Compose demonstration command enables initial metadata import in prod. Existing media paths are skipped on restart. Plain Maven/jar prod retains its existing import-disabled default; host execution still requires the variables described above. Configuration variables defined on one IntelliJ run configuration are not inherited by another.
+- Only `compose.local.yaml` enables initial metadata import in prod. The default shared delivery keeps import disabled and provisions no demo account. Existing media paths are skipped on restart. Plain Maven/jar prod retains its existing import-disabled default; host execution still requires the variables described above. Configuration variables defined on one IntelliJ run configuration are not inherited by another.
 
 Stop development Vite/backend processes before a production Maven build; `npm ci` replaces node_modules and Windows can lock Rollup files used by Vite. Also free port 8080 before starting Compose. Docker and the database should stay running.
 
@@ -289,15 +293,15 @@ python tooling/docker/smoke_test.py
 docker compose stop
 ```
 
-The smoke test checks React/assets, API, imported catalog, direct video navigation, thumbnails, partial video requests (206), and missing resources (404). `tooling/docker/auth_smoke_test.py <base-url>` additionally checks demo login/owner editing, registration, sessions, CSRF, private data isolation and logout; run it only against an isolated test database with imported videos, supplying the demo password through `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`. It creates disposable accounts and prints no credentials or tokens. For a new empty database with an empty mounted store, use `python tooling/docker/smoke_test.py http://localhost:8080 --empty`. The build inside Docker skips tests because it has no Docker socket; run `mvn clean verify` in backend separately to execute the Testcontainers suite and coverage gates. This does not skip the production frontend build.
+Use the smoke tests against isolated `compose.local.yaml` deployments. The smoke test checks React/assets, API, imported catalog, direct video navigation, thumbnails, partial video requests (206), and missing resources (404). `tooling/docker/auth_smoke_test.py <base-url>` additionally checks demo login/owner editing, registration, sessions, CSRF, private data isolation and logout; run it only against an isolated test database with imported videos, supplying the demo password through `ENV_PROTUBE_DEMO_ADMIN_PASSWORD`. It creates disposable accounts and prints no credentials or tokens. For a new empty database with an empty mounted store, use `python tooling/docker/smoke_test.py http://localhost:8080 --empty`. The build inside Docker skips tests because it has no Docker socket; run `mvn clean verify` in backend separately to execute the Testcontainers suite and coverage gates. This does not skip the production frontend build.
 
 `docker compose stop` preserves database data. Restart with `docker compose up -d --wait`; rebuild after source changes with `--build`. Avoid `down -v`, which removes persisted data. Inspect logs if a healthcheck fails; do not treat an unhealthy container as a successful delivery.
 
 
 ### Start the delivery with Maven Production in IntelliJ
 
-With Docker Desktop running, select the shared **Production** Maven configuration and press Run. It uses Maven Exec to run `docker compose -f ../compose.yaml up --build -d --wait` from backend. This builds/starts frontend, backend and PostgreSQL together using Compose's existing local demo settings; no manual environment variables are required. Open http://localhost:8080 after BUILD SUCCESS.
+With Docker Desktop running, select the shared **Production** Maven configuration and press Run. It uses Maven Exec to run `docker compose -f ../compose.yaml up --build -d --wait` from backend. This builds/starts frontend and backend connected to Supabase using the same local `.env` as Docker Desktop; configure it once from `.env.example`. Open http://localhost:8080 after BUILD SUCCESS.
 
 If IntelliJ still displays `spring-boot:run` in Production, reload the shared run configuration from disk (close/reopen the project if necessary). The saved goal is `org.codehaus.mojo:exec-maven-plugin:3.6.4:exec`, with `exec.executable=docker` and `exec.args=compose -f ../compose.yaml up --build -d --wait` in Maven properties. Docker must be on PATH; the first run downloads the Maven Exec plugin. Maven/JDK are needed for this IDE shortcut; the direct Docker command still only requires Docker.
 
-Maven exits successfully once both containers are ready; they continue running detached. Stop them with `docker compose stop` from the repository root. The green Maven exit is expected. Do not also start a host backend on port 8080. Keep the variables in ProtubeBackApplication for host development: they are independent of this delivery shortcut and are not changed by it. Plain `mvn -Pprod spring-boot:run` and running the jar on the host continue to require their own environment settings.
+Maven exits successfully once the application container is ready; it continues running detached. Stop them with `docker compose stop` from the repository root. The green Maven exit is expected. Do not also start a host backend on port 8080. Keep the variables in ProtubeBackApplication for host development: they are independent of this delivery shortcut and are not changed by it. Plain `mvn -Pprod spring-boot:run` and running the jar on the host continue to require their own environment settings.

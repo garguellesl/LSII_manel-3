@@ -1,16 +1,18 @@
+import { t, useLocale } from '../i18n/locale';
 import { useTheme } from '../useTheme';
 
 export function AppearanceControls() {
+  useLocale();
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="appearance-controls" role="group" aria-label="Apariencia y experiencia">
+    <div className="appearance-controls" role="group" aria-label={t('catalogue.appearanceAndExperience')}>
       <button
         type="button"
         className="appearance-button theme-toggle"
-        aria-label="Modo oscuro"
+        aria-label={t('catalogue.darkMode')}
         aria-pressed={theme === 'dark'}
-        title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        title={theme === 'dark' ? t('catalogue.switchToLightMode') : t('catalogue.switchToDarkMode')}
         onClick={toggleTheme}
       >
         <svg
@@ -32,11 +34,11 @@ export function AppearanceControls() {
             </>
           )}
         </svg>
-        <span>{theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+        <span>{theme === 'dark' ? t('catalogue.dark') : t('catalogue.light')}</span>
       </button>
       <button type="button" className="appearance-button party-placeholder" disabled>
         <span aria-hidden="true">✦</span>
-        <span>Modo fiesta · Próximamente</span>
+        <span>{t('catalogue.partyModeComingSoon')}</span>
       </button>
     </div>
   );

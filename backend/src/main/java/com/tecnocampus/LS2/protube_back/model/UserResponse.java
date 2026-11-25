@@ -11,8 +11,14 @@ public record UserResponse(
         LocalDateTime createdAt,
         String displayName,
         String description,
-        String avatarUrl
+        String avatarUrl,
+        String preferredLanguage
 ) {
+    public UserResponse(Long id, String email, String accountName, String firstName, String lastName,
+                        LocalDateTime createdAt, String displayName, String description, String avatarUrl) {
+        this(id, email, accountName, firstName, lastName, createdAt, displayName, description, avatarUrl, null);
+    }
+
     public UserResponse(Long id, String email, String accountName, String firstName, String lastName,
                         LocalDateTime createdAt) {
         this(id, email, accountName, firstName, lastName, createdAt, accountName, null, null);

@@ -66,7 +66,8 @@ public class ApiExceptionHandler {
     @ExceptionHandler(com.tecnocampus.LS2.protube_back.services.RegistrationSessionException.class)
     ResponseEntity<Map<String, String>> registrationSession(
             com.tecnocampus.LS2.protube_back.services.RegistrationSessionException exception) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", exception.getMessage()));
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", exception.getMessage(), "code", "ACCOUNT_CREATED_SESSION_FAILED"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

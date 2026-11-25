@@ -1,4 +1,5 @@
 import { test, expect, request as pwRequest } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { registerUser, createOwnVideo } from '../fixtures/api';
 import { uniqueUser } from '../fixtures/users';
 
@@ -17,8 +18,10 @@ test.describe('search by title or description', () => {
     const api = await pwRequest.newContext({ baseURL });
     const owner = uniqueUser('search');
     await registerUser(api, owner);
-    const titleToken = `E2E-Search-Title-${Date.now()}`;
-    const descriptionToken = `E2E-Search-Desc-${Date.now()}`;
+    // Parallel tests can seed in the same millisecond; a random suffix keeps titles unique.
+    const nonce = randomUUID().slice(0, 8);
+    const titleToken = `E2E-Search-Title-${Date.now()}-${nonce}`;
+    const descriptionToken = `E2E-Search-Desc-${Date.now()}-${nonce}`;
     const video = await createOwnVideo(api, {
       title: titleToken,
       description: `Unrelated filler text, then the marker ${descriptionToken} inside the description.`,
@@ -32,9 +35,9 @@ test.describe('search by title or description', () => {
     const { titleToken, video } = await seedSearchableVideo(baseURL!);
 
     await page.goto('/');
-    await page.getByRole('searchbox', { name: 'Search videos by title or description' }).fill(titleToken.slice(0, -3));
+    await page.getByRole('searchbox', { name: "Buscar vídeos por título o descripción" }).fill(titleToken.slice(0, -3));
 
-    await expect(page.getByRole('link', { name: `Watch ${video.title}` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `Ver ${video.title}` })).toBeVisible();
   });
 
   test('search by a description-only fragment finds the video', async ({ page, baseURL }) => {
@@ -42,23 +45,23 @@ test.describe('search by title or description', () => {
 
     await page.goto('/');
     await page
-      .getByRole('searchbox', { name: 'Search videos by title or description' })
+      .getByRole('searchbox', { name: "Buscar vídeos por título o descripción" })
       .fill(descriptionToken.slice(0, -3));
 
-    await expect(page.getByRole('link', { name: `Watch ${video.title}` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `Ver ${video.title}` })).toBeVisible();
   });
 
   test('clearing the search restores the unfiltered catalog heading', async ({ page, baseURL }) => {
     const { titleToken } = await seedSearchableVideo(baseURL!);
 
     await page.goto('/');
-    const searchbox = page.getByRole('searchbox', { name: 'Search videos by title or description' });
+    const searchbox = page.getByRole('searchbox', { name: "Buscar vídeos por título o descripción" });
     await searchbox.fill(titleToken);
-    await expect(page.getByRole('heading', { name: `Results for "${titleToken}"` })).toBeVisible();
+    await expect(page.getByRole('heading', { name: `Resultados para «${titleToken}»` })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Clear search' }).click();
+    await page.getByRole('button', { name: "Borrar búsqueda" }).click();
 
     await expect(searchbox).toHaveValue('');
-    await expect(page.getByRole('heading', { name: 'Available videos' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Vídeos disponibles" })).toBeVisible();
   });
 });

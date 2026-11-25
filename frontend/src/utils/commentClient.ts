@@ -1,3 +1,4 @@
+import { t, apiError } from '../i18n/locale';
 import axios from 'axios';
 import { mutate } from '../apiClient';
 import { getEnv } from './Env';
@@ -49,18 +50,19 @@ export class CommentError extends Error {
 }
 
 export function commentError(error: unknown): CommentError {
-  const response = (error as { response?: { status?: number; data?: { error?: string; errors?: { text?: string } } } })
-    ?.response;
+  const response = (
+    error as { response?: { status?: number; data?: { code?: string; error?: string; errors?: { text?: string } } } }
+  )?.response;
   const status = response?.status;
   const message =
     status === 401
-      ? 'Your session has expired. Sign in to participate.'
+      ? t('comments.yourSessionHasExpiredSignInToParticipate')
       : status === 403
-        ? 'You cannot perform this action. Check your session and try again.'
+        ? t('comments.youCannotPerformThisActionCheckYourSessionAndTry')
         : status === 409
-          ? 'This comment has been deleted. The discussion has been refreshed.'
-          : response?.data?.errors?.text || response?.data?.error || 'Could not save your changes. Please try again.';
-  return new CommentError(message, status);
+          ? t('comments.thisCommentHasBeenDeletedTheDiscussionHasBeenRefreshed')
+          : t('comments.couldNotSaveYourChangesPleaseTryAgain');
+  return new CommentError(apiError(response?.data?.code, status, message), status);
 }
 
 export const commentClient = {

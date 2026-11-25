@@ -70,7 +70,9 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 25 min for the normal suite + ~10 min for the RF-8 persistence check
+    # appended below (seed -> force-recreate -> verify, specs/sprint-3/persistence.md).
+    timeout-minutes: 35
 
     env:
       PROTUBE_HTTP_PORT: '18080'
@@ -107,7 +109,7 @@ jobs:
         run: npx playwright install chromium
 
       - name: Start isolated E2E deployment
-        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml up -d --wait --build
+        run: docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml up -d --wait --build
 
       - name: Run E2E tests
         working-directory: e2e
@@ -123,6 +125,52 @@ jobs:
           path: e2e/playwright-report/
           if-no-files-found: warn
 
+      # RF-8 persistence check (specs/sprint-3/persistence.md): appended to
+      # this job, not a separate one, so it reuses the image and the stack
+      # already built/started above instead of paying for a second --build
+      # on a fresh runner. Runs after the normal suite's own report upload,
+      # so the normal suite's result/report never depends on this passing.
+      - name: Seed persistence fixtures (RF-8)
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://localhost:18080
+        run: npx playwright test --config=persistence/playwright.config.ts seed.spec.ts
+
+      - name: Recreate containers without deleting volumes (RF-8)
+        run: |
+          COMPOSE="docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml"
+          APP_ID_BEFORE=$($COMPOSE ps -q app)
+          DB_ID_BEFORE=$($COMPOSE ps -q db)
+          $COMPOSE up -d --force-recreate --wait
+          APP_ID_AFTER=$($COMPOSE ps -q app)
+          DB_ID_AFTER=$($COMPOSE ps -q db)
+          if [ "$APP_ID_BEFORE" = "$APP_ID_AFTER" ]; then
+            echo "ERROR: app container was not recreated" >&2
+            exit 1
+          fi
+          if [ "$DB_ID_BEFORE" = "$DB_ID_AFTER" ]; then
+            echo "ERROR: db container was not recreated" >&2
+            exit 1
+          fi
+          echo "app: $APP_ID_BEFORE -> $APP_ID_AFTER"
+          echo "db:  $DB_ID_BEFORE -> $DB_ID_AFTER"
+
+      - name: Verify persistence after recreation (RF-8)
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://localhost:18080
+        run: npx playwright test --config=persistence/playwright.config.ts verify.spec.ts
+
+      - name: Upload persistence report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: persistence-report
+          # Playwright resolves the html reporter's outputFolder relative to
+          # persistence/playwright.config.ts, not to e2e/.
+          path: e2e/persistence/persistence-report/
+          if-no-files-found: ignore
+
       - name: Tear down isolated E2E deployment
         if: always()
-        run: docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml down -v
+        run: docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml down -v

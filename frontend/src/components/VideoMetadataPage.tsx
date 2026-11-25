@@ -1,3 +1,4 @@
+import { localizeMessage, t, useLocale } from '../i18n/locale';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -17,24 +18,27 @@ const parseTags = (text: string) =>
     .filter(Boolean);
 
 export function NewVideoMetadataPage() {
+  useLocale();
   const auth = useAuth();
-  if (auth.status === 'loading') return <p role="status">Comprobando sesión…</p>;
+  if (auth.status === 'loading') return <p role="status">{t('catalogue.checkingSession')}</p>;
   if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: '/videos/new' }} />;
-  if (auth.status !== 'authenticated' || !auth.user) return <p role="alert">No se ha podido comprobar tu sesión.</p>;
+  if (auth.status !== 'authenticated' || !auth.user) return <p role="alert">{t('account.couldNotCheckYourSession')}</p>;
   return <MetadataForm mode="create" />;
 }
 
 export function EditVideoMetadataPage() {
+  useLocale();
   const auth = useAuth();
   const { id } = useParams();
   const video = useVideo(id);
-  if (auth.status === 'loading') return <p role="status">Comprobando sesión…</p>;
+  if (auth.status === 'loading') return <p role="status">{t('catalogue.checkingSession')}</p>;
   if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: `/videos/${id}/edit` }} />;
-  if (auth.status !== 'authenticated' || !auth.user) return <p role="alert">No se ha podido comprobar tu sesión.</p>;
-  if (video.loading === 'loading') return <p role="status">Cargando vídeo…</p>;
-  if (video.loading === 'notFound') return <p role="alert">Vídeo no encontrado.</p>;
-  if (video.loading === 'error' || !video.value) return <p role="alert">No se ha podido cargar el vídeo.</p>;
-  if (video.value.user !== auth.user.accountName) return <p role="alert">No tienes permiso para editar este vídeo.</p>;
+  if (auth.status !== 'authenticated' || !auth.user) return <p role="alert">{t('account.couldNotCheckYourSession')}</p>;
+  if (video.loading === 'loading') return <p role="status">{t('upload.loadingVideo')}</p>;
+  if (video.loading === 'notFound') return <p role="alert">{t('upload.videoNotFound')}</p>;
+  if (video.loading === 'error' || !video.value) return <p role="alert">{t('upload.couldNotLoadTheVideo')}</p>;
+  if (video.value.user !== auth.user.accountName)
+    return <p role="alert">{t('upload.youDontHavePermissionToEditThisVideo')}</p>;
   return (
     <MetadataForm
       mode="edit"
@@ -49,6 +53,7 @@ export function EditVideoMetadataPage() {
 }
 
 function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; videoId?: number; initial?: Metadata }) {
+  useLocale();
   const navigate = useNavigate();
   const [mediaPath, setMediaPath] = useState('');
   const [values, setValues] = useState<Metadata>(initial ?? { title: '', description: '', tags: '' });
@@ -79,11 +84,11 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
     setError('');
     setFieldErrors({});
     if (!values.title.trim()) {
-      setFieldErrors({ title: 'El título es obligatorio.' });
+      setFieldErrors({ title: t('upload.aTitleIsRequired') });
       return;
     }
     if (mode === 'create' && !mediaPath.trim()) {
-      setFieldErrors({ mediaPath: 'Indica la ruta relativa de un archivo existente.' });
+      setFieldErrors({ mediaPath: t('upload.enterTheRelativePathOfAnExistingFile') });
       return;
     }
     setSaving(true);
@@ -106,7 +111,7 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
       if (failure instanceof AuthError) {
         setError(failure.message);
         setFieldErrors(failure.fields);
-      } else setError('No se han podido guardar los datos. Inténtalo de nuevo.');
+      } else setError(t('upload.couldNotSaveTheDetailsTryAgain'));
     } finally {
       setSaving(false);
     }
@@ -124,16 +129,16 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
 
   return (
     <main className="auth-card video-metadata-page">
-      <h1>{mode === 'create' ? 'Registrar vídeo existente' : 'Editar datos del vídeo'}</h1>
-      {mode === 'create' && <p>El archivo debe existir dentro del almacén configurado. Introduce una ruta relativa.</p>}
+      <h1>{mode === 'create' ? t('catalogue.registerExistingVideo') : t('upload.editVideoDetails')}</h1>
+      {mode === 'create' && <p>{t('upload.theFileMustExistInTheConfiguredStoreEnterA')}</p>}
       <form
-        aria-label={mode === 'create' ? 'Registrar vídeo existente' : 'Editar datos del vídeo'}
+        aria-label={mode === 'create' ? t('catalogue.registerExistingVideo') : t('upload.editVideoDetails')}
         onSubmit={(event) => void submit(event)}
         aria-busy={saving}
       >
         {mode === 'create' && (
           <div className="auth-field">
-            <label htmlFor="metadata-media-path">Ruta relativa del archivo</label>
+            <label htmlFor="metadata-media-path">{t('upload.relativeFilePath')}</label>
             <input
               id="metadata-media-path"
               value={mediaPath}
@@ -141,11 +146,13 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
               required
               aria-invalid={Boolean(fieldErrors.mediaPath)}
             />
-            {fieldErrors.mediaPath && <span role="alert">{fieldErrors.mediaPath}</span>}
+            {fieldErrors.mediaPath && (
+              <span role="alert">{localizeMessage(fieldErrors.mediaPath, 'errors.field')}</span>
+            )}
           </div>
         )}
         <div className="auth-field">
-          <label htmlFor="metadata-title">Título</label>
+          <label htmlFor="metadata-title">{t('upload.title')}</label>
           <input
             id="metadata-title"
             value={values.title}
@@ -154,45 +161,47 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
             onChange={(event) => setValues({ ...values, title: event.target.value })}
             aria-invalid={Boolean(fieldErrors.title)}
           />
-          {fieldErrors.title && <span role="alert">{fieldErrors.title}</span>}
+          {fieldErrors.title && <span role="alert">{localizeMessage(fieldErrors.title)}</span>}
         </div>
         <div className="auth-field">
-          <label htmlFor="metadata-description">Descripción</label>
+          <label htmlFor="metadata-description">{t('profile.description')}</label>
           <textarea
             id="metadata-description"
             rows={5}
             value={values.description}
             onChange={(event) => setValues({ ...values, description: event.target.value })}
           />
-          {fieldErrors.description && <span role="alert">{fieldErrors.description}</span>}
+          {fieldErrors.description && <span role="alert">{localizeMessage(fieldErrors.description)}</span>}
         </div>
         <div className="auth-field">
           <details className="upload-tags-dropdown">
-            <summary>Elegir entre las etiquetas existentes</summary>
-            <label htmlFor="metadata-tag-search">Buscar etiqueta</label>
+            <summary>{t('upload.chooseFromExistingTags')}</summary>
+            <label htmlFor="metadata-tag-search">{t('upload.findATag')}</label>
             <input
               id="metadata-tag-search"
               type="search"
               value={tagQuery}
-              placeholder="Escribe para filtrar"
+              placeholder={t('upload.typeToFilter')}
               onChange={(event) => setTagQuery(event.target.value)}
               // Enter in the filter must not submit the whole form.
               onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
             />
             <div className="upload-tags-options">
               {available.loading ? (
-                <p role="status">Cargando etiquetas…</p>
+                <p role="status">{t('upload.loadingTags')}</p>
               ) : available.error ? (
                 <p role="status">
-                  No se han podido cargar las etiquetas.{' '}
+                  {' '}
+                  {t('upload.couldNotLoadTheTags')}{' '}
                   <button type="button" onClick={available.reload}>
-                    Reintentar
+                    {' '}
+                    {t('profile.tryAgain')}{' '}
                   </button>
                 </p>
               ) : available.tags.length === 0 ? (
-                <p role="status">Todavía no hay etiquetas. Escribe las tuyas abajo.</p>
+                <p role="status">{t('upload.thereAreNoTagsYetEnterYoursBelow')}</p>
               ) : (
-                visibleTags.length === 0 && <p role="status">Ninguna etiqueta coincide con la búsqueda.</p>
+                visibleTags.length === 0 && <p role="status">{t('upload.noTagsMatchYourSearch')}</p>
               )}
               {visibleTags.map((tag) => (
                 <label key={tag}>
@@ -201,7 +210,7 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
               ))}
             </div>
           </details>
-          <label htmlFor="metadata-tags">Etiquetas, separadas por comas</label>
+          <label htmlFor="metadata-tags">{t('upload.tagsSeparatedByCommas')}</label>
           <textarea
             id="metadata-tags"
             rows={3}
@@ -213,13 +222,13 @@ function MetadataForm({ mode, videoId, initial }: { mode: 'create' | 'edit'; vid
             .filter(([field]) => field.startsWith('tags'))
             .map(([field, message]) => (
               <span role="alert" key={field}>
-                {message}
+                {localizeMessage(message)}
               </span>
             ))}
         </div>
-        {error && <p role="alert">{error}</p>}
+        {error && <p role="alert">{localizeMessage(error)}</p>}
         <button className="auth-submit" type="submit" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar'}
+          {saving ? t('profile.saving') : t('upload.save')}
         </button>
         <Link to={mode === 'edit' && videoId ? `/videos/${videoId}` : '/'}>Cancelar</Link>
         {mode === 'edit' && videoId && (

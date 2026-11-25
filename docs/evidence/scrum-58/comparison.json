@@ -1,0 +1,235 @@
+{
+  "sources": {
+    "baseline": {
+      "log": "baseline.log",
+      "sha256": "086cec198109fe816fb2ebf0b79fecf8758a322634c7b56529bac12dd5347339"
+    },
+    "candidate": {
+      "log": "candidate.log",
+      "sha256": "65ec2cc395f557ae9c7ad09ffb8e426f14ef1a2388f3feb1a104ad614a165427"
+    }
+  },
+  "reference_hashes": {
+    "baseline": {
+      "/api/videos?page=0&size=24": "07af2752708b47ad50032f82b6935c551470ff4a0243975df30a151d9d82f356",
+      "/api/videos?q=Benchmark&tag=tag-1&page=0&size=24": "a572d8a5c66e1742f576d0b7b62c83c0c968d4b1f06fbfde621863c1ec437108",
+      "/api/videos?page=1&size=24": "f385731e367eaf455ace0ad15e172f86d1c659a18a6959347b8e3192eff96446",
+      "/api/videos/1": "6278fc7d311b3d91ce8a930e1c50a119c837d3366beb1b4bc7c53baf0fcc7b1e"
+    },
+    "candidate": {
+      "/api/videos?page=0&size=24": "07af2752708b47ad50032f82b6935c551470ff4a0243975df30a151d9d82f356",
+      "/api/videos?q=Benchmark&tag=tag-1&page=0&size=24": "a572d8a5c66e1742f576d0b7b62c83c0c968d4b1f06fbfde621863c1ec437108",
+      "/api/videos?page=1&size=24": "f385731e367eaf455ace0ad15e172f86d1c659a18a6959347b8e3192eff96446",
+      "/api/videos/1": "6278fc7d311b3d91ce8a930e1c50a119c837d3366beb1b4bc7c53baf0fcc7b1e"
+    }
+  },
+  "measured_requests": {
+    "baseline": 123433,
+    "candidate": 982863
+  },
+  "baseline_sql": {
+    "1": 7,
+    "6": 32,
+    "24": 122
+  },
+  "candidate_sql": {
+    "1": 6,
+    "6": 6,
+    "24": 6
+  },
+  "measurements": [
+    {
+      "round": 1,
+      "route": "/api/videos/1",
+      "baseline": {
+        "n": 10121,
+        "errors": 0,
+        "p50_ms": 6,
+        "p95_ms": 7
+      },
+      "candidate": {
+        "n": 79954,
+        "errors": 0,
+        "p50_ms": 5,
+        "p95_ms": 7
+      }
+    },
+    {
+      "round": 1,
+      "route": "/api/videos?page=0&size=24",
+      "baseline": {
+        "n": 10124,
+        "errors": 0,
+        "p50_ms": 94,
+        "p95_ms": 106
+      },
+      "candidate": {
+        "n": 79957,
+        "errors": 0,
+        "p50_ms": 9,
+        "p95_ms": 12
+      }
+    },
+    {
+      "round": 1,
+      "route": "/api/videos?page=1&size=24",
+      "baseline": {
+        "n": 10121,
+        "errors": 0,
+        "p50_ms": 93,
+        "p95_ms": 107
+      },
+      "candidate": {
+        "n": 79957,
+        "errors": 0,
+        "p50_ms": 9,
+        "p95_ms": 11
+      }
+    },
+    {
+      "round": 1,
+      "route": "/api/videos?q=Benchmark&tag=tag-1&page=0&size=24",
+      "baseline": {
+        "n": 10124,
+        "errors": 0,
+        "p50_ms": 96,
+        "p95_ms": 110
+      },
+      "candidate": {
+        "n": 79956,
+        "errors": 0,
+        "p50_ms": 11,
+        "p95_ms": 14
+      }
+    },
+    {
+      "round": 2,
+      "route": "/api/videos/1",
+      "baseline": {
+        "n": 10356,
+        "errors": 0,
+        "p50_ms": 5,
+        "p95_ms": 6
+      },
+      "candidate": {
+        "n": 79166,
+        "errors": 0,
+        "p50_ms": 5,
+        "p95_ms": 7
+      }
+    },
+    {
+      "round": 2,
+      "route": "/api/videos?page=0&size=24",
+      "baseline": {
+        "n": 10359,
+        "errors": 0,
+        "p50_ms": 93,
+        "p95_ms": 99
+      },
+      "candidate": {
+        "n": 79169,
+        "errors": 0,
+        "p50_ms": 9,
+        "p95_ms": 12
+      }
+    },
+    {
+      "round": 2,
+      "route": "/api/videos?page=1&size=24",
+      "baseline": {
+        "n": 10357,
+        "errors": 0,
+        "p50_ms": 93,
+        "p95_ms": 99
+      },
+      "candidate": {
+        "n": 79165,
+        "errors": 0,
+        "p50_ms": 9,
+        "p95_ms": 11
+      }
+    },
+    {
+      "round": 2,
+      "route": "/api/videos?q=Benchmark&tag=tag-1&page=0&size=24",
+      "baseline": {
+        "n": 10357,
+        "errors": 0,
+        "p50_ms": 95,
+        "p95_ms": 102
+      },
+      "candidate": {
+        "n": 79166,
+        "errors": 0,
+        "p50_ms": 12,
+        "p95_ms": 14
+      }
+    },
+    {
+      "round": 3,
+      "route": "/api/videos/1",
+      "baseline": {
+        "n": 10376,
+        "errors": 0,
+        "p50_ms": 5,
+        "p95_ms": 6
+      },
+      "candidate": {
+        "n": 86592,
+        "errors": 0,
+        "p50_ms": 5,
+        "p95_ms": 6
+      }
+    },
+    {
+      "round": 3,
+      "route": "/api/videos?page=0&size=24",
+      "baseline": {
+        "n": 10379,
+        "errors": 0,
+        "p50_ms": 93,
+        "p95_ms": 98
+      },
+      "candidate": {
+        "n": 86593,
+        "errors": 0,
+        "p50_ms": 8,
+        "p95_ms": 10
+      }
+    },
+    {
+      "round": 3,
+      "route": "/api/videos?page=1&size=24",
+      "baseline": {
+        "n": 10379,
+        "errors": 0,
+        "p50_ms": 93,
+        "p95_ms": 98
+      },
+      "candidate": {
+        "n": 86594,
+        "errors": 0,
+        "p50_ms": 8,
+        "p95_ms": 10
+      }
+    },
+    {
+      "round": 3,
+      "route": "/api/videos?q=Benchmark&tag=tag-1&page=0&size=24",
+      "baseline": {
+        "n": 10380,
+        "errors": 0,
+        "p50_ms": 95,
+        "p95_ms": 100
+      },
+      "candidate": {
+        "n": 86594,
+        "errors": 0,
+        "p50_ms": 11,
+        "p95_ms": 13
+      }
+    }
+  ],
+  "failures": []
+}
