@@ -5,6 +5,8 @@ import { useAuth } from '../auth/AuthContext';
 import { useProfileActivity } from '../useProfileActivity';
 import type { User } from '../utils/authClient';
 import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar } from '../utils/userClient';
+import { videoClient } from '../utils/videoClient';
+import { ConfirmDialog } from './ConfirmDialog';
 import { UserAvatar } from './UserAvatar';
 
 const RECENT_HISTORY = 5;
@@ -321,6 +323,43 @@ function ProfileEditor({ user, onClose }: { user: User; onClose: (saved: boolean
 
 function ProfileActivity({ userId }: { userId: number }) {
   const activity = useProfileActivity(userId);
+  const [pendingDelete, setPendingDelete] = useState<{ videoId: number; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  // The row's own button is gone once the list refreshes, so cancel/Escape returns focus to
+  // whichever row triggered the dialog, while a successful delete returns it to the section
+  // heading instead (set once the refreshed list has actually loaded, not mid-refetch).
+  const triggerButton = useRef<HTMLButtonElement | null>(null);
+  const statsHeading = useRef<HTMLHeadingElement>(null);
+  const justDeleted = useRef(false);
+
+  useEffect(() => {
+    if (activity.status === 'success' && justDeleted.current) {
+      justDeleted.current = false;
+      statsHeading.current?.focus();
+    }
+  }, [activity.status]);
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setDeleteError('');
+    videoClient
+      .deleteVideo(pendingDelete.videoId)
+      .then(() => {
+        setPendingDelete(null);
+        justDeleted.current = true;
+        activity.retry();
+      })
+      .catch(() => setDeleteError('No se ha podido eliminar el vídeo. Inténtalo de nuevo.'))
+      .finally(() => setDeleting(false));
+  };
+
+  const cancelDelete = () => {
+    setPendingDelete(null);
+    setDeleteError('');
+    triggerButton.current?.focus();
+  };
 
   if (activity.status === 'loading') {
     return (
@@ -362,7 +401,9 @@ function ProfileActivity({ userId }: { userId: number }) {
     <div className="profile-activity">
       <section className="profile-panel" aria-labelledby="profile-stats">
         <div className="profile-panel-heading">
-          <h2 id="profile-stats">Tu canal</h2>
+          <h2 id="profile-stats" ref={statsHeading} tabIndex={-1}>
+            Tu canal
+          </h2>
           <Link to="/analytics">Ver analíticas</Link>
         </div>
         <ul className="profile-stats">
@@ -383,10 +424,32 @@ function ProfileActivity({ userId }: { userId: number }) {
                 <span>
                   {video.viewsCount} vistas · {video.likesCount} me gusta
                 </span>
+                <Link to={`/videos/${video.videoId}/edit`}>Editar</Link>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    triggerButton.current = event.currentTarget;
+                    setPendingDelete({ videoId: video.videoId, title: video.title });
+                  }}
+                >
+                  Eliminar
+                </button>
               </li>
             ))}
           </ul>
         )}
+        <ConfirmDialog
+          open={pendingDelete !== null}
+          title={`¿Eliminar "${pendingDelete?.title ?? ''}"?`}
+          description="El archivo del almacén se conservará."
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          busy={deleting}
+          busyLabel="Eliminando…"
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       </section>
 
       <section className="profile-panel" aria-labelledby="profile-history">
