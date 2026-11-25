@@ -27,6 +27,7 @@ export function HomeSidebar() {
           </p>
         </section>
       )}
+      {auth.status === 'anonymous' && <ExploreCreators />}
       {auth.status === 'error' && (
         <p className="sidebar-status" role="status">
           No se pudo comprobar tu sesión.
@@ -48,6 +49,9 @@ function SubscriptionsPreview() {
   const load = useCallback(async (signal: AbortSignal) => subscriptionClient.list(0, signal), []);
   const result = useCreatorRequest(load);
 
+  // Without subscriptions there is nothing to show here: suggest public profiles instead.
+  if (result.status === 'success' && result.data.content.length === 0) return <ExploreCreators />;
+
   return (
     <details className="sidebar-section" open>
       <summary>
@@ -66,12 +70,58 @@ function SubscriptionsPreview() {
           </button>
         </p>
       )}
+      {result.status === 'success' && (
+        <ul className="sidebar-list">
+          {result.data.content.slice(0, PREVIEW_SIZE).map((creator) => (
+            <li key={creator.id}>
+              <Link to={`/creators/${creator.id}`}>
+                <UserAvatar name={creator.displayName} src={creator.avatarUrl} />
+                <span>{creator.displayName}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link className="sidebar-more" to="/subscriptions">
+        Ver todas las suscripciones
+      </Link>
+    </details>
+  );
+}
+
+// Discovery block: public creator profiles, shown when the viewer has no subscriptions or is a guest.
+function ExploreCreators() {
+  const load = useCallback(
+    async (signal: AbortSignal) => subscriptionClient.publicCreators(0, PREVIEW_SIZE, signal),
+    []
+  );
+  const result = useCreatorRequest(load);
+
+  return (
+    <details className="sidebar-section" open>
+      <summary>
+        <h2>Explorar catálogo</h2>
+      </summary>
+      <p className="sidebar-muted">Perfiles públicos de creadores.</p>
+      {result.status === 'loading' && (
+        <p className="sidebar-status" role="status">
+          Cargando perfiles…
+        </p>
+      )}
+      {result.status === 'error' && (
+        <p className="sidebar-status" role="status">
+          No se pudieron cargar los perfiles.{' '}
+          <button type="button" onClick={result.retry}>
+            Reintentar
+          </button>
+        </p>
+      )}
       {result.status === 'success' &&
         (result.data.content.length === 0 ? (
-          <p className="sidebar-muted">Aún no sigues a ningún creador.</p>
+          <p className="sidebar-muted">Todavía no hay perfiles públicos.</p>
         ) : (
           <ul className="sidebar-list">
-            {result.data.content.slice(0, PREVIEW_SIZE).map((creator) => (
+            {result.data.content.map((creator) => (
               <li key={creator.id}>
                 <Link to={`/creators/${creator.id}`}>
                   <UserAvatar name={creator.displayName} src={creator.avatarUrl} />
@@ -81,9 +131,6 @@ function SubscriptionsPreview() {
             ))}
           </ul>
         ))}
-      <Link className="sidebar-more" to="/subscriptions">
-        Ver todas las suscripciones
-      </Link>
     </details>
   );
 }

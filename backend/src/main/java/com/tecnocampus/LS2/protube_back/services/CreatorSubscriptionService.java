@@ -49,6 +49,10 @@ public class CreatorSubscriptionService {
                 .map(subscription -> publicCreator(subscription.getCreator())));
     }
 
+    public ResultPage<Creator> publicCreators(Pageable page) {
+        return ResultPage.from(users.findCreatorsWithVideos(page).map(this::publicCreator));
+    }
+
     public Creator creator(Long creator) {
         return publicCreator(users.findById(creator).orElseThrow(() -> new ResourceNotFoundException("Creator not found")));
     }

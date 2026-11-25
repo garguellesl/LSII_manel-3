@@ -219,7 +219,7 @@ public class VideoService {
         if (!userAccountRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found");
         }
-        return watchHistoryRepository.findByUserIdOrderByWatchedAtDesc(userId).stream()
+        return watchHistoryRepository.findLatestPerVideo(userId).stream()
                 .map(this::toWatchHistoryResponse)
                 .toList();
     }

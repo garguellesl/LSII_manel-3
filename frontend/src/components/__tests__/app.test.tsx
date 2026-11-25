@@ -13,6 +13,7 @@ jest.mock('../../useAvailableTags', () => ({
   useAvailableTags: () => ({ loading: false, error: false, tags: ['rock', 'pop', 'reguetton'], reload: jest.fn() }),
 }));
 jest.mock('../../utils/authClient', () => ({ authClient: { currentUser: jest.fn() } }));
+jest.mock('../HomeSidebar', () => ({ HomeSidebar: () => null }));
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const sampleVideos = [

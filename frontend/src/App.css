@@ -2137,7 +2137,7 @@
 /* Responsive: phones and small tablets. */
 @media (max-width: 600px) {
   .App--home .header-toolbar {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1rem 0.5rem 4rem;
   }
   .App--home .catalog-search {
     width: 92%;
@@ -2311,10 +2311,14 @@
 /* Home header: the account is only the profile avatar; its details open from it. */
 .App--home .header-toolbar {
   justify-content: flex-start;
+  /* Leaves room for the profile avatar pinned in the top-left corner. */
+  padding-left: 4rem;
 }
 .App--home .account-chip {
-  position: relative;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  z-index: 30;
 }
 .App--home .account-chip-button,
 .App--home .account-chip--guest {

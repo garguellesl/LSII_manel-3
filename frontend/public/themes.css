@@ -238,7 +238,7 @@ body {
    reference (DESIGN.md); text/UI pairs target WCAG AA (text 4.5:1, UI 3:1).
    Sizes are rem-based so the browser's text-size settings apply.
    --------------------------------------------------------------------------- */
-:root[data-theme='dark'] .App--home {
+:root[data-theme='dark'] {
   --pt-bg: #121212;
   --pt-bg-rgb: 18, 18, 18;
   --pt-surface: #1f1f1f;
@@ -267,7 +267,7 @@ body {
   --pt-popup-shadow: rgb(0 0 0 / 60%);
 }
 
-:root[data-theme='light'] .App--home {
+:root[data-theme='light'] {
   --pt-bg: #ffffff;
   --pt-bg-rgb: 255, 255, 255;
   --pt-surface: #ffffff;
