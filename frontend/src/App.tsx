@@ -17,6 +17,7 @@ import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
 import { HomeSidebar } from './components/HomeSidebar';
+import { HistoryPage } from './components/HistoryPage';
 
 function App() {
   return (
@@ -33,6 +34,8 @@ function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
+  // Catalogue pages share the home layout: the catalogue, the account rail and the avatar in the corner.
+  const isCatalog = isHome || location.pathname === '/history';
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -48,17 +51,17 @@ function AppRoutes() {
   };
 
   return (
-    <div className={isHome ? 'App App--home' : 'App'}>
+    <div className={isCatalog ? 'App App--home' : 'App'}>
       <header className="App-header">
         <div className="header-toolbar">
-          {isHome && <AccountMenu compact />}
+          {isCatalog && <AccountMenu compact />}
           <div className="header-brand-controls">
             <Link to="/" aria-label="Go to home" className="header-brand">
               <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="Protube" />
             </Link>
             <AppearanceControls />
           </div>
-          {!isHome && <AccountMenu />}
+          {!isCatalog && <AccountMenu />}
         </div>
         <div className="catalog-search">
           <SearchBar value={searchQuery} onChange={handleSearch} />
@@ -86,6 +89,14 @@ function AppRoutes() {
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/history"
+            element={
+              <HomeLayout>
+                <HistoryPage />
+              </HomeLayout>
+            }
+          />
           <Route path="/subscriptions" element={<SubscriptionsPage />} />
           <Route path="/creators/:id" element={<CreatorPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

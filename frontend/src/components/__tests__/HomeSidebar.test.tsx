@@ -69,7 +69,7 @@ describe('HomeSidebar', () => {
 
     expect(await screen.findByRole('link', { name: 'Creador Uno' })).toHaveAttribute('href', '/creators/3');
     expect(screen.getByRole('link', { name: 'Tu canal' })).toHaveAttribute('href', '/profile#profile-stats');
-    expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/profile#profile-history');
+    expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/history');
     expect(screen.getByRole('link', { name: 'Vídeos que me gustan' })).toHaveAttribute(
       'href',
       '/profile#liked-videos-title'

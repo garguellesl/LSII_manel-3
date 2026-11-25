@@ -2365,3 +2365,8 @@
     border-top: 1px solid var(--pt-border-subtle);
   }
 }
+
+/* Native player controls (progress, volume) take the site accent instead of the browser's own blue. */
+.video-player-media {
+  accent-color: var(--pt-accent);
+}

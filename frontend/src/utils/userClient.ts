@@ -19,6 +19,7 @@ export type WatchHistoryEntry = {
   videoTitle: string;
   progressSeconds: number;
   watchedAt: string;
+  thumbnailUrl: string | null;
 };
 
 export type LikedVideosPage = {

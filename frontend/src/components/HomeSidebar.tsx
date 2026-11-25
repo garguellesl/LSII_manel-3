@@ -19,7 +19,7 @@ export function HomeSidebar() {
           <SubscriptionsRail />
           <nav className="rail-group" aria-label="Tu cuenta">
             <RailLink to="/profile#profile-stats" label="Tu canal" icon={<ChannelIcon />} />
-            <RailLink to="/profile#profile-history" label="Historial" icon={<HistoryIcon />} />
+            <RailLink to="/history" label="Historial" icon={<HistoryIcon />} />
             <RailLink to="/profile#liked-videos-title" label="Vídeos que me gustan" icon={<LikeIcon />} />
             <RailLink to="/upload" label="Subir vídeo" icon={<UploadIcon />} />
           </nav>

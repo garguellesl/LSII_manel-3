@@ -303,8 +303,13 @@ public class VideoService {
                 watchHistory.getVideo().getId(),
                 watchHistory.getVideo().getTitle(),
                 watchHistory.getProgressSeconds(),
-                watchHistory.getWatchedAt()
+                watchHistory.getWatchedAt(),
+                thumbnailUrl(watchHistory.getVideo().getThumbnailPath())
         );
+    }
+
+    private static String thumbnailUrl(String thumbnailPath) {
+        return thumbnailPath == null || thumbnailPath.isBlank() ? null : "/media/" + thumbnailPath.replace('\\', '/');
     }
 
     @Transactional
