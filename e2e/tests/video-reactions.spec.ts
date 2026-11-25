@@ -23,17 +23,16 @@ test('video reactions switch, persist, and expose counts without voter identity'
     const context = await browser.newContext({ baseURL, storageState: await api.storageState() });
     const signedIn = await context.newPage();
     await signedIn.goto(`/videos/${video.id}`);
-    await expect(signedIn.getByRole('button', { name: /Dislike 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(signedIn.getByRole('button', { name: /No me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
     await signedIn.reload();
-    await expect(signedIn.getByRole('button', { name: /Dislike 1/ })).toHaveAttribute('aria-pressed', 'true');
-    await signedIn.getByRole('button', { name: /Like 0/ }).click();
-    await expect(signedIn.getByRole('button', { name: /Like 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(signedIn.getByRole('button', { name: /No me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
+    await signedIn.getByRole('button', { name: /Me gusta 0/ }).click();
+    await expect(signedIn.getByRole('button', { name: /Me gusta 1/ })).toHaveAttribute('aria-pressed', 'true');
 
     const visitor = await page.context().newPage();
     await visitor.goto(`/videos/${video.id}`);
     await expect(visitor.getByText(/👍 1 · 👎 0/)).toBeVisible();
-    await expect(visitor.getByRole('link', { name: 'Sign in to like', exact: true })).toHaveAttribute('href', '/login');
-    await expect(visitor.getByText('Sign in to react', { exact: true })).toHaveCount(0);
+    await expect(visitor.getByRole('link', { name: 'Inicia sesión para indicar que te gusta', exact: true })).toHaveAttribute('href', '/login');
     await context.close();
   } finally {
     await api.dispose();

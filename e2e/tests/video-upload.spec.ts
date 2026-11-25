@@ -35,7 +35,7 @@ test('registered user uploads without thumbnail, finds the video and actually pl
   const destination = await link.getAttribute('href');
   await link.click();
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  await expect(page.getByText('Education', { exact: true })).toBeVisible();
+  await expect(page.getByText('Educación', { exact: true })).toBeVisible();
   const player = page.locator('video');
   await player.evaluate(async (video: HTMLVideoElement) => { video.muted = true; await video.play(); });
   await expect.poll(() => player.evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThan(0);
@@ -43,8 +43,8 @@ test('registered user uploads without thumbnail, finds the video and actually pl
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
   await page.goto('/');
   // Navigate through the server's existing search rather than expecting a position in a paginated catalog.
-  await page.getByRole('searchbox', { name: /search/i }).fill(title);
-  await expect(page.getByRole('link', { name: `Watch ${title}` })).toHaveAttribute('href', destination!);
+  await page.getByRole('searchbox', { name: /buscar vídeos/i }).fill(title);
+  await expect(page.getByRole('link', { name: `Ver ${title}` })).toHaveAttribute('href', destination!);
 });
 
 test('upload form remains usable on narrow screens and preserves inputs after a network failure', async ({ page, request }) => {

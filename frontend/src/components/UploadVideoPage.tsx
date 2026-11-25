@@ -1,3 +1,4 @@
+import { localizeMessage, t, useLocale, formatNumber, plural, categoryLabel } from '../i18n/locale';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ import { uploadClient, validateUpload } from '../utils/uploadClient';
 import type { VideoDetail } from '../useVideo';
 
 export function UploadVideoPage() {
+  useLocale();
   const auth = useAuth();
   // Like the profile editor, keep the confirmed account's form mounted while
   // focus returning from a file picker triggers a session check.
@@ -17,20 +19,22 @@ export function UploadVideoPage() {
   if ((auth.status === 'anonymous' || auth.status === 'error') && confirmedUserId !== null) setConfirmedUserId(null);
   const userId = auth.status === 'authenticated' ? auth.user?.id : auth.status === 'loading' ? confirmedUserId : null;
   if (userId != null) return <UploadForm key={userId} checkingSession={auth.status === 'loading'} />;
-  if (auth.status === 'loading') return <p role="status">Comprobando sesión…</p>;
+  if (auth.status === 'loading') return <p role="status">{t('catalogue.checkingSession')}</p>;
   if (auth.status === 'anonymous') return <Navigate to="/login" replace state={{ from: '/upload' }} />;
   return (
     <main className="auth-card">
-      <h1>Subir vídeo</h1>
-      <p role="alert">No se ha podido comprobar tu sesión.</p>
+      <h1>{t('catalogue.uploadVideo')}</h1>
+      <p role="alert">{t('account.couldNotCheckYourSession')}</p>
       <button type="button" onClick={() => void auth.refresh()}>
-        Reintentar sesión
+        {' '}
+        {t('catalogue.retrySession')}{' '}
       </button>
     </main>
   );
 }
 
 function UploadForm({ checkingSession }: { checkingSession: boolean }) {
+  useLocale();
   const options = useUploadOptions();
   const [video, setVideo] = useState<File>();
   const [thumbnail, setThumbnail] = useState<File>();
@@ -65,7 +69,7 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
     try {
       setSaved(await uploadClient.upload(metadata, video, thumbnail, setProgress));
     } catch (failure) {
-      setError(failure instanceof AuthError ? failure.message : 'No se ha podido subir el vídeo. Inténtalo de nuevo.');
+      setError(failure instanceof AuthError ? failure.message : t('upload.couldNotUploadTheVideoTryAgain'));
       if (failure instanceof AuthError) setFields(failure.fields);
     } finally {
       submitting.current = false;
@@ -76,10 +80,12 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
   if (saved)
     return (
       <main className="upload-page auth-card">
-        <h1>Vídeo publicado</h1>
-        <p role="status">Tu vídeo se ha guardado correctamente.</p>
-        <Link to={`/videos/${saved.id}`}>Ver vídeo: {saved.title}</Link>
-        <Link to="/">Ir al catálogo</Link>
+        <h1>{t('upload.videoPublished')}</h1>
+        <p role="status">{t('upload.yourVideoWasSavedSuccessfully')}</p>
+        <Link to={`/videos/${saved.id}`}>
+          {t('upload.watchVideo')} {saved.title}
+        </Link>
+        <Link to="/">{t('upload.goToCatalogue')}</Link>
         <button
           type="button"
           onClick={() => {
@@ -90,37 +96,43 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
             setTagQuery('');
           }}
         >
-          Subir otro vídeo
+          {' '}
+          {t('upload.uploadAnotherVideo')}{' '}
         </button>
       </main>
     );
 
   return (
     <main className="upload-page auth-card">
-      <h1>Subir vídeo</h1>
-      <p>Vídeo MP4 hasta 100 MiB. Miniatura opcional JPG o PNG hasta 5 MiB.</p>
-      {options.status === 'loading' && <p role="status">Cargando categorías y etiquetas…</p>}
+      <h1>{t('catalogue.uploadVideo')}</h1>
+      <p>{t('upload.mp4VideoUpTo100MibOptionalJpgOrPng')}</p>
+      {options.status === 'loading' && <p role="status">{t('upload.loadingCategoriesAndTags')}</p>}
       {options.status === 'error' && (
         <div>
-          <p role="alert">No se han podido cargar las opciones.</p>
+          <p role="alert">{t('upload.couldNotLoadTheOptions')}</p>
           <button type="button" onClick={options.retry}>
-            Reintentar opciones
+            {' '}
+            {t('upload.retryOptions')}{' '}
           </button>
         </div>
       )}
-      <form aria-label="Subir vídeo" onSubmit={(event) => void submit(event)} aria-busy={pending || checkingSession}>
-        {checkingSession && <p role="status">Comprobando sesión…</p>}
+      <form
+        aria-label={t('catalogue.uploadVideo')}
+        onSubmit={(event) => void submit(event)}
+        aria-busy={pending || checkingSession}
+      >
+        {checkingSession && <p role="status">{t('catalogue.checkingSession')}</p>}
         <fieldset disabled={pending || checkingSession || options.status !== 'success'}>
           <div className="auth-field">
-            <label htmlFor="upload-title">Título</label>
+            <label htmlFor="upload-title">{t('upload.title')}</label>
             <input id="upload-title" name="title" required maxLength={255} aria-invalid={Boolean(fields.title)} />
           </div>
           <div className="auth-field">
-            <label htmlFor="upload-description">Descripción</label>
+            <label htmlFor="upload-description">{t('profile.description')}</label>
             <textarea id="upload-description" name="description" rows={4} />
           </div>
           <div className="auth-field">
-            <label htmlFor="upload-category">Categoría</label>
+            <label htmlFor="upload-category">{t('upload.category')}</label>
             <select
               id="upload-category"
               name="category"
@@ -129,37 +141,38 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
               aria-invalid={Boolean(fields.category)}
             >
               <option value="" disabled>
-                Selecciona una categoría
+                {' '}
+                {t('upload.selectACategory')}{' '}
               </option>
               {options.categories.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {categoryLabel(category)}
                 </option>
               ))}
             </select>
           </div>
           <fieldset className="upload-tags">
-            <legend>Etiquetas (opcional, hasta 40)</legend>
-            {options.status === 'success' && options.tags.length === 0 && <p>No hay etiquetas disponibles.</p>}
+            <legend>{t('upload.tagsOptionalUpTo40')}</legend>
+            {options.status === 'success' && options.tags.length === 0 && <p>{t('upload.noTagsAreAvailable')}</p>}
             {options.tags.length > 0 && (
               <details className="upload-tags-dropdown">
                 <summary>
                   {selectedTags.length === 0
-                    ? 'Seleccionar etiquetas'
-                    : `${selectedTags.length} seleccionada${selectedTags.length === 1 ? '' : 's'}: ${selectedTags.join(', ')}`}
+                    ? t('upload.selectTags')
+                    : plural('upload.selectedTags', selectedTags.length, { tags: selectedTags.join(', ') })}
                 </summary>
-                <label htmlFor="upload-tag-search">Buscar etiqueta</label>
+                <label htmlFor="upload-tag-search">{t('upload.findATag')}</label>
                 <input
                   id="upload-tag-search"
                   type="search"
                   value={tagQuery}
-                  placeholder="Escribe para filtrar"
+                  placeholder={t('upload.typeToFilter')}
                   onChange={(event) => setTagQuery(event.target.value)}
                   // Enter in the filter must not submit the whole upload form.
                   onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
                 />
                 <div className="upload-tags-options">
-                  {visibleTags.length === 0 && <p role="status">Ninguna etiqueta coincide con la búsqueda.</p>}
+                  {visibleTags.length === 0 && <p role="status">{t('upload.noTagsMatchYourSearch')}</p>}
                   {visibleTags.map((tag) => (
                     <label key={tag}>
                       <input
@@ -182,7 +195,7 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
             )}
           </fieldset>
           <div className="auth-field">
-            <label htmlFor="upload-video">Archivo de vídeo</label>
+            <label htmlFor="upload-video">{t('upload.videoFile')}</label>
             <input
               id="upload-video"
               type="file"
@@ -192,7 +205,7 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
             />
           </div>
           <div className="auth-field">
-            <label htmlFor="upload-thumbnail">Miniatura (opcional)</label>
+            <label htmlFor="upload-thumbnail">{t('upload.thumbnailOptional')}</label>
             <input
               id="upload-thumbnail"
               type="file"
@@ -201,21 +214,24 @@ function UploadForm({ checkingSession }: { checkingSession: boolean }) {
             />
           </div>
           <button className="auth-submit" type="submit">
-            Publicar vídeo
+            {' '}
+            {t('upload.publishVideo')}{' '}
           </button>
         </fieldset>
         {pending && (
           <div role="status" aria-live="polite">
             <label htmlFor="upload-progress">
-              {progress === 100 ? 'Procesando vídeo…' : `Subiendo vídeo: ${progress} %`}
+              {progress === 100
+                ? t('upload.processingVideo')
+                : t('upload.progress', { percent: formatNumber(progress) })}
             </label>
             <progress id="upload-progress" max={100} value={progress} />
           </div>
         )}
-        {error && <p role="alert">{error}</p>}
+        {error && <p role="alert">{localizeMessage(error)}</p>}
         {Object.entries(fields).map(([field, message]) => (
           <p role="alert" key={field}>
-            {field}: {message}
+            {field}: {localizeMessage(message)}
           </p>
         ))}
       </form>

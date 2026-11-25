@@ -1,3 +1,4 @@
+import { t, useLocale, formatNumber, localizeMessage } from '../i18n/locale';
 import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useUpdateVideoTags } from '../useUpdateVideoTags';
@@ -12,6 +13,7 @@ type VideoTagEditorProps = {
 };
 
 export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTagEditorProps) {
+  useLocale();
   const { save, pending, errors } = useUpdateVideoTags(videoId);
   const [draft, setDraft] = useState('');
   const [limitMessage, setLimitMessage] = useState('');
@@ -32,7 +34,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
       return;
     }
     if (tags.length >= MAX_TAGS) {
-      setLimitMessage(`You can have at most ${MAX_TAGS} tags.`);
+      setLimitMessage(t('player.maxTags', { count: formatNumber(MAX_TAGS) }));
       return;
     }
     setLimitMessage('');
@@ -75,7 +77,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
 
   return (
     <div className="video-tags" aria-busy={pending}>
-      <h2 className="video-tags-heading">Tags</h2>
+      <h2 className="video-tags-heading">{t('catalogue.tags')}</h2>
       {tags.length > 0 && (
         <ul className="video-tags-list">
           {tags.map((tag) => (
@@ -85,7 +87,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
                 <button
                   type="button"
                   className="video-tag-remove"
-                  aria-label={`Remove tag ${tag}`}
+                  aria-label={t('player.removeTag', { tag })}
                   disabled={pending}
                   onClick={() => void removeTag(tag)}
                 >
@@ -98,7 +100,7 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
       )}
       {editable && (
         <div className="video-tags-editor">
-          <label htmlFor={`video-tag-input-${videoId}`}>Add a tag</label>
+          <label htmlFor={`video-tag-input-${videoId}`}>{t('player.addATag')}</label>
           <input
             id={`video-tag-input-${videoId}`}
             type="text"
@@ -109,12 +111,14 @@ export function VideoTagEditor({ videoId, tags, editable, onTagsSaved }: VideoTa
             aria-describedby={`video-tags-count-${videoId}`}
           />
           <span id={`video-tags-count-${videoId}`}>
-            {tags.length}/{MAX_TAGS} tags
+            {formatNumber(tags.length)}/{formatNumber(MAX_TAGS)} {t('catalogue.tags')}
           </span>
-          {pending && <span role="status">Saving…</span>}
-          {limitMessage && <p role="alert">{limitMessage}</p>}
-          {errors.perTag[addedTagIndex] && <small className="video-tag-error">{errors.perTag[addedTagIndex]}</small>}
-          {errors.general && <p role="alert">{errors.general}</p>}
+          {pending && <span role="status">{t('comments.saving')}</span>}
+          {limitMessage && <p role="alert">{t('player.maxTags', { count: formatNumber(MAX_TAGS) })}</p>}
+          {errors.perTag[addedTagIndex] && (
+            <small className="video-tag-error">{localizeMessage(errors.perTag[addedTagIndex], 'errors.field')}</small>
+          )}
+          {errors.general && <p role="alert">{localizeMessage(errors.general)}</p>}
         </div>
       )}
     </div>

@@ -1,12 +1,19 @@
+import { t, apiError, fieldErrors } from '../i18n/locale';
 import { mutate } from '../apiClient';
 import type { VideoDetail } from '../useVideo';
 import { AuthError } from './authClient';
 
 function videoError(error: unknown, fallback: string): AuthError {
   const response = (
-    error as { response?: { status?: number; data?: { error?: string; errors?: Record<string, string> } } }
+    error as {
+      response?: { status?: number; data?: { code?: string; error?: string; errors?: Record<string, string> } };
+    }
   )?.response;
-  return new AuthError(response?.data?.error || fallback, response?.data?.errors, response?.status);
+  return new AuthError(
+    apiError(response?.data?.code, response?.status, fallback),
+    fieldErrors(response?.data?.errors),
+    response?.status
+  );
 }
 
 // Identifies one opening of the player page. randomUUID needs a secure context, so
@@ -31,7 +38,7 @@ export const videoClient = {
     try {
       return await mutate<VideoDetail>(`/videos/${videoId}`, { tags }, 'patch');
     } catch (error) {
-      throw videoError(error, 'Could not save the tags. Please try again.');
+      throw videoError(error, t('player.couldNotSaveTheTagsPleaseTryAgain'));
     }
   },
   async createMetadata(input: {
@@ -43,7 +50,7 @@ export const videoClient = {
     try {
       return await mutate<VideoDetail>('/videos', { ...input, durationSeconds: 0 }, 'post');
     } catch (error) {
-      throw videoError(error, 'Could not register the video. Please try again.');
+      throw videoError(error, t('player.couldNotRegisterTheVideoPleaseTryAgain'));
     }
   },
   async updateMetadata(
@@ -53,14 +60,14 @@ export const videoClient = {
     try {
       return await mutate<VideoDetail>(`/videos/${videoId}`, input, 'patch');
     } catch (error) {
-      throw videoError(error, 'Could not save the video details. Please try again.');
+      throw videoError(error, t('player.couldNotSaveTheVideoDetailsPleaseTryAgain'));
     }
   },
   async deleteVideo(videoId: number): Promise<void> {
     try {
       await mutate<void>(`/videos/${videoId}`, null, 'delete');
     } catch (error) {
-      throw videoError(error, 'Could not delete the video. Please try again.');
+      throw videoError(error, t('player.couldNotDeleteTheVideoPleaseTryAgain'));
     }
   },
 };

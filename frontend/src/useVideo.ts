@@ -1,3 +1,4 @@
+import { t } from './i18n/locale';
 import { useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { getEnv } from './utils/Env';
@@ -25,7 +26,7 @@ export type VideoDetail = {
 
 export function useVideo(id: string | undefined) {
   const [value, setValue] = useState<VideoDetail | null>(null);
-  const [message, setMessage] = useState<string>('Loading...');
+  const [message, setMessage] = useState<string>(t('catalogue.loading'));
   const [loading, setLoading] = useState<VideoLoadingState>('loading');
 
   useEffect(() => {

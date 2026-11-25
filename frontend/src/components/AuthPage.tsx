@@ -1,3 +1,5 @@
+import type { Locale } from '../i18n/locale';
+import { localizeMessage, t, useLocale } from '../i18n/locale';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
@@ -5,14 +7,13 @@ import { useAuth } from '../auth/AuthContext';
 import { AuthError } from '../utils/authClient';
 
 const PLACEHOLDERS: Record<string, string> = {
-  email: 'tu@email.com',
-  accountName: 'tu_usuario',
   firstName: 'Ana',
   lastName: 'García López',
   password: '••••••••',
 };
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
+  useLocale();
   const auth = useAuth();
   const location = useLocation();
   const registering = mode === 'register';
@@ -39,14 +40,15 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           accountName: String(data.get('accountName') || ''),
           firstName: String(data.get('firstName') || ''),
           lastName: String(data.get('lastName') || ''),
+          ...(data.get('preferredLanguage')
+            ? { preferredLanguage: String(data.get('preferredLanguage')) as Locale }
+            : {}),
         });
       } else {
         await auth.signIn({ email, password });
       }
     } catch (failure) {
-      setError(
-        failure instanceof AuthError ? failure.message : 'No se ha podido completar la operación. Inténtalo de nuevo.'
-      );
+      setError(failure instanceof AuthError ? failure.message : t('account.couldNotCompleteTheOperationTryAgain'));
       setFields(failure instanceof AuthError ? failure.fields : {});
     } finally {
       setPending(false);
@@ -76,7 +78,13 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             autoComplete={autoComplete}
             maxLength={isPassword ? (registering ? 72 : undefined) : name === 'email' ? 255 : 100}
             minLength={isPassword && registering ? 8 : undefined}
-            placeholder={PLACEHOLDERS[name]}
+            placeholder={
+              name === 'email'
+                ? t('account.emailExample')
+                : name === 'accountName'
+                  ? t('account.usernameExample')
+                  : PLACEHOLDERS[name]
+            }
             aria-invalid={Boolean(fields[name])}
             aria-describedby={
               [fields[name] && `error-${name}`, isPassword && registering && 'password-hint']
@@ -89,17 +97,17 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             <button
               type="button"
               className="auth-toggle-password"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-label={showPassword ? t('account.hidePassword') : t('account.showPassword')}
               aria-pressed={showPassword}
               onClick={() => setShowPassword((value) => !value)}
             >
-              {showPassword ? 'Ocultar' : 'Mostrar'}
+              {showPassword ? t('account.hide') : t('account.show')}
             </button>
           )}
         </div>
         {fields[name] && (
           <small id={`error-${name}`} className="auth-field-error">
-            {fields[name]}
+            {localizeMessage(fields[name], 'errors.field')}
           </small>
         )}
       </div>
@@ -112,46 +120,65 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     <main className="auth-shell">
       <aside className="auth-aside" aria-hidden="true">
         <img src="/protube-imago-removebg-preview.png" alt="" className="auth-aside-logo" />
-        <p className="auth-aside-title">{registering ? 'Únete a Protube' : 'Tu sitio para ver y compartir'}</p>
+        <p className="auth-aside-title">
+          {registering ? t('account.joinProtube') : t('account.yourPlaceToWatchAndShare')}
+        </p>
         <ul className="auth-aside-list">
-          <li>Guarda tu perfil y tu historial</li>
-          <li>Comenta y da me gusta a los vídeos</li>
-          <li>Consulta las estadísticas de tu canal</li>
+          <li>{t('account.saveYourProfileAndHistory')}</li>
+          <li>{t('account.commentOnAndLikeVideos')}</li>
+          <li>{t('account.checkYourChannelStatistics')}</li>
         </ul>
       </aside>
       <div className="auth-card">
-        <h1>{registering ? 'Crea tu cuenta' : 'Bienvenido de nuevo'}</h1>
+        <h1>{registering ? t('account.createYourAccount') : t('account.welcomeBack')}</h1>
         <p className="auth-subtitle">
-          {registering ? 'Guarda tu perfil y participa en Protube.' : 'Entra para acceder a tu perfil.'}
+          {registering ? t('account.saveYourProfileAndJoinInOnProtube') : t('account.signInToAccessYourProfile')}
         </p>
         <form onSubmit={(event) => void submit(event)} aria-busy={pending}>
-          {field('email', 'Email', 'email', 'email')}
-          {registering && field('accountName', 'Nombre de usuario', 'username')}
+          {field('email', t('account.email'), 'email', 'email')}
+          {registering && field('accountName', t('account.username'), 'username')}
           {registering && (
             <div className="auth-row">
-              {field('firstName', 'Nombre', 'given-name')}
-              {field('lastName', 'Apellidos', 'family-name')}
+              {field('firstName', t('account.firstName'), 'given-name')}
+              {field('lastName', t('account.lastName'), 'family-name')}
             </div>
           )}
-          {field('password', 'Contraseña', registering ? 'new-password' : 'current-password', 'password')}
+          {registering && (
+            <div className="auth-field">
+              <label htmlFor="auth-language">{t('locale.preferred')}</label>
+              <select id="auth-language" name="preferredLanguage" defaultValue="">
+                <option value="">{t('locale.unassigned')}</option>
+                <option value="es" lang="es">
+                  Español
+                </option>
+                <option value="ca" lang="ca">
+                  Català
+                </option>
+                <option value="en" lang="en">
+                  English
+                </option>
+              </select>
+            </div>
+          )}
+          {field('password', t('account.password'), registering ? 'new-password' : 'current-password', 'password')}
           {registering && (
             <small id="password-hint" className={passwordReady ? 'auth-hint auth-hint--ok' : 'auth-hint'}>
-              <span aria-hidden="true">{passwordReady ? '✓' : '•'}</span> Usa al menos 8 caracteres.
+              <span aria-hidden="true">{passwordReady ? '✓' : '•'}</span> {t('account.useAtLeast8Characters')}{' '}
             </small>
           )}
           {error && (
             <p className="auth-error" role="alert">
-              {error}
+              {localizeMessage(error)}
             </p>
           )}
           <button className="auth-submit" type="submit" disabled={pending}>
-            {pending ? 'Enviando…' : registering ? 'Crear cuenta' : 'Iniciar sesión'}
+            {pending ? t('account.sending') : registering ? t('account.createAccount') : t('catalogue.signIn')}
           </button>
         </form>
         <p className="auth-alternative">
-          {registering ? '¿Ya tienes cuenta? ' : '¿Todavía no tienes cuenta? '}
+          {registering ? t('account.alreadyHaveAnAccount') : t('account.dontHaveAnAccountYet')}
           <Link to={registering ? '/login' : '/register'} state={location.state}>
-            {registering ? 'Iniciar sesión' : 'Registrarse'}
+            {registering ? t('catalogue.signIn') : t('catalogue.register')}
           </Link>
         </p>
       </div>

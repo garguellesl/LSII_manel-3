@@ -62,17 +62,18 @@ describe('commentClient', () => {
   });
 
   it.each([
-    [401, {}, 'session has expired'],
-    [403, {}, 'cannot perform'],
-    [409, {}, 'deleted'],
-    [400, { errors: { text: 'Invalid text' } }, 'Invalid text'],
-    [404, { error: 'Missing comment' }, 'Missing comment'],
-    [500, {}, 'Could not save'],
+    [401, {}, 'Tu sesión ha caducado'],
+    [403, {}, 'No tienes permiso'],
+    [409, {}, 'eliminado'],
+    [400, { errors: { text: 'Invalid text' } }, 'No se han podido guardar los cambios'],
+    [404, { error: 'Missing comment' }, 'No se han podido guardar los cambios'],
+    [500, {}, 'No se han podido guardar los cambios'],
   ])('explains HTTP %s', (status, data, expected) => {
     expect(commentError({ response: { status, data } }).message).toContain(expected);
   });
 
-  it('explains a network error', () => expect(commentError(new Error('network')).message).toContain('try again'));
+  it('explains a network error', () =>
+    expect(commentError(new Error('network')).message).toContain('Inténtalo de nuevo'));
 
   it('normalizes legacy MVC date arrays on reads, creation and editing without losing sort precision', async () => {
     const wire = { id: 1, createdAt: [2026, 1, 2, 9, 5, 7, 123456789], updatedAt: [2026, 1, 2] };

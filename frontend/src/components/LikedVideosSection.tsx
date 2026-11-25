@@ -1,3 +1,4 @@
+import { t, useLocale, formatNumber } from '../i18n/locale';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLikedVideos } from '../useLikedVideos';
@@ -5,13 +6,14 @@ import { toMediaUrl } from '../utils/media';
 import './likedVideos.css';
 
 export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boolean }) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
 
   return (
     <section className="profile-panel liked-videos" aria-labelledby="liked-videos-title">
       <div className="profile-panel-heading liked-videos-heading">
-        <h2 id="liked-videos-title">Vídeos que te gustan</h2>
+        <h2 id="liked-videos-title">{t('library.likedVideos')}</h2>
         <button
           className="profile-action"
           type="button"
@@ -19,7 +21,7 @@ export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boo
           aria-controls="liked-videos-collection"
           onClick={() => setOpen(!open)}
         >
-          {open ? 'Ocultar vídeos que te gustan' : 'Ver vídeos que te gustan'}
+          {open ? t('library.hideLikedVideos') : t('library.showLikedVideos')}
         </button>
       </div>
       <div id="liked-videos-collection" hidden={!open}>
@@ -30,6 +32,7 @@ export function LikedVideosSection({ sessionConfirmed }: { sessionConfirmed: boo
 }
 
 function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page: number) => void }) {
+  useLocale();
   const { data, retry } = useLikedVideos(page, setPage);
   const content = useRef<HTMLDivElement>(null);
 
@@ -39,25 +42,28 @@ function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page
   };
 
   return (
-    <div ref={content} tabIndex={-1} role="group" aria-label="Colección de vídeos que te gustan">
+    <div ref={content} tabIndex={-1} role="group" aria-label={t('library.likedVideosCollection')}>
       {data === undefined ? (
         <Loading />
       ) : data === null ? (
         <>
           <p className="profile-empty" role="alert">
-            No se han podido cargar los vídeos que te gustan.
+            {' '}
+            {t('library.couldNotLoadYourLikedVideos')}{' '}
           </p>
           <button type="button" className="profile-retry" onClick={retry}>
-            Reintentar
+            {' '}
+            {t('profile.tryAgain')}{' '}
           </button>
         </>
       ) : data.content.length === 0 ? (
         <p className="profile-empty">
-          Aún no has dado a Me gusta a ningún vídeo. <Link to="/">Explora el catálogo</Link>
+          {' '}
+          {t('library.youHaventLikedAnyVideosYet')} <Link to="/">{t('library.browseVideos')}</Link>
         </p>
       ) : (
         <>
-          <ul className="liked-videos-list" aria-label="Vídeos con Me gusta">
+          <ul className="liked-videos-list" aria-label={t('library.videosYouLiked')}>
             {data.content.map((video) => (
               <li key={video.id}>
                 <Link to={`/videos/${video.id}`} className="liked-video-link">
@@ -74,17 +80,22 @@ function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page
             ))}
           </ul>
           {(page > 0 || data.hasNext) && (
-            <nav className="liked-videos-pagination" aria-label="Páginas de vídeos que te gustan">
+            <nav className="liked-videos-pagination" aria-label={t('library.likedVideoPages')}>
               <button
                 type="button"
                 className="profile-action"
                 disabled={page === 0}
                 onClick={() => changePage(page - 1)}
               >
-                Anterior
+                {' '}
+                {t('library.previous')}{' '}
               </button>
               <span role="status">
-                Página {page + 1} de {Math.ceil(data.totalElements / data.size)}
+                {' '}
+                {t('catalogue.pageOf', {
+                  page: formatNumber(page + 1),
+                  total: formatNumber(Math.ceil(data.totalElements / data.size)),
+                })}
               </span>
               <button
                 type="button"
@@ -92,7 +103,8 @@ function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page
                 disabled={!data.hasNext}
                 onClick={() => changePage(page + 1)}
               >
-                Siguiente
+                {' '}
+                {t('library.next')}{' '}
               </button>
             </nav>
           )}
@@ -103,9 +115,11 @@ function LikedVideosCollection({ page, setPage }: { page: number; setPage: (page
 }
 
 function Loading() {
+  useLocale();
   return (
     <p className="profile-empty" role="status">
-      Cargando los vídeos que te gustan…
+      {' '}
+      {t('library.loadingLikedVideos')}{' '}
     </p>
   );
 }

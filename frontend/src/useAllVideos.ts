@@ -1,3 +1,4 @@
+import { t } from './i18n/locale';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { getEnv } from './utils/Env';
@@ -108,7 +109,9 @@ export function useAllVideos(
               hasNext: false,
               totalElements: 0,
               size: 24,
-              message: 'Error fetching videos: ' + (error instanceof Error ? error.message : 'Unknown error'),
+              message:
+                'Error fetching videos: ' +
+                (error instanceof Error ? error.message : t('catalogue.couldNotCompleteTheOperation')),
             });
         }
       },

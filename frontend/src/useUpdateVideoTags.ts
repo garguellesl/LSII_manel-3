@@ -1,3 +1,4 @@
+import { t } from './i18n/locale';
 import { useState } from 'react';
 import { AuthError } from './utils/authClient';
 import { videoClient } from './utils/videoClient';
@@ -21,7 +22,7 @@ export function useUpdateVideoTags(videoId: number) {
         setErrors(parseTagErrors(failure.fields));
       } else {
         setErrors({
-          general: failure instanceof AuthError ? failure.message : 'Network error, please try again.',
+          general: failure instanceof AuthError ? failure.message : t('catalogue.networkErrorPleaseTryAgain'),
           perTag: {},
         });
       }
