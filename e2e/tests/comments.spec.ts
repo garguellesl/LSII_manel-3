@@ -5,7 +5,7 @@ import { uniqueUser } from '../fixtures/users';
 
 type Comment = { id: number; text: string; parentId: number | null; deleted: boolean; likesCount: number; likedByMe: boolean };
 
-async function mutation(api: APIRequestContext, method: 'POST' | 'PATCH' | "Eliminar", path: string, data?: unknown) {
+async function mutation(api: APIRequestContext, method: 'POST' | 'PATCH' | 'DELETE', path: string, data?: unknown) {
   const csrf = await api.get('/api/auth/csrf');
   expect(csrf.ok()).toBeTruthy();
   const { token, headerName } = await csrf.json();
@@ -84,7 +84,7 @@ test.describe('comments, replies and likes', () => {
       await expect(row(otherPage, 'Edited root').getByRole('button', { name: "Editar", exact: true })).toHaveCount(0);
       await expect(row(otherPage, 'Edited root').getByRole('button', { name: "Eliminar", exact: true })).toHaveCount(0);
       await row(otherPage, 'Child reply').getByRole('button', { name: "Me gusta el comentario", exact: true }).click();
-      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true })).toHaveText('Liked · 1');
+      await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true })).toHaveText('Te gusta · 1');
       await otherPage.reload();
       await expect(row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true })).toHaveAttribute('aria-pressed', 'true');
       await row(otherPage, 'Child reply').getByRole('button', { name: "Quitar Me gusta del comentario", exact: true }).click();
@@ -98,7 +98,7 @@ test.describe('comments, replies and likes', () => {
       await expect(row(page, "Comentario eliminado")).toBeVisible();
       await page.reload();
       await expect(page.locator('.comment-text')).toHaveText(["Comentario eliminado", 'Child reply', 'Grandchild reply', 'Second root']);
-      await expect(row(page, "Comentario eliminado").getByRole('button', { name: /^(Reply|Edit|Delete|Like comment)$/ })).toHaveCount(0);
+      await expect(row(page, "Comentario eliminado").getByRole('button', { name: /^(Responder|Editar|Eliminar|Me gusta el comentario)$/ })).toHaveCount(0);
       await row(page, "Comentario eliminado").getByRole('button', { name: "Ocultar respuestas", exact: true }).click();
       await expect(row(page, 'Child reply')).toHaveCount(0);
       await row(page, "Comentario eliminado").getByRole('button', { name: "Mostrar respuestas", exact: true }).click();
@@ -121,7 +121,7 @@ test.describe('comments, replies and likes', () => {
       expect((await mutation(guest, 'POST', `${url}/likes`)).status()).toBe(401);
       expect((await fixture.ownerApi.post(`${url}/likes`)).status()).toBe(403);
       expect((await mutation(other, 'PATCH', url, { text: 'stolen', userId: fixture.owner.id })).status()).toBe(403);
-      expect((await mutation(other, "Eliminar", url)).status()).toBe(403);
+      expect((await mutation(other, 'DELETE', url)).status()).toBe(403);
       for (const text of ['', '  \n\t', '\u00a0', 'x'.repeat(2001)]) {
         expect((await mutation(fixture.ownerApi, 'POST', collection, { text })).status()).toBe(400);
       }
@@ -132,14 +132,14 @@ test.describe('comments, replies and likes', () => {
       expect((await spoofed.json()).userId).toBe(second.id);
       await mutation(other, 'POST', `${url}/likes`);
       await mutation(other, 'POST', `${url}/likes`);
-      const unlikeOther = await mutation(fixture.ownerApi, "Eliminar", `${url}/likes?userId=${second.id}`);
+      const unlikeOther = await mutation(fixture.ownerApi, 'DELETE', `${url}/likes?userId=${second.id}`);
       expect((await unlikeOther.json()).likesCount).toBe(1);
-      expect((await mutation(fixture.ownerApi, "Eliminar", url)).status()).toBe(204);
-      expect((await mutation(fixture.ownerApi, "Eliminar", url)).status()).toBe(204);
+      expect((await mutation(fixture.ownerApi, 'DELETE', url)).status()).toBe(204);
+      expect((await mutation(fixture.ownerApi, 'DELETE', url)).status()).toBe(204);
       expect((await mutation(fixture.ownerApi, 'PATCH', url, { text: 'restore' })).status()).toBe(409);
       expect((await mutation(other, 'POST', collection, { text: 'late', parentId: root.id })).status()).toBe(409);
       expect((await mutation(other, 'POST', `${url}/likes`)).status()).toBe(409);
-      expect((await mutation(other, "Eliminar", `${url}/likes`)).status()).toBe(409);
+      expect((await mutation(other, 'DELETE', `${url}/likes`)).status()).toBe(409);
     } finally { await guest.dispose(); await other.dispose(); await fixture.context.close(); await fixture.ownerApi.dispose(); }
   });
 

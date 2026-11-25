@@ -148,6 +148,8 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
   await page.keyboard.press("Space");
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Tab");
+  await expect(page.locator(".language-selector select")).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(
     page.getByRole("link", { name: "Iniciar sesión", exact: true }),
   ).toBeFocused();

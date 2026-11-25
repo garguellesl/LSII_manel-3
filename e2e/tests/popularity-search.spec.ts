@@ -48,7 +48,7 @@ test('RF-08 popularity sorting preserves filters, stable pages and URL history',
     }
 
     await page.goto(`/?q=${token}&tag=sort+rock&tag=sort+pop&sort=likes`);
-    const cards = page.getByRole('link', { name: /^Watch / });
+    const cards = page.getByRole('link', { name: /^Ver / });
     await expect(cards).toHaveCount(3);
     await expect(cards.first()).toHaveAttribute('href', `/videos/${videos[1].id}`);
     await page.getByRole('combobox', { name: 'Sort by' }).selectOption('views');
@@ -64,7 +64,7 @@ test('RF-08 popularity sorting preserves filters, stable pages and URL history',
     await page.goForward();
     await expect(page.getByRole('combobox', { name: 'Sort by' })).toHaveValue('views');
     await page.getByRole('combobox', { name: 'Audience' }).selectOption('CHILDREN');
-    await expect(page.getByRole('status')).toHaveText('No videos found matching the selected filters.');
+    await expect(page.getByRole('status')).toHaveText('No hay vídeos que coincidan con los filtros seleccionados.');
     expect(new URL(page.url()).searchParams.get('sort')).toBe('views');
     expect(new URL(page.url()).searchParams.get('q')).toBe(token);
     await page.getByRole('combobox', { name: 'Audience' }).selectOption('ALL');

@@ -59,8 +59,8 @@ test.describe('player page layout and states', () => {
       const playerBox = (await media.boundingBox())!;
       expect((await side.boundingBox())!.x).toBeGreaterThanOrEqual(playerBox.x + playerBox.width);
       const details = page.getByRole('list', { name: "Detalles del vídeo" });
-      await expect(details).toContainText('Other');
-      await expect(details).toContainText('views');
+      await expect(details).toContainText('Otros');
+      await expect(details).toContainText('visualizaciones');
       await expect(page.getByText("Subido por")).toBeVisible();
       await expect(page.getByText(fixture.owner.accountName, { exact: true }).first()).toBeVisible();
       await expect(page.locator('.video-tag-chip').filter({ hasText: 'player-page' })).toBeVisible();

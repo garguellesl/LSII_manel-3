@@ -296,7 +296,7 @@ for (const width of [1280, 375]) {
         await page.locator("#auth-email").fill(account.email);
         await page.locator("#auth-password").fill("password123");
         await page
-          .getByRole("button", { name: "Iniciar sesión", exact: true })
+          .getByRole("button", { name: messages[locale].login, exact: true })
           .click();
         await expect(page.locator("html")).toHaveAttribute("lang", locale);
       });

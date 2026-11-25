@@ -39,18 +39,18 @@ test.describe('tag editor as owner', () => {
 
     const tagInput = page.getByLabel("Añadir etiqueta");
     await expect(tagInput).toBeVisible();
-    await expect(page.getByText('0/40 tags')).toBeVisible();
+    await expect(page.getByText('0/40 Etiquetas')).toBeVisible();
 
     // Añadir.
     await tagInput.fill('funk');
     await tagInput.press('Enter');
     await expect(page.getByLabel("Eliminar etiqueta funk")).toBeVisible();
-    await expect(page.getByText('1/40 tags')).toBeVisible();
+    await expect(page.getByText('1/40 Etiquetas')).toBeVisible();
 
     // Quitar.
     await page.getByLabel("Eliminar etiqueta funk").click();
     await expect(page.getByLabel("Eliminar etiqueta funk")).toHaveCount(0);
-    await expect(page.getByText('0/40 tags')).toBeVisible();
+    await expect(page.getByText('0/40 Etiquetas')).toBeVisible();
 
     // Error de validación: 81 caracteres supera el límite de 80 de TagNormalizer.
     const tooLong = 'a'.repeat(81);
@@ -61,6 +61,6 @@ test.describe('tag editor as owner', () => {
     // documentado en specs/sprint-2/plan.md en el que no se usa un selector de
     // accesibilidad); se busca el texto exacto que devuelve el backend.
     await expect(page.getByText('tag must be at most 80 characters')).toBeVisible();
-    await expect(page.getByText('0/40 tags')).toBeVisible();
+    await expect(page.getByText('0/40 Etiquetas')).toBeVisible();
   });
 });

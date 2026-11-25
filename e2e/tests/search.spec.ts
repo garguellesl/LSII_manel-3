@@ -54,7 +54,7 @@ test.describe('search by title or description', () => {
     await page.goto('/');
     const searchbox = page.getByRole('searchbox', { name: "Buscar vídeos por título o descripción" });
     await searchbox.fill(titleToken);
-    await expect(page.getByRole('heading', { name: `Results for "${titleToken}"` })).toBeVisible();
+    await expect(page.getByRole('heading', { name: `Resultados para «${titleToken}»` })).toBeVisible();
 
     await page.getByRole('button', { name: "Borrar búsqueda" }).click();
 
