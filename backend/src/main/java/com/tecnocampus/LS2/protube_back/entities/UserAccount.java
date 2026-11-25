@@ -45,6 +45,9 @@ public class UserAccount {
     @Column(name = "avatar_path", length = 500)
     private String avatarPath;
 
+    @Column(name = "banner_path", length = 500)
+    private String bannerPath;
+
     protected UserAccount() {
     }
 
@@ -106,6 +109,14 @@ public class UserAccount {
 
     public void changeAvatar(String avatarPath) {
         this.avatarPath = avatarPath;
+    }
+
+    public void changeBanner(String bannerPath) {
+        this.bannerPath = bannerPath;
+    }
+
+    public String getBannerPath() {
+        return bannerPath;
     }
 
     public String getDisplayName() {

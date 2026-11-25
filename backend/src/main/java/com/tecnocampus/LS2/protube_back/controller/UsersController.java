@@ -9,7 +9,9 @@ import com.tecnocampus.LS2.protube_back.model.UpdateProfileRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,6 +45,17 @@ public class UsersController {
             @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             Principal principal) {
         return ResponseEntity.ok(userService.updateProfile(Long.valueOf(principal.getName()), profile, avatar));
+    }
+
+    // Profile background: its own endpoints, so the profile JSON and avatar contracts stay unchanged.
+    @PutMapping(value = "/me/banner", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> updateBanner(@RequestPart("banner") MultipartFile banner, Principal principal) {
+        return ResponseEntity.ok(userService.updateBanner(Long.valueOf(principal.getName()), banner));
+    }
+
+    @DeleteMapping("/me/banner")
+    public ResponseEntity<UserResponse> removeBanner(Principal principal) {
+        return ResponseEntity.ok(userService.removeBanner(Long.valueOf(principal.getName())));
     }
 
     @GetMapping("/{id}/watch-history")

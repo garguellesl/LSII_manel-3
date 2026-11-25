@@ -54,6 +54,7 @@ describe('ProfilePage', () => {
     auth.currentUser.mockResolvedValue(user);
     users.analytics.mockResolvedValue([]);
     users.watchHistory.mockResolvedValue([]);
+    users.likedVideos.mockResolvedValue({ content: [], page: 0, size: 24, hasNext: false, totalElements: 0 });
   });
 
   it('shows the default avatar, the real name as fallback and an invitation to add a description', async () => {
@@ -82,7 +83,9 @@ describe('ProfilePage', () => {
       expect.stringContaining('/uploads/avatars/a.png')
     );
     // The account menu represents the same account with the same public identity.
-    expect(within(screen.getByRole('navigation')).getByText('Ada L.')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation')).getByRole('button', { name: 'Cuenta de Ada L.' })
+    ).toBeInTheDocument();
   });
 
   it('saves name, description and avatar, then reflects them immediately everywhere', async () => {
@@ -126,7 +129,9 @@ describe('ProfilePage', () => {
       'src',
       expect.stringContaining('/uploads/avatars/n.png')
     );
-    expect(within(screen.getByRole('navigation')).getByText('Ada L.')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation')).getByRole('button', { name: 'Cuenta de Ada L.' })
+    ).toBeInTheDocument();
     // Saving did not need another session check.
     expect(auth.currentUser).toHaveBeenCalledTimes(2);
   });
@@ -239,68 +244,52 @@ describe('ProfilePage', () => {
     expect(screen.getByText(/Aún no has visto ningún vídeo/)).toBeInTheDocument();
   });
 
-  it('opens the private collection, shows loading, and pages through links to the correct videos', async () => {
-    let finish!: (value: Awaited<ReturnType<typeof users.likedVideos>>) => void;
-    users.likedVideos.mockReturnValueOnce(new Promise((resolve) => (finish = resolve))).mockResolvedValueOnce({
-      content: [{ id: 8, title: 'Segundo vídeo', thumbnailUrl: null }],
-      page: 1,
+  it('shows the latest likes as a carousel with links to each video and to the full list', async () => {
+    users.likedVideos.mockResolvedValueOnce({
+      content: [
+        { id: 7, title: 'Último vídeo', thumbnailUrl: '/media/preview.webp' },
+        { id: 8, title: 'Anterior vídeo', thumbnailUrl: null },
+      ],
+      page: 0,
       size: 24,
       totalElements: 25,
-      hasNext: false,
+      hasNext: true,
     });
     renderProfile();
-    const open = await screen.findByRole('button', { name: 'Ver vídeos que te gustan' });
-    expect(users.likedVideos).not.toHaveBeenCalled();
-    expect(open).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(open);
-    expect(open).toHaveAttribute('aria-expanded', 'true');
-    const section = screen.getByRole('region', { name: 'Vídeos que te gustan' });
-    expect(within(section).getByRole('status')).toHaveTextContent('Cargando');
-    await act(async () =>
-      finish({
-        content: [{ id: 7, title: 'Primer vídeo', thumbnailUrl: '/media/preview.webp' }],
-        page: 0,
-        size: 24,
-        totalElements: 25,
-        hasNext: true,
-      })
-    );
-    expect(within(section).getByRole('link', { name: 'Primer vídeo' })).toHaveAttribute('href', '/videos/7');
-    expect(within(section).getByRole('button', { name: 'Anterior' })).toBeDisabled();
-    fireEvent.click(within(section).getByRole('button', { name: 'Siguiente' }));
-    expect(await within(section).findByRole('link', { name: 'Segundo vídeo' })).toHaveAttribute('href', '/videos/8');
-    expect(within(section).getByRole('button', { name: 'Siguiente' })).toBeDisabled();
-    expect(users.likedVideos).toHaveBeenLastCalledWith(1, expect.any(AbortSignal));
-
-    users.likedVideos
-      .mockResolvedValueOnce({ content: [], page: 1, size: 24, totalElements: 1, hasNext: false })
-      .mockResolvedValueOnce({
-        content: [{ id: 7, title: 'Primer vídeo', thumbnailUrl: '/media/preview.webp' }],
-        page: 0,
-        size: 24,
-        totalElements: 1,
-        hasNext: false,
-      });
-    fireEvent(window, new Event('focus'));
-    expect(await within(section).findByRole('link', { name: 'Primer vídeo' })).toBeInTheDocument();
-    expect(within(section).queryByRole('link', { name: 'Segundo vídeo' })).not.toBeInTheDocument();
-    expect(users.likedVideos).toHaveBeenLastCalledWith(0, expect.any(AbortSignal));
+    const section = await screen.findByRole('region', { name: 'Vídeos que te gustan' });
+    const carousel = await within(section).findByRole('list', { name: 'Últimos vídeos con Me gusta' });
+    expect(
+      within(carousel)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual(['/videos/7', '/videos/8']);
+    expect(users.likedVideos).toHaveBeenCalledWith(0, expect.any(AbortSignal));
+    expect(within(section).getByRole('link', { name: 'Ver todos' })).toHaveAttribute('href', '/liked');
+    expect(within(section).getByRole('button', { name: 'Ver los siguientes' })).toBeInTheDocument();
   });
 
-  it('lets the user retry a failed collection request and shows a useful empty state', async () => {
+  it('shows loading while the likes load and a useful empty state', async () => {
+    let finish!: (value: Awaited<ReturnType<typeof users.likedVideos>>) => void;
+    users.likedVideos.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    renderProfile();
+    const section = await screen.findByRole('region', { name: 'Vídeos que te gustan' });
+    expect(within(section).getByRole('status')).toHaveTextContent('Cargando');
+    await act(async () => finish({ content: [], page: 0, size: 24, totalElements: 0, hasNext: false }));
+    expect(within(section).getByRole('link', { name: 'Explora el catálogo' })).toHaveAttribute('href', '/');
+  });
+
+  it('lets the user retry a failed carousel request', async () => {
     users.likedVideos
       .mockRejectedValueOnce(new Error('Offline'))
       .mockResolvedValueOnce({ content: [], page: 0, size: 24, totalElements: 0, hasNext: false });
     renderProfile();
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver vídeos que te gustan' }));
-    const section = screen.getByRole('region', { name: 'Vídeos que te gustan' });
+    const section = await screen.findByRole('region', { name: 'Vídeos que te gustan' });
     expect(await within(section).findByRole('alert')).toHaveTextContent('No se han podido cargar');
     fireEvent.click(within(section).getByRole('button', { name: 'Reintentar' }));
-    expect(await within(section).findByText(/Aún no has dado/)).toBeInTheDocument();
-    expect(within(section).getByRole('link', { name: 'Explora el catálogo' })).toHaveAttribute('href', '/');
+    expect(await within(section).findByRole('link', { name: 'Explora el catálogo' })).toBeInTheDocument();
   });
 
-  it('discards an in-flight collection request when the active account changes', async () => {
+  it('discards an in-flight likes request when the active account changes', async () => {
     let finish!: (value: Awaited<ReturnType<typeof users.likedVideos>>) => void;
     users.likedVideos.mockReturnValueOnce(new Promise((resolve) => (finish = resolve))).mockResolvedValueOnce({
       content: [{ id: 12, title: 'Privado de la otra cuenta', thumbnailUrl: null }],
@@ -310,7 +299,7 @@ describe('ProfilePage', () => {
       hasNext: false,
     });
     renderProfile();
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver vídeos que te gustan' }));
+    await screen.findByRole('region', { name: 'Vídeos que te gustan' });
     const signal = users.likedVideos.mock.calls[0][1];
     auth.currentUser.mockResolvedValue({ ...user, id: 99, accountName: 'grace', displayName: 'Grace Hopper' });
     fireEvent(window, new Event('focus'));
@@ -325,7 +314,6 @@ describe('ProfilePage', () => {
         hasNext: false,
       })
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Ver vídeos que te gustan' }));
     expect(await screen.findByRole('link', { name: 'Privado de la otra cuenta' })).toBeInTheDocument();
     expect(screen.queryByText('Privado de Ada')).not.toBeInTheDocument();
   });

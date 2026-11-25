@@ -31,6 +31,7 @@ export type LikedVideosPage = {
 };
 
 export const AVATAR_LIMIT = 2 * 1024 * 1024;
+export const BANNER_LIMIT = 5 * 1024 * 1024;
 export const DISPLAY_NAME_LIMIT = 100;
 export const DESCRIPTION_LIMIT = 1000;
 
@@ -91,6 +92,22 @@ export const userClient = {
     return response.data;
   },
   // Always edits the signed-in account: the server takes the identity from the session.
+  async updateBanner(banner: File): Promise<User> {
+    const data = new FormData();
+    data.append('banner', banner);
+    try {
+      return normalizeUser(await mutate<Parameters<typeof normalizeUser>[0]>('/users/me/banner', data, 'put'));
+    } catch (failure) {
+      throw profileError(failure);
+    }
+  },
+  async removeBanner(): Promise<User> {
+    try {
+      return normalizeUser(await mutate<Parameters<typeof normalizeUser>[0]>('/users/me/banner', null, 'delete'));
+    } catch (failure) {
+      throw profileError(failure);
+    }
+  },
   async updateProfile(input: ProfileInput, avatar?: File): Promise<User> {
     const data = new FormData();
     data.append('profile', new Blob([JSON.stringify(input)], { type: 'application/json' }));
@@ -102,3 +119,11 @@ export const userClient = {
     }
   },
 };
+
+export function validateBanner(file: File): string | null {
+  if (!file.size) return 'La imagen está vacía.';
+  if (file.size > BANNER_LIMIT) return 'El fondo supera el límite de 5 MB.';
+  const jpg = /\.jpe?g$/i.test(file.name) && file.type === 'image/jpeg';
+  const png = /\.png$/i.test(file.name) && file.type === 'image/png';
+  return jpg || png ? null : 'El fondo debe ser una imagen JPG o PNG.';
+}

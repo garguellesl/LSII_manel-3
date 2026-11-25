@@ -50,3 +50,42 @@
   gap: 0.75rem;
   margin-top: 1rem;
 }
+
+/* Latest likes as a horizontal carousel: thumbnails scroll sideways and snap to each card. */
+.liked-carousel {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0.25rem 0 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+}
+
+.liked-carousel > li {
+  flex: 0 0 min(13rem, 72%);
+  scroll-snap-align: start;
+}
+
+.liked-carousel .liked-video-link {
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+}
+
+.liked-carousel .liked-video-thumbnail {
+  width: 100%;
+}
+
+.liked-carousel-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liked-carousel {
+    scroll-behavior: auto;
+  }
+}

@@ -4,7 +4,8 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useProfileActivity } from '../useProfileActivity';
 import type { User } from '../utils/authClient';
-import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar } from '../utils/userClient';
+import { toMediaUrl } from '../utils/media';
+import { DESCRIPTION_LIMIT, DISPLAY_NAME_LIMIT, userClient, validateAvatar, validateBanner } from '../utils/userClient';
 import { LikedVideosSection } from './LikedVideosSection';
 import { UserAvatar } from './UserAvatar';
 
@@ -53,6 +54,67 @@ export function ProfilePage() {
   );
 }
 
+// Profile background: its own actions, applied at once; the session is updated with the saved account.
+function BannerControls({ hasBanner }: { hasBanner: boolean }) {
+  const { updateUser } = useAuth();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const run = async (action: () => Promise<User>) => {
+    setBusy(true);
+    setError('');
+    try {
+      updateUser(await action());
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'No se ha podido actualizar el fondo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const choose = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const problem = validateBanner(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    void run(() => userClient.updateBanner(file));
+  };
+
+  return (
+    <div className="profile-banner-controls">
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="visually-hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={choose}
+        disabled={busy}
+      />
+      <button type="button" className="profile-action" disabled={busy} onClick={() => input.current?.click()}>
+        {busy ? 'Guardando fondo…' : 'Cambiar fondo'}
+      </button>
+      {hasBanner && (
+        <button
+          type="button"
+          className="profile-action"
+          disabled={busy}
+          onClick={() => void run(() => userClient.removeBanner())}
+        >
+          Quitar fondo
+        </button>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
+
 function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed: boolean }) {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -74,7 +136,11 @@ function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed:
   return (
     <main className="profile-page">
       <section className="profile-hero" aria-labelledby="profile-title">
-        <div className="profile-hero-banner" aria-hidden="true" />
+        <div
+          className={user.bannerUrl ? 'profile-hero-banner profile-hero-banner--image' : 'profile-hero-banner'}
+          style={user.bannerUrl ? { backgroundImage: `url("${toMediaUrl(user.bannerUrl)}")` } : undefined}
+          aria-hidden="true"
+        />
         <div className="profile-hero-body">
           <UserAvatar name={user.accountName} src={user.avatarUrl} size="large" />
           <div className="profile-identity">
@@ -84,6 +150,7 @@ function ProfileView({ user, sessionConfirmed }: { user: User; sessionConfirmed:
             <p className="profile-name">{displayName}</p>
             <p className="profile-handle">@{user.accountName}</p>
             <p className="profile-since">Miembro desde {memberSince}</p>
+            <BannerControls hasBanner={Boolean(user.bannerUrl)} />
           </div>
           {!editing && (
             <button

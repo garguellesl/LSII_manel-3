@@ -72,6 +72,21 @@ class MediaFileValidatorTest {
         }
     }
 
+    @Test void bannersAcceptJpgAndPngUpToFiveMebibytesInclusive() {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("cover.PNG");
+        when(file.getContentType()).thenReturn("image/png");
+        when(file.getSize()).thenReturn(MediaFileValidator.BANNER_LIMIT);
+        assertDoesNotThrow(() -> validator.validateBanner(file));
+        when(file.getSize()).thenReturn(MediaFileValidator.BANNER_LIMIT + 1);
+        assertEquals(413, assertThrows(UploadException.class, () -> validator.validateBanner(file)).getStatus());
+        assertEquals(400, assertThrows(UploadException.class, () -> validator.validateBanner(null)).getStatus());
+        for (String[] value : new String[][]{{"cover.gif", "image/gif"}, {"cover.png", "image/jpeg"}}) {
+            assertEquals(415, assertThrows(UploadException.class, () -> validator.validateBanner(
+                    new MockMultipartFile("banner", value[0], value[1], new byte[]{1}))).getStatus());
+        }
+    }
+
     @Test void checksDecodedImageContentInsteadOfTrustingNameOrMime() throws Exception {
         Path path = store.resolve("image");
         for (String format : new String[]{"png", "jpg"}) {

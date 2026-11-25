@@ -179,6 +179,58 @@ public class UserService {
         void run() throws IOException;
     }
 
+    /** Replaces the caller's profile background. The previous file is removed only after commit. */
+    @Transactional
+    public UserResponse updateBanner(Long userId, MultipartFile banner) {
+        validator.validateBanner(banner);
+        UserAccount user = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("Session is no longer valid"));
+        String published = storeBanner(banner);
+        String previous = user.getBannerPath();
+        user.changeBanner(published);
+        afterTransaction(() -> storage.deleteBanner(previous), () -> storage.deleteBanner(published));
+        return toResponse(user);
+    }
+
+    @Transactional
+    public UserResponse removeBanner(Long userId) {
+        UserAccount user = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("Session is no longer valid"));
+        String previous = user.getBannerPath();
+        if (previous != null) {
+            user.changeBanner(null);
+            afterTransaction(() -> storage.deleteBanner(previous), () -> { });
+        }
+        return toResponse(user);
+    }
+
+    private String storeBanner(MultipartFile banner) {
+        Path staged = null;
+        try {
+            staged = storage.stageBanner(banner);
+            String extension = validator.imageExtension(staged);
+            String expectedMime = extension.equals("png") ? "image/png" : "image/jpeg";
+            if (!expectedMime.equals(banner.getContentType())) {
+                throw new UploadException(415, "Banner content does not match its format");
+            }
+            return storage.publishBanner(staged, extension);
+        } catch (IOException | RuntimeException exception) {
+            if (staged != null) {
+                try {
+                    storage.discardStagedBanner(staged);
+                } catch (IOException cleanup) {
+                    LOG.warn("Could not remove a staged banner", cleanup);
+                }
+            }
+            if (exception instanceof UploadException upload) throw upload;
+            throw new UploadException("Could not save the banner. Please try again.", exception);
+        }
+    }
+
+    private static String bannerUrl(String bannerPath) {
+        return bannerPath == null || bannerPath.isBlank() ? null : "/media/" + bannerPath;
+    }
+
     public UserResponse toResponse(UserAccount user) {
         return new UserResponse(
                 user.getId(),
@@ -189,7 +241,8 @@ public class UserService {
                 user.getCreatedAt(),
                 user.getPublicName(),
                 user.getDescription(),
-                PublicAuthor.of(user.getId(), user.getPublicName(), user.getAvatarPath()).avatarUrl()
+                PublicAuthor.of(user.getId(), user.getPublicName(), user.getAvatarPath()).avatarUrl(),
+                bannerUrl(user.getBannerPath())
         );
     }
 }

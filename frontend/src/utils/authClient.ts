@@ -14,6 +14,7 @@ export type User = {
   displayName: string;
   description: string | null;
   avatarUrl: string | null;
+  bannerUrl: string | null;
 };
 
 type ApiUser = Omit<User, 'createdAt'> & { createdAt: string | number[] };

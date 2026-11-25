@@ -1425,11 +1425,11 @@
   flex-shrink: 0;
 }
 .appearance-button:hover:not(:disabled) {
-  border-color: var(--pt-accent);
+  border-color: var(--pt-border);
   background: var(--pt-surface-hover);
 }
 .theme-toggle[aria-pressed='true'] {
-  border-color: var(--pt-accent);
+  border-color: var(--pt-border);
 }
 .appearance-button:disabled {
   background: var(--pt-disabled-bg);
@@ -2036,8 +2036,8 @@
   background: var(--pt-surface-hover);
 }
 .App--home .tag-search button[aria-expanded='true'] {
-  border-color: var(--pt-accent);
-  color: var(--pt-accent);
+  border-color: var(--pt-border);
+  background: var(--pt-surface-hover);
 }
 .App--home .tag-panel {
   left: 0;
@@ -2325,7 +2325,6 @@
 .App--home .rail-icon:hover,
 .App--home .rail-avatar:hover {
   background: var(--pt-surface-hover);
-  color: var(--pt-accent);
 }
 .App--home .rail-icon:focus-visible,
 .App--home .rail-avatar:focus-visible {
@@ -2369,4 +2368,131 @@
 /* Native player controls (progress, volume) take the site accent instead of the browser's own blue. */
 .video-player-media {
   accent-color: var(--pt-accent);
+}
+
+/* Account bar on non-catalogue pages: a "+" and the avatar, each opening a small panel. */
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.account-dropdown {
+  position: relative;
+}
+.account-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pt-text);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.account-dropdown-trigger:hover,
+.account-dropdown-trigger[aria-expanded='true'] {
+  border-color: var(--pt-border);
+  background: var(--pt-surface-hover);
+}
+.account-dropdown-trigger:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+}
+.account-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 14rem;
+  padding: 0.5rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 12px;
+  background: var(--pt-surface);
+  box-shadow: 0 0.5rem 1.5rem var(--pt-popup-shadow);
+  text-align: left;
+}
+.account-dropdown-panel a,
+.account-dropdown-panel button {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pt-text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-dropdown-panel a:hover,
+.account-dropdown-panel button:hover,
+.account-dropdown-panel a:focus-visible,
+.account-dropdown-panel button:focus-visible {
+  background: var(--pt-surface-hover);
+  outline: none;
+}
+
+/* Buttons are grey surfaces by default, without borders: their edge is the tone change, not a coloured outline. */
+.appearance-button,
+.App--home .tag-search button,
+.account-dropdown-trigger {
+  border: 0;
+  background: var(--pt-inset);
+}
+.appearance-button:hover:not(:disabled),
+.theme-toggle[aria-pressed='true'],
+.contrast-toggle[aria-pressed='true'],
+.App--home .tag-search button:hover:not(:disabled),
+.App--home .tag-search button[aria-expanded='true'],
+.account-dropdown-trigger:hover,
+.account-dropdown-trigger[aria-expanded='true'] {
+  border: 0;
+  background: var(--pt-surface-hover);
+}
+
+/* Profile background image (set inline from the user's banner), cropped to the header band. */
+.profile-hero-banner--image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.profile-banner-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Full-width profile blocks share the edges of the two-column row, so their outer lines match. */
+.profile-page > .profile-hero,
+.profile-page > .liked-videos,
+.profile-page > .profile-layout {
+  box-sizing: border-box;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* The activity column never wins over the liked-videos section: both stay inside the profile width. */
+.profile-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.profile-activity {
+  width: 100%;
+  box-sizing: border-box;
+}
+.profile-activity > .profile-panel {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
 }
