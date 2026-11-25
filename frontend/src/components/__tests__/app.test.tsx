@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import App from '../../App';
 import { authClient } from '../../utils/authClient';
@@ -36,14 +36,151 @@ const sampleVideos = [
   },
 ];
 
+function HistoryControls() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <output aria-label="Current URL">
+        {location.pathname}
+        {location.search}
+      </output>
+      <button onClick={() => navigate(-1)}>History back</button>
+      <button onClick={() => navigate(1)}>History forward</button>
+    </>
+  );
+}
+
 const renderApp = (path = '/') =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <App />
+      <HistoryControls />
     </MemoryRouter>
   );
 
 describe('App Component', () => {
+  it('offers only all audiences and for children, normalizing the removed URL choice', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+    renderApp('/?audience=NOT_CHILDREN');
+    await screen.findByText('No videos are available.');
+    const audience = screen.getByRole('combobox', { name: 'Audience' });
+    expect(audience).toHaveValue('ALL');
+    expect(
+      within(audience)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['All audiences', 'For children']);
+    expect(screen.getByRole('button', { name: 'Tags' })).toBeVisible();
+  });
+
+  it.each(['/login', '/register', '/profile', '/upload', '/videos/new', '/videos/3/edit', '/does/not/exist'])(
+    'hides search controls outside the catalogue and video player at %s',
+    async (path) => {
+      renderApp(path);
+      await screen.findByRole('link', { name: 'Registrarse' });
+      expect(screen.queryByRole('searchbox', { name: /Search videos/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: 'Audience' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: 'Sort by' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Tags' })).not.toBeInTheDocument();
+    }
+  );
+  it('restores all URL criteria, preserves filters on sorting and restores history and pagination', async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: { content: [sampleVideos[2], sampleVideos[0]], page: 0, size: 24, hasNext: true, totalElements: 60 },
+    });
+    const initial = '/?q=music&tag=rock&tag=pop&audience=CHILDREN&sort=likes&page=1';
+    renderApp(initial);
+    await screen.findByText(sampleVideos[2].title);
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('likes');
+    expect(screen.getByRole('combobox', { name: 'Audience' })).toHaveValue('CHILDREN');
+    expect(screen.getByRole('searchbox', { name: /Search videos/ })).toHaveValue('music');
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({
+        params: { q: 'music', tag: ['pop', 'rock'], audience: 'CHILDREN', sort: 'likes', page: 1, size: 24 },
+        paramsSerializer: { indexes: null },
+      })
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'views' } });
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
+    expect(screen.getByLabelText('Current URL')).toHaveTextContent(
+      '/?q=music&tag=rock&tag=pop&sort=views&audience=CHILDREN'
+    );
+    expect(screen.getAllByRole('link', { name: /^Watch / })[0]).toHaveTextContent(sampleVideos[2].title);
+    fireEvent.click(screen.getByRole('button', { name: 'History back' }));
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
+    expect(screen.getByLabelText('Current URL')).toHaveTextContent(initial);
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('likes');
+    fireEvent.click(screen.getByRole('button', { name: 'History forward' }));
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('views');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByRole('button', { name: 'Page 2', current: 'page' });
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({
+        params: { q: 'music', tag: ['pop', 'rock'], audience: 'CHILDREN', sort: 'views', page: 1, size: 24 },
+      })
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: 'ALL' } });
+    await screen.findByRole('button', { name: 'Page 1', current: 'page' });
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({
+        params: { q: 'music', tag: ['pop', 'rock'], sort: 'views', page: 0, size: 24 },
+      })
+    );
+  });
+
+  it.each(['resolve', 'reject'])(
+    'ignores stale popularity requests that %s after the newer search',
+    async (outcome) => {
+      let resolveOld!: (value: unknown) => void;
+      let rejectOld!: (reason: Error) => void;
+      mockedAxios.get.mockImplementationOnce(
+        () =>
+          new Promise((resolve, reject) => {
+            resolveOld = resolve;
+            rejectOld = reject;
+          })
+      );
+      renderApp('/?sort=likes');
+      await waitFor(() => expect(mockedAxios.get).toHaveBeenCalledTimes(1));
+      const signal = mockedAxios.get.mock.calls[0][1]?.signal;
+      mockedAxios.get.mockResolvedValue({ data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'views' } });
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(signal?.aborted).toBe(true);
+      await screen.findByText('No videos are available.');
+      await act(async () => {
+        if (outcome === 'resolve')
+          resolveOld({ data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 } });
+        else rejectOld(new Error('Old failure'));
+      });
+      expect(screen.queryByText(sampleVideos[0].title)).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('views');
+    }
+  );
+
+  it('retries failed sorted searches with the same audience and shows the filtered empty state', async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error('Network error'));
+    renderApp('/?sort=views&audience=CHILDREN');
+    await screen.findByRole('alert');
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { content: [], page: 0, size: 24, hasNext: false, totalElements: 0 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText('No videos found matching the selected filters.');
+    expect(mockedAxios.get).toHaveBeenLastCalledWith(
+      'other/videos',
+      expect.objectContaining({
+        params: { q: '', sort: 'views', audience: 'CHILDREN', page: 0, size: 24 },
+      })
+    );
+  });
+
   it('keeps the text filter when selecting tags and displays no matches for ABBA', async () => {
     mockedAxios.get.mockResolvedValue({
       data: { content: sampleVideos, page: 0, size: 24, hasNext: false, totalElements: 3 },
@@ -542,11 +679,19 @@ describe('App Component', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Advanced TypeScript Tips' });
     fireEvent.change(screen.getByRole('searchbox', { name: /Buscar vídeos por título/i }), {
+    expect(screen.getByRole('searchbox', { name: /search videos by title/i })).toBeVisible();
+    expect(screen.queryByRole('combobox', { name: 'Audience' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Sort by' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tags' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: /search videos by title/i }), {
       target: { value: 'react' },
     });
 
     expect(await screen.findByRole('link', { name: /Ver react tutorial for beginners/i })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Audience' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Tags' })).toBeVisible();
   });
 
   it('shows a not found message for unknown routes', async () => {

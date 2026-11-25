@@ -18,6 +18,13 @@ import { AnalyticsPage } from './components/AnalyticsPage';
 import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
+import {
+  readSearchCriteria,
+  writeSearchCriteria,
+  type SearchCriteria,
+  type SearchSort,
+  type Audience,
+} from './utils/searchCriteria';
 
 function App() {
   useLocale();
@@ -34,19 +41,22 @@ function AppRoutes() {
   const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const location = useLocation();
+  const isSearchPage = location.pathname === '/';
+  const showSearchBar = isSearchPage || /^\/videos\/\d+$/.test(location.pathname);
   const navigate = useNavigate();
-  const isHome = location.pathname === '/';
+  const criteria = readSearchCriteria(location.pathname === '/' ? location.search : '');
+  const { query: searchQuery, tags, page, sort, audience } = criteria;
+
+  const changeCriteria = (next: Partial<SearchCriteria>) => {
+    navigate({ pathname: '/', search: writeSearchCriteria({ ...criteria, page: 0, ...next }) });
+  };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setPage(0);
-    if (!isHome) {
-      navigate('/');
-    }
+    changeCriteria({ query });
   };
 
   const changePage = (nextPage: number) => {
-    setPage(nextPage);
+    changeCriteria({ page: nextPage });
     document.querySelector('.App')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
@@ -63,21 +73,54 @@ function AppRoutes() {
           </div>
           <AccountMenu />
         </div>
-        <div className="catalog-search">
-          <SearchBar value={searchQuery} onChange={handleSearch} />
-          <TagSearch
-            tags={tags}
-            onChange={(next) => {
-              setTags(next);
-              setPage(0);
-              if (!isHome) navigate('/');
-            }}
-          />
-        </div>
+        {showSearchBar && (
+          <div className="catalog-search">
+            <SearchBar value={searchQuery} onChange={handleSearch} />
+            {isSearchPage && (
+              <TagSearch
+                tags={tags}
+                onChange={(next) => {
+                  changeCriteria({ tags: next });
+                }}
+              />
+            )}
+          </div>
+        )}
+        {isSearchPage && (
+          <div className="catalog-criteria">
+            <label>
+              Sort by
+              <select value={sort} onChange={(event) => changeCriteria({ sort: event.target.value as SearchSort })}>
+                <option value="relevance">Relevance</option>
+                <option value="likes">Most liked</option>
+                <option value="views">Most viewed</option>
+              </select>
+            </label>
+            <label>
+              Audience
+              <select
+                value={audience}
+                onChange={(event) => changeCriteria({ audience: event.target.value as Audience })}
+              >
+                <option value="ALL">All audiences</option>
+                <option value="CHILDREN">For children</option>
+              </select>
+            </label>
+          </div>
+        )}
         <Routes>
           <Route
             path="/"
-            element={<ContentApp searchQuery={searchQuery} tags={tags} page={page} onPageChange={changePage} />}
+            element={
+              <ContentApp
+                searchQuery={searchQuery}
+                tags={tags}
+                page={page}
+                sort={sort}
+                audience={audience}
+                onPageChange={changePage}
+              />
+            }
           />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
           <Route path="/videos/new" element={<NewVideoMetadataPage />} />
@@ -100,12 +143,22 @@ interface ContentAppProps {
   searchQuery: string;
   tags: string[];
   page: number;
+  sort: SearchSort;
+  audience: Audience;
   onPageChange: (page: number) => void;
 }
 
 function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) {
   useLocale();
   const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(searchQuery, page, tags);
+function ContentApp({ searchQuery, tags, page, sort, audience, onPageChange }: ContentAppProps) {
+  const { loading, message, value, hasNext, totalElements, pageSize, retry } = useAllVideos(
+    searchQuery,
+    page,
+    tags,
+    sort,
+    audience
+  );
   switch (loading) {
     case 'loading':
       return (
@@ -141,6 +194,8 @@ function ContentApp({ searchQuery, tags, page, onPageChange }: ContentAppProps) 
             <p className="empty-search-message" role="status">
               {tags.length > 0
                 ? t('catalogue.noVideosFoundMatchingTheSelectedFilters')
+              {tags.length > 0 || audience !== 'ALL'
+                ? 'No videos found matching the selected filters.'
                 : searchQuery.trim()
                   ? t('catalogue.noResults', { query: searchQuery })
                   : t('catalogue.noVideosAreAvailable')}

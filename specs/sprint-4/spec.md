@@ -214,6 +214,12 @@ A user enters a text query, selects several tags and an audience filter, chooses
 - **RF-08.AC7:** Results contain no duplicate videos, and totals use the same filters as the returned page.
 - **RF-08.AC8:** Stale requests do not overwrite newer searches; invalid sort values receive a controlled validation response.
 
+**RF-08 search-state clarification (2026-11-25 user request):** Changing sort resets pagination to the first page without removing text, tags or audience. The URL preserves those criteria, sort and page across reload and browser back/forward. Positive likes and persisted ProTube reproductions exclude imported source counters; existing imported JSON counters retain their source meaning. Date sorts remain RF-09.
+
+**Catalogue UI refinement (2026-11-25):** Audience offers only All audiences and For children. Tags, audience and sort controls appear only on `/`; other routes retain the text search bar without these filters. Historical NOT_CHILDREN catalogue URLs fall back to ALL. Existing stored classifications and backend API remain compatible.
+
+**Search bar placement refinement:** The text search bar appears on `/` and on video playback routes `/videos/:id`. Login, register, profile/avatar settings, video creation/editing and other pages omit it.
+
 ### RF-09 — Sort Search Results by Newest and Oldest
 
 When an eligible actor invokes this capability, the system shall sort the entire filtered dataset by ProTube publication date before pagination. The observable scenarios and exceptions below define this requirement.

@@ -45,6 +45,10 @@ public class Video {
     @Column(nullable = false, length = 16)
     private String source = "LEGACY";
 
+    // Classification is assigned by the audience workflow; search only reads it.
+    @Column(nullable = false, length = 16, insertable = false, updatable = false)
+    private String audience;
+
     @Column(name = "duration_seconds", nullable = false)
     private double durationSeconds;
 

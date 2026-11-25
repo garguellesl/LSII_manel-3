@@ -120,11 +120,16 @@ The 17 points map one-to-one to RF-01..RF-17 and task groups T01..T17. Dependenc
 <a id="p08"></a>
 ### P08 — Sort Search Results by Most Liked and Most Viewed
 
+- UI refinement: gate TagSearch and the audience/sort controls by pathname `/`; keep SearchBar shared. Frontend audience choices/types/URL parsing accept ALL and CHILDREN only; old NOT_CHILDREN URLs normalize to ALL. Preserve the existing backend contract and classifications. Verify route transitions and exact option lists in App tests.
+- Search bar refinement: render the shared SearchBar only at `/` and numeric playback routes `/videos/:id`; numeric matching excludes `/videos/new` and edit routes. Verify hidden state on login/register/profile and other routes plus navigation from catalogue to video.
+
 - Requirements: RF-08, all numbered acceptance criteria in [spec.md](spec.md).
 - Areas: VideosController, VideoService, repository search fragment; useAllVideos and SearchBar.
 - Design: Allowlisted sort; predicates shared by result and COUNT; aggregate before limit/offset. Explicit sort supersedes relevance; preserve exact case-insensitive tag OR and text AND.
 - Dependencies: P00 search contract; P12 filter contract; P17 measurements.
 - Work slices: T08.01 onward in [task.md](task.md).
+- RF-08 implementation slice (2026-11-25): accept `relevance` (default), `likes`, `views`; `newest`/`oldest` are reserved for P09 and return 400 until implemented. All unknown values return the existing validation error DTO. Audience uses existing `ALL`/`CHILDREN`/`NOT_CHILDREN`; ALL includes UNCLASSIFIED, restricted choices require exact classification. P12 assignment/editing remains separate. Count positive VideoLike reactions and persisted VideoPlay rows with correlated aggregates, never imported counters or watch-history rows. Order metric DESC then video ID ASC before limit/offset. Reuse identical text/tag/audience predicates for count and rows. Existing default relevance paths and batched summary metrics remain intact.
+- URL is the catalogue state source (`q`, repeated `tag`, `audience`, `sort`, zero-based `page`); criterion edits reset page, pagination retains criteria, history navigation restores state. Unsupported URL choices fall back to relevance/ALL and malformed pages to zero; direct API requests remain strictly validated. Request identity and cancellation include audience and sort. Validate T08.01–12 and relevant local QA; do not mark unrelated sprint/release tasks complete.
 - Verification: targeted component/service tests plus the RF-08 validation row; existing behaviour is retained unless the spec explicitly changes it.
 
 <a id="p09"></a>
