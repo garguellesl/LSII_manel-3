@@ -70,10 +70,7 @@ describe('HomeSidebar', () => {
     expect(await screen.findByRole('link', { name: 'Creador Uno' })).toHaveAttribute('href', '/creators/3');
     expect(screen.getByRole('link', { name: 'Tu canal' })).toHaveAttribute('href', '/profile#profile-stats');
     expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/history');
-    expect(screen.getByRole('link', { name: 'Vídeos que me gustan' })).toHaveAttribute(
-      'href',
-      '/profile#liked-videos-title'
-    );
+    expect(screen.getByRole('link', { name: 'Vídeos que me gustan' })).toHaveAttribute('href', '/liked');
     expect(screen.getByRole('link', { name: 'Subir vídeo' })).toHaveAttribute('href', '/upload');
     // Minimal rail: no lists or history items, so the data is not requested here.
     expect(screen.queryByText('Explorar catálogo')).not.toBeInTheDocument();

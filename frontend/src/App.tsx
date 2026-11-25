@@ -18,6 +18,7 @@ import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
 import { HomeSidebar } from './components/HomeSidebar';
 import { HistoryPage } from './components/HistoryPage';
+import { LikedVideosCatalog } from './components/LikedVideosCatalog';
 
 function App() {
   return (
@@ -35,7 +36,7 @@ function AppRoutes() {
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
   // Catalogue pages share the home layout: the catalogue, the account rail and the avatar in the corner.
-  const isCatalog = isHome || location.pathname === '/history';
+  const isCatalog = isHome || location.pathname === '/history' || location.pathname === '/liked';
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
