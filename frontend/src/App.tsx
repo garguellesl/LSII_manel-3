@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { localizeMessage, t, useLocale } from './i18n/locale';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
@@ -18,6 +18,9 @@ import { AnalyticsPage } from './components/AnalyticsPage';
 import { Pagination } from './components/Pagination';
 import { UploadVideoPage } from './components/UploadVideoPage';
 import { NewVideoMetadataPage, EditVideoMetadataPage } from './components/VideoMetadataPage';
+import { HomeSidebar } from './components/HomeSidebar';
+import { HistoryPage } from './components/HistoryPage';
+import { LikedVideosCatalog } from './components/LikedVideosCatalog';
 import {
   readSearchCriteria,
   writeSearchCriteria,
@@ -60,6 +63,9 @@ function AppRoutes() {
     setFlash({ pathname: location.pathname, message: state.flash });
     navigate(location.pathname, { replace: true, state: {} });
   }, [location.state, location.pathname, navigate]);
+  const isHome = location.pathname === '/';
+  // Catalogue pages share the home layout: the catalogue, the account rail and the avatar in the corner.
+  const isCatalog = isHome || location.pathname === '/history' || location.pathname === '/liked';
   const criteria = readSearchCriteria(location.pathname === '/' ? location.search : '');
   const { query: searchQuery, tags, page, sort, audience } = criteria;
 
@@ -77,9 +83,10 @@ function AppRoutes() {
   };
 
   return (
-    <div className="App">
+    <div className={isCatalog ? 'App App--home' : 'App'}>
       <header className="App-header">
         <div className="header-toolbar">
+          {isCatalog && <AccountMenu compact />}
           <div className="header-brand-controls">
             <Link to="/" aria-label={t('catalogue.goToHome')} className="header-brand">
               <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="Protube" />
@@ -87,7 +94,7 @@ function AppRoutes() {
             <AppearanceControls />
             <LanguageSelector />
           </div>
-          <AccountMenu />
+          {!isCatalog && <AccountMenu />}
         </div>
         {showSearchBar && (
           <div className="catalog-search">
@@ -140,14 +147,16 @@ function AppRoutes() {
           <Route
             path="/"
             element={
-              <ContentApp
-                searchQuery={searchQuery}
-                tags={tags}
-                page={page}
-                sort={sort}
-                audience={audience}
-                onPageChange={changePage}
-              />
+              <HomeLayout>
+                <ContentApp
+                  searchQuery={searchQuery}
+                  tags={tags}
+                  page={page}
+                  sort={sort}
+                  audience={audience}
+                  onPageChange={changePage}
+                />
+              </HomeLayout>
             }
           />
           <Route path="/videos/:id" element={<VideoPlayerPage />} />
@@ -156,6 +165,22 @@ function AppRoutes() {
           <Route path="/login" element={<AuthPage key="login" mode="login" />} />
           <Route path="/register" element={<AuthPage key="register" mode="register" />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/liked"
+            element={
+              <HomeLayout>
+                <LikedVideosCatalog />
+              </HomeLayout>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <HomeLayout>
+                <HistoryPage />
+              </HomeLayout>
+            }
+          />
           <Route path="/subscriptions" element={<SubscriptionsPage />} />
           <Route path="/creators/:id" element={<CreatorPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
@@ -163,6 +188,16 @@ function AppRoutes() {
           <Route path="*" element={<p role="alert">{t('catalogue.pageNotFound')}</p>} />
         </Routes>
       </header>
+    </div>
+  );
+}
+
+// Home keeps the account panel on the left on wide screens; on phones it stacks above the catalog.
+function HomeLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="home-layout">
+      <HomeSidebar />
+      <div className="home-main">{children}</div>
     </div>
   );
 }
@@ -188,9 +223,8 @@ function ContentApp({ searchQuery, tags, page, sort, audience, onPageChange }: C
   switch (loading) {
     case 'loading':
       return (
-        <div className="catalog-loading" aria-busy="true">
-          {' '}
-          {t('catalogue.loading')}{' '}
+        <div className="catalog-loading" role="status" aria-busy="true">
+          {t('catalogue.loading')}
         </div>
       );
     case 'error':
@@ -231,6 +265,9 @@ function ContentApp({ searchQuery, tags, page, sort, audience, onPageChange }: C
 
       return (
         <section className="catalog" aria-label={t('catalogue.videoCatalog')}>
+          <p className="visually-hidden" role="status">
+            {`${totalElements} ${totalElements === 1 ? 'video' : 'videos'} found`}
+          </p>
           <h2 className="catalog-heading">
             {searchQuery.trim()
               ? t('catalogue.results', { query: searchQuery.trim() })

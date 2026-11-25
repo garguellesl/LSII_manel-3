@@ -538,19 +538,6 @@
   font-size: 0.9rem;
 }
 
-.profile-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 1.25rem;
-  margin-top: 1.25rem;
-}
-
-.profile-activity {
-  display: grid;
-  gap: 1.25rem;
-  align-content: start;
-}
-
 .profile-panel {
   align-self: start;
   padding: clamp(1.25rem, 3vw, 1.75rem);
@@ -1450,11 +1437,11 @@
   flex-shrink: 0;
 }
 .appearance-button:hover:not(:disabled) {
-  border-color: var(--pt-accent);
+  border-color: var(--pt-border);
   background: var(--pt-surface-hover);
 }
 .theme-toggle[aria-pressed='true'] {
-  border-color: var(--pt-accent);
+  border-color: var(--pt-border);
 }
 .appearance-button:disabled {
   background: var(--pt-disabled-bg);
@@ -2039,6 +2026,570 @@
   }
 }
 
+
+
+.App--home .App-header {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Search: pill field with a clearly visible focus ring and 44px targets. */
+.App--home .search-bar-container {
+  margin: 0;
+}
+.App--home .search-input {
+  min-height: 44px;
+  padding: 0.8rem 3rem 0.8rem 1.25rem;
+  font-size: 1rem;
+  border: 2px solid var(--pt-border);
+  border-radius: 999px;
+}
+.App--home .search-input:hover {
+  border-color: var(--pt-text);
+}
+.App--home .search-input:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.App--home .search-clear-button {
+  right: 0.25rem;
+  width: 44px;
+  height: 44px;
+  font-size: 1.5rem;
+  color: var(--pt-text);
+}
+.App--home .search-clear-button:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: -3px;
+}
+
+.App--home .catalog-search {
+  position: relative;
+  width: min(92%, 42rem);
+  max-width: 100%;
+  min-width: 0;
+  margin: 0.5rem auto 1rem;
+}
+.App--home .catalog-search .search-bar-container {
+  width: 100%;
+  min-width: 0;
+}
+.App--home .search-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Tags: pill trigger; the panel spans the search row so it fits on phones. */
+.App--home .tag-search {
+  position: static;
+}
+.App--home .tag-search button {
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 999px;
+  font-weight: 700;
+}
+.App--home .tag-search button:hover:not(:disabled) {
+  border-color: var(--pt-text);
+  background: var(--pt-surface-hover);
+}
+.App--home .tag-search button[aria-expanded='true'] {
+  border-color: var(--pt-border);
+  background: var(--pt-surface-hover);
+}
+.App--home .tag-panel {
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: min(70vh, 32rem);
+  overflow-y: auto;
+  color: var(--pt-text);
+  background: var(--pt-surface);
+}
+.App--home .tag-panel input[type='search'] {
+  min-height: 44px;
+  font-size: 1rem;
+}
+.App--home .tag-options label {
+  min-height: 44px;
+}
+.App--home .tag-options input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.App--home .tag-panel small {
+  color: var(--pt-secondary);
+}
+
+/* Results. */
+.App--home .catalog-heading {
+  font-size: 1.25rem;
+  color: var(--pt-text);
+}
+.App--home .video-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1.25rem;
+}
+.App--home .video-card {
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--pt-inset);
+  transition: background-color 150ms ease;
+}
+.App--home .video-card:hover {
+  background: var(--pt-surface-hover);
+}
+.App--home .video-card-link {
+  border-radius: 8px;
+}
+.App--home .video-card-link:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+}
+.App--home .video-card-thumbnail {
+  border-radius: 6px;
+}
+.App--home .video-card-title {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--pt-text);
+  overflow-wrap: anywhere;
+}
+.App--home .video-card-link:hover .video-card-title,
+.App--home .video-card-link:focus-visible .video-card-title {
+  color: var(--pt-accent);
+  text-decoration: underline;
+}
+.App--home .video-card p[aria-label='Video reactions'] {
+  font-size: 0.95rem;
+  color: var(--pt-muted);
+}
+.App--home .empty-search-message,
+.App--home .catalog-loading,
+.App--home .catalog-error {
+  color: var(--pt-secondary);
+  font-size: 1.1rem;
+}
+
+/* Pagination: 44px targets; wraps on narrow screens. */
+.App--home .pagination-page,
+.App--home .pagination-step {
+  min-width: 44px;
+  min-height: 44px;
+  height: auto;
+  font-size: 1rem;
+  border-color: var(--pt-border);
+}
+.App--home .pagination-summary {
+  font-size: 1rem;
+  color: var(--pt-secondary);
+}
+
+.App--home .appearance-button {
+  min-height: 44px;
+  font-size: 0.95rem;
+}
+
+/* Responsive: phones and small tablets. */
+@media (max-width: 600px) {
+  .App--home .header-toolbar {
+    padding: 0.5rem 4rem 0.5rem 1rem;
+  }
+  .App--home .catalog-search {
+    width: 92%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .App--home .video-grid {
+    gap: 1rem;
+  }
+  .App--home .pagination-step {
+    padding: 0 0.6rem;
+  }
+}
+
+/* Forced colors (Windows High Contrast): backgrounds are removed, so keep borders and focus visible. */
+@media (forced-colors: active) {
+  .App--home .search-input,
+  .App--home .tag-search button,
+  .App--home .tag-panel,
+  .App--home .video-card,
+  .App--home .pagination-page,
+  .App--home .pagination-step,
+  .App--home .appearance-button {
+    border: 1px solid CanvasText;
+  }
+  .App--home .video-card-link:focus-visible,
+  .App--home .search-input:focus-visible,
+  .App--home .tag-search :focus-visible,
+  .App--home .pagination-page:focus-visible,
+  .App--home .pagination-step:focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .App--home .video-card {
+    transition: none;
+  }
+}
+
+/* Home header: the account is only the profile avatar; its details open from it. */
+.App--home .header-toolbar {
+  justify-content: flex-start;
+  /* Leaves room for the profile avatar pinned in the top-right corner. */
+  padding-right: 4rem;
+}
+.App--home .account-chip {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  z-index: 30;
+}
+.App--home .account-chip-button,
+.App--home .account-chip--guest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--pt-inset);
+  color: var(--pt-text);
+  cursor: pointer;
+}
+.App--home .account-chip-button:hover,
+.App--home .account-chip--guest:hover {
+  border-color: var(--pt-text);
+}
+.App--home .account-chip-button:focus-visible,
+.App--home .account-chip--guest:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+}
+.App--home .account-chip-button[aria-expanded='true'] {
+  border-color: var(--pt-accent);
+}
+.App--home .account-chip-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  width: min(20rem, 85vw);
+  padding: 1rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 12px;
+  background: var(--pt-surface);
+  color: var(--pt-text);
+  box-shadow: 0 0.5rem 1.5rem var(--pt-popup-shadow);
+  text-align: left;
+}
+.App--home .account-chip-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+.App--home .account-chip-details dt {
+  color: var(--pt-secondary);
+}
+.App--home .account-chip-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.App--home .account-chip-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+.App--home .account-chip-actions a,
+.App--home .account-chip-actions button {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pt-text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.App--home .account-chip-actions a:hover,
+.App--home .account-chip-actions button:hover {
+  border-color: var(--pt-accent);
+  color: var(--pt-accent);
+}
+.App--home .account-chip-actions a:focus-visible,
+.App--home .account-chip-actions button:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 2px;
+}
+.App--home .account-chip-panel [role='alert'] {
+  margin: 0.75rem 0 0;
+  color: var(--pt-danger);
+}
+
+/* Home rail: one icon per action; subscriptions and public profiles are avatars. */
+.App--home .home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 clamp(0.75rem, 3vw, 2rem);
+  align-items: start;
+}
+.App--home .home-main {
+  min-width: 0;
+}
+.App--home .home-sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+.App--home .rail-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.App--home .rail-group + .rail-group {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--pt-border-subtle);
+}
+.App--home .rail-icon,
+.App--home .rail-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pt-text);
+  cursor: pointer;
+  text-decoration: none;
+}
+.App--home .rail-icon:hover,
+.App--home .rail-avatar:hover {
+  background: var(--pt-surface-hover);
+}
+.App--home .rail-icon:focus-visible,
+.App--home .rail-avatar:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 2px;
+}
+.App--home .rail-avatar {
+  padding: 0;
+  overflow: hidden;
+}
+.App--home .rail-avatar .user-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+@media (min-width: 62rem) {
+  .App--home .home-layout {
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .App--home .home-sidebar {
+    position: sticky;
+    top: 1rem;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  .App--home .rail-group {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .App--home .rail-group + .rail-group {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--pt-border-subtle);
+  }
+}
+
+/* Native player controls (progress, volume) take the site accent instead of the browser's own blue. */
+.video-player-media {
+  accent-color: var(--pt-accent);
+}
+
+/* Account bar on non-catalogue pages: a "+" and the avatar, each opening a small panel. */
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.account-dropdown {
+  position: relative;
+}
+.account-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pt-text);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.account-dropdown-trigger:hover,
+.account-dropdown-trigger[aria-expanded='true'] {
+  border-color: var(--pt-border);
+  background: var(--pt-surface-hover);
+}
+.account-dropdown-trigger:focus-visible {
+  outline: 3px solid var(--pt-focus);
+  outline-offset: 3px;
+}
+.account-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 14rem;
+  padding: 0.5rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 12px;
+  background: var(--pt-surface);
+  box-shadow: 0 0.5rem 1.5rem var(--pt-popup-shadow);
+  text-align: left;
+}
+.account-dropdown-panel a,
+.account-dropdown-panel button {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pt-text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-dropdown-panel a:hover,
+.account-dropdown-panel button:hover,
+.account-dropdown-panel a:focus-visible,
+.account-dropdown-panel button:focus-visible {
+  background: var(--pt-surface-hover);
+  outline: none;
+}
+
+/* Buttons are grey surfaces by default, without borders: their edge is the tone change, not a coloured outline. */
+.appearance-button,
+.App--home .tag-search button,
+.account-dropdown-trigger {
+  border: 0;
+  background: var(--pt-inset);
+}
+.appearance-button:hover:not(:disabled),
+.theme-toggle[aria-pressed='true'],
+.contrast-toggle[aria-pressed='true'],
+.App--home .tag-search button:hover:not(:disabled),
+.App--home .tag-search button[aria-expanded='true'],
+.account-dropdown-trigger:hover,
+.account-dropdown-trigger[aria-expanded='true'] {
+  border: 0;
+  background: var(--pt-surface-hover);
+}
+
+/* Profile background image (set inline from the user's banner), cropped to the header band. */
+.profile-hero-banner--image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.profile-banner-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Profile page structure: one container sets the width and every block fills it, sharing its edges.
+   The lower row is a two-column grid: profile details (left) and activity (right). Grid items may shrink. */
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-sizing: border-box;
+}
+.profile-page > * {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+}
+.profile-page .profile-form {
+  max-width: none;
+}
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 1.25rem;
+  align-items: start;
+  min-width: 0;
+}
+.profile-layout > * {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+.profile-activity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-content: start;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.profile-activity > .profile-panel,
+.profile-layout > .profile-panel {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.profile-stats li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+  .profile-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .language-selector {
   display: flex;
   align-items: center;
@@ -2061,4 +2612,15 @@
 }
 .header-brand-controls {
   flex-wrap: wrap;
+}
+
+/* Header bar stays inside the viewport: its controls wrap instead of pushing the page wider. */
+.header-toolbar {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+.header-brand-controls {
+  min-width: 0;
+  max-width: 100%;
 }

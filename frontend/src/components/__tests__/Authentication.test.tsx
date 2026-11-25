@@ -10,7 +10,7 @@ jest.mock('../../utils/authClient', () => ({
 }));
 jest.mock('../../utils/userClient', () => ({
   ...jest.requireActual('../../utils/userClient'),
-  userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn() },
+  userClient: { analytics: jest.fn(), watchHistory: jest.fn(), updateProfile: jest.fn(), likedVideos: jest.fn() },
 }));
 jest.mock('../../useUploadOptions', () => ({
   useUploadOptions: () => ({ status: 'success', categories: ['Music'], tags: [], retry: jest.fn() }),
@@ -57,6 +57,7 @@ describe('Authentication navigation and pages', () => {
     client.logout.mockResolvedValue(undefined);
     users.analytics.mockResolvedValue([]);
     users.watchHistory.mockResolvedValue([]);
+    users.likedVideos.mockResolvedValue({ content: [], page: 0, size: 24, hasNext: false, totalElements: 0 });
   });
 
   it('returns to upload after login or registration', async () => {
@@ -68,6 +69,7 @@ describe('Authentication navigation and pages', () => {
     fillRegister();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByRole('heading', { name: 'Subir vídeo' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir vídeo' }));
     expect(screen.getByRole('link', { name: 'Subir vídeo' })).toHaveAttribute('href', '/upload');
     page.unmount();
   });
@@ -75,15 +77,20 @@ describe('Authentication navigation and pages', () => {
   it('keeps the public catalog available while checking the session, then offers both account links', async () => {
     client.currentUser.mockReturnValue(new Promise(() => {}));
     const page = renderPage();
-    expect(within(screen.getByRole('navigation', { name: 'Cuenta de usuario' })).getByRole('status')).toHaveTextContent(
-      'Comprobando sesión'
-    );
+    expect(screen.getByRole('status', { name: 'Comprobando sesión' })).toBeInTheDocument();
     expect(screen.getByText('No hay vídeos disponibles.')).toBeInTheDocument();
     page.unmount();
     client.currentUser.mockResolvedValue(null);
     renderPage();
-    const navigation = screen.getByRole('navigation', { name: 'Cuenta de usuario' });
-    expect(await within(navigation).findByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
+    // On the catalog, the header offers only the avatar link; the register link lives on the login page.
+    expect(await screen.findByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
+  });
+
+  it('keeps the full account navigation on non-catalog pages for guests', async () => {
+    client.currentUser.mockResolvedValue(null);
+    renderPage('/register');
+    const navigation = await screen.findByRole('navigation', { name: 'Cuenta de usuario' });
+    expect(within(navigation).getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
     expect(within(navigation).getByRole('link', { name: 'Registrarse' })).toHaveAttribute('href', '/register');
   });
 
@@ -92,9 +99,9 @@ describe('Authentication navigation and pages', () => {
     await screen.findByRole('heading', { name: 'Bienvenido de nuevo' });
     fillLogin();
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-    expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
     expect(client.login).toHaveBeenCalledWith({ email: user.email, password: 'password123' });
-    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
     expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument();
   });
 
@@ -103,7 +110,7 @@ describe('Authentication navigation and pages', () => {
     await screen.findByRole('link', { name: 'Registrarse' });
     fillRegister();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
-    expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
     expect(client.register).toHaveBeenCalledWith({
       email: user.email,
       password: 'password123',
@@ -123,7 +130,7 @@ describe('Authentication navigation and pages', () => {
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByText('Revisa este campo.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
-    expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });
 
   it('shows login failure without an authenticated menu and allows retry', async () => {
@@ -133,9 +140,9 @@ describe('Authentication navigation and pages', () => {
     fillLogin();
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos.');
-    expect(screen.queryByRole('link', { name: 'Mi perfil' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Cuenta de/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-    expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });
 
   it('prevents duplicate submission while a login request is pending', async () => {
@@ -197,6 +204,7 @@ describe('Authentication navigation and pages', () => {
     client.currentUser.mockResolvedValue(user);
     renderPage('/profile');
     await screen.findByRole('heading', { name: 'Mi perfil' });
+    fireEvent.click(screen.getByRole('button', { name: /^Cuenta de/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
     expect(await screen.findByRole('link', { name: 'Registrarse' })).toBeInTheDocument();
     expect(client.logout).toHaveBeenCalledTimes(1);
@@ -206,11 +214,14 @@ describe('Authentication navigation and pages', () => {
   it('reports a logout failure and revalidates the session on retry', async () => {
     client.currentUser.mockResolvedValue(user);
     client.logout.mockRejectedValue(new Error('Offline'));
-    renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cerrar sesión');
+    // Logout lives in the full account menu on non-catalog pages; the catalog uses the avatar panel.
+    renderPage('/profile');
+    fireEvent.click(await screen.findByRole('button', { name: /^Cuenta de/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    const navigation = await screen.findByRole('navigation', { name: 'Cuenta de usuario' });
+    expect(await within(navigation).findByRole('alert')).toHaveTextContent('No se ha podido cerrar sesión');
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar sesión' }));
-    expect(await screen.findByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });
 
   it('does not let an old session check overwrite a successful login', async () => {
@@ -219,9 +230,9 @@ describe('Authentication navigation and pages', () => {
     renderPage('/login');
     fillLogin();
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-    await screen.findByRole('link', { name: 'Mi perfil' });
+    expect(await screen.findByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
     await act(async () => resolveOld(null));
-    expect(screen.getByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });
 
   it('shows a useful fallback for an unexpected form error and permits switching forms', async () => {
@@ -240,7 +251,7 @@ describe('Authentication navigation and pages', () => {
     client.currentUser.mockResolvedValue(user);
     renderPage('/login');
     await waitFor(() => expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument());
-    expect(screen.getByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Cuenta de/ })).toBeInTheDocument();
   });
 
   it('toggles password visibility and shows when the password meets the minimum length', async () => {
@@ -299,8 +310,8 @@ describe('Authentication navigation and pages', () => {
     expect(channel.getByText('Comentarios').previousSibling).toHaveTextContent('5');
     expect(channel.getByRole('link', { name: 'My first video' })).toHaveAttribute('href', '/videos/7');
     const history = within(screen.getByRole('list', { name: 'Historial reciente' }));
-    expect(history.getAllByRole('link')).toHaveLength(5);
-    expect(history.getByRole('link', { name: 'Watched 1' })).toHaveAttribute('href', '/videos/20');
+    expect(history.getAllByRole('link')).toHaveLength(7);
+    expect(history.getByRole('link', { name: /Watched 1/ })).toHaveAttribute('href', '/videos/20');
     expect(users.analytics).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
     expect(users.watchHistory).toHaveBeenCalledWith(user.id, expect.any(AbortSignal));
   });
@@ -310,7 +321,11 @@ describe('Authentication navigation and pages', () => {
     renderPage('/profile');
     expect(await screen.findByText('Todavía no has publicado ningún vídeo.')).toBeInTheDocument();
     expect(screen.getByText(/Aún no has visto ningún vídeo/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Explora el catálogo' })).toHaveAttribute('href', '/');
+    expect(
+      within(screen.getByRole('region', { name: 'Vídeos que te gustan' })).getByRole('link', {
+        name: 'Explora el catálogo',
+      })
+    ).toHaveAttribute('href', '/');
   });
 
   it('keeps the account details visible when the activity fails and lets the user retry it', async () => {

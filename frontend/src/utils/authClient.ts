@@ -16,6 +16,7 @@ export type User = {
   displayName: string;
   description: string | null;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   preferredLanguage?: Locale | null;
 };
 

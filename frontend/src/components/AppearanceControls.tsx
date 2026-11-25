@@ -1,9 +1,12 @@
+import { useContrast, useTheme } from '../useTheme';
 import { t, useLocale } from '../i18n/locale';
 import { useTheme } from '../useTheme';
 
 export function AppearanceControls() {
   useLocale();
   const { theme, toggleTheme } = useTheme();
+  const { contrast, toggleContrast } = useContrast();
+  const highContrast = contrast === 'high';
 
   return (
     <div className="appearance-controls" role="group" aria-label={t('catalogue.appearanceAndExperience')}>
@@ -35,6 +38,20 @@ export function AppearanceControls() {
           )}
         </svg>
         <span>{theme === 'dark' ? t('catalogue.dark') : t('catalogue.light')}</span>
+      </button>
+      <button
+        type="button"
+        className="appearance-button contrast-toggle"
+        aria-label="Alto contraste"
+        aria-pressed={highContrast}
+        title={highContrast ? 'Desactivar alto contraste' : 'Activar alto contraste'}
+        onClick={toggleContrast}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 3a9 9 0 0 1 0 18Z" />
+        </svg>
+        <span>{highContrast ? 'Contraste alto: activado' : 'Contraste alto: desactivado'}</span>
       </button>
       <button type="button" className="appearance-button party-placeholder" disabled>
         <span aria-hidden="true">✦</span>

@@ -359,7 +359,8 @@ class VideoServiceTest extends PostgreSqlIntegrationTest {
         assertEquals(1, analytics.commentsCount());
         assertEquals(1, analytics.likesCount());
         assertEquals(1, analytics.viewsCount());
-        assertEquals(2, videoService.getWatchHistory(userId, userId).size());
+        // Repeated views of the same video appear once, as the most recent view.
+        assertEquals(1, videoService.getWatchHistory(userId, userId).size());
     }
 
     @Test

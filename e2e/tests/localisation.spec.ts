@@ -222,6 +222,7 @@ for (const width of [1280, 375]) {
         await expect(
           page.getByRole("heading", { name: messages[locale].catalog }),
         ).toBeVisible();
+        await page.getByRole("button", { name: /^Cuenta de / }).click();
         await page
           .getByRole("link", { name: messages[locale].profile, exact: true })
           .click();
@@ -289,6 +290,7 @@ for (const width of [1280, 375]) {
           }),
         ).toBeVisible();
         await noOverflow(page);
+        await page.getByRole("button", { name: /^Cuenta de / }).click();
         await page
           .getByRole("button", { name: messages[locale].logout, exact: true })
           .click();

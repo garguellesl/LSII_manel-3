@@ -40,6 +40,7 @@ public class MediaFileValidator {
     }
 
     public static final long AVATAR_LIMIT = 2L * 1024 * 1024;
+    public static final long BANNER_LIMIT = 5L * 1024 * 1024;
 
     public void validateAvatar(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new UploadException(400, "Avatar must not be empty");
@@ -49,6 +50,16 @@ public class MediaFileValidator {
         boolean valid = ((name.endsWith(".jpg") || name.endsWith(".jpeg")) && "image/jpeg".equals(mime))
                 || (name.endsWith(".png") && "image/png".equals(mime));
         if (!valid) throw new UploadException(415, "Avatar must be JPG or PNG");
+    }
+
+    public void validateBanner(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new UploadException(400, "Banner must not be empty");
+        if (file.getSize() > BANNER_LIMIT) throw new UploadException(413, "Banner exceeds 5 MiB");
+        String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
+        String mime = file.getContentType();
+        boolean valid = ((name.endsWith(".jpg") || name.endsWith(".jpeg")) && "image/jpeg".equals(mime))
+                || (name.endsWith(".png") && "image/png".equals(mime));
+        if (!valid) throw new UploadException(415, "Banner must be JPG or PNG");
     }
 
     public String imageExtension(Path path) throws IOException {
