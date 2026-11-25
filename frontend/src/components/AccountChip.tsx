@@ -34,9 +34,12 @@ export function AccountChip() {
 
   if (auth.status === 'loading') {
     return (
-      <span className="account-chip-status" role="status">
-        Comprobando sesión…
-      </span>
+      // Same corner and size as the avatar, so the header does not shift while the session is checked.
+      <span
+        className="account-chip account-chip--guest account-chip--loading"
+        role="status"
+        aria-label="Comprobando sesión"
+      />
     );
   }
 
