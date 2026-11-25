@@ -46,6 +46,7 @@ describe('AccountChip', () => {
     expect(screen.getByText('ana@example.com')).toBeInTheDocument();
     expect(screen.getByText('@ana')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Mi perfil' })).toHaveAttribute('href', '/profile');
+    expect(screen.getByRole('link', { name: 'Mis suscripciones' })).toHaveAttribute('href', '/subscriptions');
   });
 
   it('signs out from the panel and keeps the panel closed on Escape', () => {

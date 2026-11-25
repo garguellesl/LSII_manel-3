@@ -175,7 +175,11 @@ test("defaults dark even with a light OS preference; keyboard and disabled party
       await assertPaletteContrast(page);
       await assertRenderedContrast(page.locator(".theme-toggle"));
       await assertRenderedContrast(page.locator(".party-placeholder"));
-      const primary = page.locator(".account-chip--guest");
+      // The catalogue shows the avatar chip; other pages show the text links of the account bar instead.
+      const primary =
+        path === "/"
+          ? page.locator(".account-chip--guest")
+          : page.locator(".account-link--primary");
       await primary.hover();
       await assertRenderedContrast(primary);
       await primary.focus();

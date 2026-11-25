@@ -44,6 +44,7 @@ test('register with automatic session, view profile, logout, then log back in', 
   // sesión revocará el acceso"; RF-6 "sin sesión ... no podrá leer el perfil
   // mediante la interfaz ni llamando directamente al backend") se comprueba
   // de forma explícita e independiente de esa carrera:
+  await page.getByRole('button', { name: /^Cuenta de / }).click();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
   await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toBeVisible();
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { t, useLocale } from '../i18n/locale';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from './UserAvatar';
+import { subscriptionMessages } from '../utils/subscriptionMessages';
 
 // Home header: only the profile avatar. Account details live behind it, not in the bar.
 export function AccountChip() {
@@ -94,6 +95,9 @@ export function AccountChip() {
             </Link>
             <Link to="/upload" onClick={() => setOpen(false)}>
               {t('catalogue.uploadVideo')}
+            </Link>
+            <Link to="/subscriptions" onClick={() => setOpen(false)}>
+              {subscriptionMessages().subscriptions}
             </Link>
             <button type="button" onClick={() => void logout()}>
               {t('catalogue.signOut')}
