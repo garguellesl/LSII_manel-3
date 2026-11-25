@@ -17,7 +17,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE=(docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env)
+COMPOSE=(docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env)
 
 cleanup() {
   local status=$?

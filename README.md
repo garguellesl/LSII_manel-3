@@ -2,15 +2,19 @@
 
 ## Run the complete application with Docker (class delivery)
 
-With Docker Desktop running in Linux containers mode, run from the repository root:
+The default `compose.yaml` builds Protube and connects it to the team's existing Supabase database. No second Compose file, IntelliJ, or host Java/Node installation is needed.
+
+1. Copy `.env.example` to `.env` in the repository root.
+2. Enter the database password privately in `.env`. The template already contains the shared non-secret connection details. Keep `.env` out of Git.
+3. With Docker Desktop running in Linux containers mode, create the deployment from the repository root:
 
 ```bash
 docker compose up --build -d --wait
 ```
 
-Alternatively, in IntelliJ with Docker running, select the shared Maven **Production** configuration and press Run; it launches this same Compose deployment without manual environment variables. Maven finishes after the services are ready; use `docker compose stop` to stop them.
+Open **http://localhost:8080**. Once created, find the project in Docker Desktop **Containers** and use **Start/Stop** there. Docker keeps the container's environment when restarting it. After changing `.env` or updating the application, run the Compose command again to recreate/rebuild the application; pressing Start on an old container does not load a new `.env`.
 
-Open **http://localhost:8080**. Compose builds the Java 21 backend with the production React frontend, starts PostgreSQL, waits for readiness and imports the existing sample video metadata. No IntelliJ, host Java/Node or manually configured database variables are needed. The first build requires Internet access; ports 8080 and 5432 must be free. Stop development processes before running the delivery.
+The first build and the remote database require Internet access; port 8080 must be free. The existing private database is reused without automatic sample import or demo-account creation. Use an existing account or register through the application.
 
 ```bash
 docker compose ps
@@ -18,11 +22,9 @@ docker compose logs --tail=100 app
 docker compose stop
 ```
 
-The existing database volume is retained. `docker compose down -v` deletes database data and is not a restart command. The local demonstration database defaults already present in Compose are shared with the app; environment overrides are available. They are not suitable for a public deployment.
+Media remains on the serving PC: original MP4/WebP files are mounted from `videos/` (override with `PROTUBE_MEDIA_DIR`); uploads persist in the `uploaded_media` volume. Supabase shares database rows, not media files between PCs. Keep the original media and any uploaded files available for the professor. See [shared database setup](docs/SHARED_DATABASE.md) and [delivery configuration](DEVELOPMENT.md#docker-delivery).
 
-Media files are mounted read-only from the existing `videos/` folder and are not included in the image. Set `PROTUBE_MEDIA_DIR` to an external folder containing JSON/MP4/WebP triples to use your own store. Keep this folder available while running; an empty folder gives an empty catalog on a new database. See [delivery configuration and verification](DEVELOPMENT.md#docker-delivery).
-
-Use the account links in the top-right corner to register, sign in, view your own profile and sign out. Registration signs you in automatically. The local Compose demo includes account **admin**, email **admin@protube.local**, password **admin1234**. Sign in with the email. This account owns the imported videos and has ordinary owner permissions; it has no access to other users' private data or global administration. Profile consultation is implemented; the video management UI remains a separate task.
+Development and automated tests use the separate, isolated `compose.local.yaml` configuration; they never use the shared Supabase database. Do not use `down -v` to restart a deployment: it deletes local uploaded media or, in local mode, database data.
 
 ## Desarrollo con agentes y SDD
 
@@ -237,7 +239,7 @@ Before starting coding you have to be sure you have the following software alrea
 ### Database
 
 * Development and production use PostgreSQL with Flyway migrations and Hibernate schema validation. The database
-  can run through `compose.yaml`, retaining its data in a named volume. Integration tests use isolated PostgreSQL
+  runs through `compose.local.yaml` for isolated development, retaining its data in a named volume. The default `compose.yaml` uses the shared Supabase database. Integration tests use isolated PostgreSQL
   containers and require Docker. See [PostgreSQL setup](./DEVELOPMENT.md#using-postgresql) for configuration and
   commands; H2 is not used.
 

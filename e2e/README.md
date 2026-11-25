@@ -11,7 +11,7 @@ contra la base/volumen de desarrollo. Detalle de diseño en
 Desde la raíz del repo:
 
 ```sh
-docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env up -d --wait --build
+docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env up -d --wait --build
 ```
 
 `--build` es necesario: si ya existe una imagen `protube:local` en caché (por
@@ -23,7 +23,7 @@ porque el contenedor servía una versión de la interfaz muy anterior al árbol
 de trabajo actual.
 
 `e2e/compose.override.yml` renombra el contenedor `db` a
-`protube_e2e_postgres_db`: `compose.yaml` fija `container_name: postgres_db`
+`protube_e2e_postgres_db`: `compose.local.yaml` fija `container_name: postgres_db`
 para ese servicio, y los nombres de contenedor son globales a Docker (no se
 namespacean por proyecto, a diferencia de los volúmenes), así que un `-p
 protube-e2e` por sí solo no evita el choque si ya hay un stack de desarrollo
@@ -44,11 +44,11 @@ Derribo, siempre acotado al proyecto `protube-e2e` (nunca `docker compose down
 -v` a secas, que afectaría también al volumen de desarrollo):
 
 ```sh
-docker compose -p protube-e2e -f compose.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env down -v
+docker compose -p protube-e2e -f compose.local.yaml -f e2e/compose.override.yml --env-file e2e/e2e.env down -v
 ```
 
 `e2e/e2e.env` solo contiene valores de prueba no secretos (mismo criterio que
-`frontend/.env.development` o los defaults de `compose.yaml`); el job de CI no
+`frontend/.env.development` o los defaults de `compose.local.yaml`); el job de CI no
 depende de este archivo, declara las mismas variables directamente en el paso
 que levanta Compose.
 
@@ -60,9 +60,9 @@ que levanta Compose.
   `e2e/fixtures/api.ts#createOwnVideo` siempre manda una `thumbnailPath`
   sintética no nula. Fallo real de la aplicación, no corregido aquí porque T18
   no autoriza cambiar funcionalidad.
-- `compose.yaml` fija `container_name: postgres_db` en el servicio `db`, lo
+- `compose.local.yaml` fija `container_name: postgres_db` en el servicio `db`, lo
   que impide tener un stack E2E y uno de desarrollo corriendo a la vez sin
-  `e2e/compose.override.yml` (ver arriba). No se ha tocado `compose.yaml`.
+  `e2e/compose.override.yml` (ver arriba). No se ha tocado `compose.local.yaml`.
 
 ## Alcance
 

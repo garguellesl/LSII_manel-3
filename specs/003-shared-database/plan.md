@@ -44,4 +44,10 @@ Las tablas locales están en public. Antes de migrar: volcar origen, restaurar e
 
 ## Verificación y riesgos
 
+### Entrega predeterminada mediante un Compose (2026-11-25)
+
+Reemplazar compose.yaml por la definición completa de la app compartida, sin extends, dependencia db ni base local. Conservar TLS, esquema protube, pool y healthcheck remoto, medios y ausencia de importación automática. Retirar compose.supabase.yaml. Mover la definición local anterior a compose.local.yaml y actualizar únicamente los consumidores DEV/CI/E2E y sus instrucciones. Las credenciales obligatorias se interpolan desde el entorno o .env; .env.example contiene solo los valores de conexión no secretos ya compartidos y contraseña vacía. StartSupabase continúa opcional y usa compose.yaml/.env; importa el archivo heredado solo si .env no existe. Production normal ya ejecuta compose.yaml y adoptará el nuevo destino.
+
+Verificar configuración remota/local con credenciales sintéticas, ausencia de secretos en Git/contexto Docker, los escenarios de configuración del lanzador, construcción Docker y arranque HTTP de solo lectura contra el destino existente sin ejecutar migraciones. Verificar el arranque local aislado para CI. No se cambia la aplicación ni se requieren nuevas pruebas Java/React de producto.
+
 Ejecutar python -m unittest discover -s tooling/database -p test_*.py desde raíz; docker compose config y ensayo en contenedores temporales sin tocar la base de aplicación. Sin cambios backend/frontend no se atribuye una nueva verificación Maven/Jest; se verifica el despliegue/configuración afectado. Consultar Supabase get_project/list_tables antes de cualquier escritura real. La base compartida no resuelve por sí sola el almacenamiento de archivos ni el alojamiento del backend.

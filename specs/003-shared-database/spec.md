@@ -72,3 +72,12 @@ Google OAuth (consulta informativa del usuario, no una implementación autorizad
 ## Criterios de finalización
 
 Todos los RF con evidencia, conexión real verificada y migración del origen activo comprobada. La preparación local por sí sola no satisface RF-3 ni implica despliegue completo. Mantener el plan Free y no activar extras/planes de pago.
+
+## Cambio de entrega solicitado (2026-11-25)
+
+Este apartado sustituye la selección opcional de Supabase y el destino de credenciales de RF-4, conservando su evidencia histórica.
+
+- RF-1: `compose.yaml` será la entrega predeterminada conectada al Supabase remoto existente. Un único `docker compose up --build -d --wait` desde la raíz debe crear la aplicación, sin un segundo Compose, Java local ni IntelliJ. Después de crearla, Docker Desktop debe poder parar/arrancar el contenedor con su configuración guardada.
+- RF-4: las variables se cargarán automáticamente desde `.env` local o el entorno; una plantilla sin contraseña explicará la configuración inicial. La contraseña no se incluirá en Git ni en la imagen. El lanzador opcional utilizará el mismo Compose/archivo y reutilizará una configuración antigua `.env.supabase` sin sobrescribir un `.env` existente.
+- Desarrollo y E2E conservarán PostgreSQL aislado mediante `compose.local.yaml`, sin conectarse a Supabase ni requerir sus credenciales. No se modifican datos, roles, migraciones ni archivos de medios del despliegue existente.
+- Las instrucciones deben distinguir la creación inicial de los contenedores de Start/Stop en Docker Desktop; cambiar `.env` requiere recrear la aplicación para actualizar su entorno.

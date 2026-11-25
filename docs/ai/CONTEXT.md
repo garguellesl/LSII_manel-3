@@ -67,6 +67,8 @@ SCRUM-48 adds session-scoped subscription state and a private paginated collecti
 
 ## Maintaining context
 
+Delivery update (2026-11-25, baseline 2e3d79c plus feature/docker-supabase-default): compose.yaml is now the standalone Supabase-connected application, using automatic local .env/environment interpolation, TLS and private schema protube. No local database, demo provisioning or startup import is included in the default delivery. compose.local.yaml preserves the previous isolated app/PostgreSQL stack for DEV/CI/E2E; their commands select it explicitly. The optional credential launcher uses the same compose.yaml/.env and imports an old .env.supabase only when .env is missing. The professor creates the deployment once with Compose, then uses Docker Desktop Start/Stop; environment changes require recreation. See [handoff](tasks/compose-supabase-default.md) and [verification](../../specs/003-shared-database/tasks.md). Earlier local-delivery/optional-Supabase descriptions above refer to their historical baselines.
+
 Keep task progress in `docs/ai/tasks/<ticket>.md` and the shared issue/PR. Keep requirements in `REQUIREMENT.md`. Record consequential decisions and their reasons in the task/PR, promoting only durable project rules into `AGENTS.md`. Do not copy credentials, local machine paths, or chat logs into context.
 
 

@@ -1,62 +1,39 @@
 # Shared PostgreSQL with Supabase
 
-The normal `compose.yaml` and **Production** configuration run a separate database on each PC. Git shares migrations and code, not database rows. Use **Production [Supabase]** or the explicit Compose file below after completing the migration. Development and automated tests should keep isolated databases.
+The default `compose.yaml` and **Production** configuration use the existing shared Supabase database. Development and automated tests use `compose.local.yaml` with their own PostgreSQL database.
 
-## Connection
+## Configure once, then run from Docker Desktop
 
-Create one Free Supabase project for the team, then open **Connect → Session pooler → JDBC**. Take the host and username from this panel. Session mode on port 5432 works over IPv4 and preserves the sessions used by Hibernate/Flyway; do not select the transaction pooler on 6543. [Supabase Spring Boot guide](https://supabase.com/docs/guides/getting-started/quickstarts/spring-boot).
+Copy `.env.example` to `.env` in the repository root and fill in the database password privately. The template includes the shared non-secret host, user, port and database name. Each teammate/professor must receive the real password privately; entering an arbitrary password does not create or reset an account.
 
-The shared template `tooling/database/supabase.env.example` already contains the project's non-secret connection settings and an empty password. **No password is distributed through Git.** Each teammate must know the actual database password through a private channel; entering a new arbitrary password does not create/reset a database account.
+Use the **Session pooler** on port 5432 for Spring/Hibernate/Flyway, with TLS and private schema `protube`. Do not substitute the transaction pooler on port 6543. [Supabase Spring Boot guide](https://supabase.com/docs/guides/getting-started/quickstarts/spring-boot).
 
-Select **Production [Supabase]** in IntelliJ. Its launcher reuses an existing valid `.env.supabase`. If a password is missing and the console supports hidden input, it asks for it and **saves it in that PC's `.env.supabase`** for subsequent starts. It preserves other local settings such as media paths and the Compose project name.
+From the repository root, with Docker Desktop in Linux containers mode:
 
-Some IntelliJ Maven consoles do not support hidden password entry. In that case the launcher stops safely with instructions. Open IntelliJ's **Terminal**, from the repository root, and run this once with the project's JDK (Java 21 or newer):
+```bash
+docker compose config --quiet
+docker compose up --build -d --wait
+```
+
+Compose automatically reads `.env`; no `--env-file` or alternative Compose file is required. Open http://localhost:8080. Once the project exists in Docker Desktop **Containers**, its Start/Stop controls restart it with the environment stored in the container. To apply changes to `.env` or the application, run the Compose command again. Restart alone does not reload environment files.
+
+Do not print `docker compose config` with real credentials: use `config --quiet`. Do not put the password in command-line arguments, frontend variables, Git or images. Compose environment values override `.env` values. A missing host/user/password fails configuration; an unreachable database or wrong password fails startup without a local fallback. Existing data is not automatically reimported and no demo account is provisioned.
+
+The local `.env` file is ignored by Git and excluded from the Docker build context. For manually quoted values, follow Compose dotenv quoting rules; the optional launcher below safely writes password symbols, backslashes, dollar signs and Unicode.
+
+## Optional IntelliJ/Java launcher
+
+**Production** runs the same `compose.yaml` directly. **Production [Supabase]** additionally prepares credentials using `StartSupabase.java`; Java is required only for this optional shortcut, not the Docker delivery. If `.env` is absent, the launcher copies an existing `.env.supabase` without changing it, or creates `.env` from `.env.example`. It never overwrites an existing `.env`.
+
+For hidden password entry, use a terminal with Java 21 or newer:
 
 ```bash
 java tooling/database/StartSupabase.java --configure
 ```
 
-The password is not displayed while typing and is saved in `.env.supabase`, excluded from Git and the Docker build context. The launcher handles quotes, dollar signs, backslashes and Unicode when writing the file. After saving, run **Production [Supabase]** normally; it will not ask again while the configuration is complete. If another editor changes the file while the prompt is open, saving is cancelled rather than overwriting that edit.
+If an IDE console cannot hide input, the launcher stops and points to this command. It preserves existing local settings, asks only when the password is missing, saves it in `.env`, and does not print it. `--check` validates configuration without prompting or starting containers; this does not validate the password against the database. The ordinary launcher invocation starts the same Compose deployment.
 
-To start from an interactive terminal, including the first-time prompt if necessary:
-
-```bash
-java tooling/database/StartSupabase.java
-```
-
-To check the local configuration without prompting or starting containers:
-
-```bash
-java tooling/database/StartSupabase.java --check
-```
-
-`--configure` and `--check` validate the Compose configuration, not the database password against the server. A wrong password will fail the actual application startup without falling back to a local database. To correct it, edit the local `.env.supabase`, or clear its password and run `--configure` again. An explicitly supplied `SUPABASE_DB_PASSWORD` environment variable takes precedence according to normal Compose rules.
-
-Manual configuration remains supported. These placeholders are not working credentials:
-
-```dotenv
-SUPABASE_DB_HOST=<session-pooler-host>
-SUPABASE_DB_USER=<session-pooler-user>
-SUPABASE_DB_PASSWORD='<database-password>'
-SUPABASE_DB_PORT=5432
-SUPABASE_DB_NAME=postgres
-```
-
-Keep the password only in this local file or deployment secrets. Compose single quotes preserve literal `$` and `#`; escape a literal single quote as `\'` in that value. Do not put the password in a command line, frontend environment variable, JDBC URL committed to Git, or a chat. Use a secrets manager for a hosted deployment. Do not print `docker compose config` with real credentials; `config --quiet` checks syntax without printing the resolved environment.
-
-From the repository root:
-
-```bash
-docker compose --env-file .env.supabase -f compose.supabase.yaml config --quiet
-# Only after the source data/media have been inventoried and migrated:
-docker compose --env-file .env.supabase -f compose.supabase.yaml up --build -d --wait
-```
-
-IntelliJ **Production [Supabase]** runs the Java launcher using Maven's own JDK; the launcher runs the same Compose delivery after checking credentials. No extra Python/Node installation is required for startup. The normal **Production** and DEV configurations remain local; selecting them does not upload rows to Supabase. All teammates who must write to the shared database must explicitly use the shared configuration.
-
-The shared configuration does not start a `db` service, does not fall back to `localhost`, requires host/user/password and disables startup demonstration imports. Missing or invalid credentials fail the startup rather than creating a second database. It uses TLS `require` (encrypted transport; this does not validate the server's certificate identity), a small connection pool, and schema `protube` for Flyway, Hibernate and native SQL. Flyway creates/manages that private schema; Hibernate continues validating it. Public Data API access is not required and no frontend Supabase key is added. For certificate identity validation, configure `verify-full` with the provider's CA as a separately verified deployment setting.
-
-Readiness queries one catalog result (`/api/videos?page=0&size=1`) with a 15-second timeout instead of fetching a full page within the local five-second limit. It still checks database-backed HTTP behavior while avoiding unnecessary per-video queries on every probe.
+Readiness checks `/api/videos?page=0&size=1` with a 15-second timeout to verify database access without fetching a full catalogue page. The small Hikari pool, private schema and TLS settings remain the existing shared-database configuration.
 
 ## Preserve existing data before the first switch
 
